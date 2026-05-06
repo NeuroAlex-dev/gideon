@@ -27,7 +27,7 @@ const DATA_DIR = join(AGENT_HOME, ".agent");
 const MEDIA_DIR = join(WORKSPACE, ".media");
 const SESSIONS_FILE = join(DATA_DIR, "sessions.json");
 const OWNER_FILE = join(DATA_DIR, "owner.json");
-const SYSTEM_PROMPT_PATH = join(DATA_DIR, "bot", "CLAUDE-SYSTEM.md");
+const SYSTEM_PROMPT_PATH = join(WORKSPACE, "CLAUDE.md");
 
 if (!BOT_TOKEN) {
   console.error("BOT_TOKEN is required");

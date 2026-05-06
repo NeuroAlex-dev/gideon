@@ -170,10 +170,12 @@ curl -fsSL https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/.claude
 for SKILL in discovery-interview content-creator fullstack-developer frontend-design; do mkdir -p /home/agent/.claude/skills/$SKILL && curl -fsSL https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/.claude/skills/$SKILL/SKILL.md -o /home/agent/.claude/skills/$SKILL/SKILL.md; done && echo OK
 ```
 
-После копирования — поправь владельца:
+После копирования — поправь владельца и создай симлинк для единой памяти:
 ```
-chown -R agent:agent /home/agent/workspace /home/agent/.claude
+chown -R agent:agent /home/agent/workspace /home/agent/.claude && ln -sf /home/agent/workspace/CLAUDE.md /home/agent/CLAUDE.md && chown -h agent:agent /home/agent/CLAUDE.md && echo OK
 ```
+
+> **Зачем симлинк:** Claude Code в VS Code открывается в `/home/agent/` и ищет `CLAUDE.md` в этой папке. Симлинк делает так, что и бот, и VS Code читают один и тот же файл с правилами — единый мозг агента.
 
 ## Шаг 6. Проверь результат
 
@@ -196,7 +198,7 @@ echo '=== Node.js ===' && node -v && echo '=== Claude Code ===' && which claude 
 
 **7.1. Скачай файлы бота из репозитория:**
 ```
-curl -fsSL https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/bot/index.js -o /home/agent/.agent/bot/index.js && curl -fsSL https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/bot/package.json -o /home/agent/.agent/bot/package.json && curl -fsSL https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/bot/CLAUDE-SYSTEM.md -o /home/agent/.agent/bot/CLAUDE-SYSTEM.md && echo OK
+curl -fsSL https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/bot/index.js -o /home/agent/.agent/bot/index.js && curl -fsSL https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/bot/package.json -o /home/agent/.agent/bot/package.json && echo OK
 ```
 
 **7.2. Установи зависимости:**

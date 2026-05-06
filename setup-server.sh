@@ -112,8 +112,12 @@ for SKILL in discovery-interview content-creator fullstack-developer frontend-de
 done
 log "Скиллы установлены (4 навыка)"
 
+# Симлинк для единой памяти (бот и VS Code читают один CLAUDE.md)
+ln -sf "$HOME_DIR/workspace/CLAUDE.md" "$HOME_DIR/CLAUDE.md"
+
 # Права
 chown -R "$USERNAME:$USERNAME" "$HOME_DIR"
+chown -h "$USERNAME:$USERNAME" "$HOME_DIR/CLAUDE.md"
 log "Папки готовы: workspace/ (файлы агента), projects/ (проекты)"
 
 # =====================
