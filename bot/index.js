@@ -19,6 +19,7 @@ import { createWriteStream } from "node:fs";
 import { execSync } from "node:child_process";
 import https from "node:https";
 import http from "node:http";
+import { handlePendingInput, registerSecretsHandlers } from "./secrets-menu.js";
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 
@@ -993,6 +994,9 @@ async function sendResponse(ctx, text) {
 const bot = new Bot(BOT_TOKEN);
 bot.api.config.use(autoRetry());
 
+// Меню /settings → 🔑 Переменные окружения (модуль secrets-menu.js)
+registerSecretsHandlers(bot, isOwner, mainKeyboard);
+
 // /start
 bot.command("start", async (ctx) => {
   // Auto-lock: first user to /start becomes the owner
@@ -1002,7 +1006,8 @@ bot.command("start", async (ctx) => {
       "Привет! Я твой персональный AI-агент.\n\n" +
       "Я привязался к твоему аккаунту и буду отвечать только тебе.\n\n" +
       "Пиши мне текстом, отправляй голосовые, фото или файлы — я помогу с любыми задачами.\n\n" +
-      "Используй кнопки внизу или просто пиши.",
+      "Используй кнопки внизу или просто пиши.\n\n" +
+      "📌 /settings — подключить API-ключи (Deepgram, GitHub, Vercel и т.д.)",
       { reply_markup: mainKeyboard }
     );
     return;
@@ -1011,7 +1016,8 @@ bot.command("start", async (ctx) => {
   await ctx.reply(
     "Привет! Я твой персональный AI-агент.\n\n" +
     "Пиши мне текстом, отправляй голосовые, фото или файлы — я помогу с любыми задачами.\n\n" +
-    "Используй кнопки внизу или просто пиши.",
+    "Используй кнопки внизу или просто пиши.\n\n" +
+    "📌 /settings — подключить API-ключи (Deepgram, GitHub, Vercel и т.д.)",
     { reply_markup: mainKeyboard }
   );
 });
@@ -1130,6 +1136,10 @@ bot.on("message:video", async (ctx) => {
 // Handle text messages
 bot.on("message:text", async (ctx) => {
   if (!isOwner(ctx)) return;
+
+  // Если ждём ввод секрета — обработать и не передавать в Claude
+  if (await handlePendingInput(ctx)) return;
+
   const userId = String(ctx.from.id);
   const text = ctx.message.text;
 
