@@ -1,0 +1,21 @@
+{
+  "name": "gideon-parser",
+  "version": "1.0.0",
+  "description": "Telegram chat members parser — web UI + REST API for @flash_gideon_bot",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test test/",
+    "cli": "node parse.js"
+  },
+  "dependencies": {
+    "telegram": "^2.26.16",
+    "express": "^4.21.2",
+    "dotenv": "^16.4.7"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
