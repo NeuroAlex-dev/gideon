@@ -124,26 +124,58 @@ export async function getParticipantUsernames(entity) {
   const c = await ensureConnected();
   const participants = await c.getParticipants(entity, { limit: 10000 });
 
+  // Fetch admin list separately. Only supported on channels/supergroups; basic groups throw.
+  const adminIds = new Set();
+  let creatorId = null;
+  try {
+    const admins = await c.getParticipants(entity, {
+      filter: new Api.ChannelParticipantsAdmins(),
+      limit: 200,
+    });
+    for (const a of admins) {
+      adminIds.add(String(a.id));
+      // Detect creator. GramJS attaches the raw participant on `.participant`.
+      const cls = a.participant?.className || a.participant?.constructor?.name;
+      if (cls === "ChannelParticipantCreator") {
+        creatorId = String(a.id);
+      }
+    }
+  } catch (e) {
+    // Basic groups / chats without admin filter — skip admin marking
+    console.warn("[getParticipants] admin filter not available:", e?.message || e);
+  }
+
   const usernames = [];
   let total = 0;
   let withUsername = 0;
   let withoutUsername = 0;
   let bots = 0;
+  let admins = 0;
 
   for (const p of participants) {
     total++;
     if (p.bot) bots++;
-    if (p.username) {
-      withUsername++;
-      usernames.push("@" + p.username);
-    } else {
+    if (!p.username) {
       withoutUsername++;
+      continue;
     }
+    withUsername++;
+    const idStr = String(p.id);
+    const isCreator = idStr === creatorId;
+    const isAdmin = adminIds.has(idStr) && !isCreator;
+    if (isAdmin || isCreator) admins++;
+
+    let prefix = "";
+    if (p.bot) prefix += "🤖";
+    if (isCreator) prefix += "⭐";
+    else if (isAdmin) prefix += "👑";
+
+    usernames.push(prefix ? `${prefix} @${p.username}` : `@${p.username}`);
   }
 
   return {
     usernames,
-    stats: { total, withUsername, withoutUsername, bots },
+    stats: { total, withUsername, withoutUsername, bots, admins },
   };
 }
 

@@ -198,8 +198,9 @@ $("parse-button").addEventListener("click", async () => {
 
   lastJobId = body.jobId;
   $("result-title").textContent = body.chat.title;
+  const adminPart = body.stats.admins != null ? ` · Админов: ${body.stats.admins}` : "";
   $("result-stats").textContent =
-    `Всего: ${body.stats.total} · С username: ${body.stats.withUsername} · Без: ${body.stats.withoutUsername} · Боты: ${body.stats.bots}`;
+    `Всего: ${body.stats.total} · С username: ${body.stats.withUsername} · Без: ${body.stats.withoutUsername} · Боты: ${body.stats.bots}${adminPart}  ·  🤖 бот · 👑 админ · ⭐ создатель`;
   $("result-list").value = body.numberedList || body.usernames.map((u, i) => `${i + 1}. ${u}`).join("\n");
   show("result");
 });
