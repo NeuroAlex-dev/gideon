@@ -76,3 +76,31 @@ test("GET /api/chats without session returns 403", async () => {
   const body = await res.json();
   assert.equal(body.error, "not_authorized");
 });
+
+test("POST /api/parse without session returns 403", async () => {
+  const res = await fetch(`${baseUrl}/api/parse?token=${authToken}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chatRef: "@test" }),
+  });
+  assert.equal(res.status, 403);
+});
+
+test("POST /api/parse without chatRef returns 403 (session check first) or 400", async () => {
+  const res = await fetch(`${baseUrl}/api/parse?token=${authToken}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  assert.ok(res.status === 400 || res.status === 403);
+});
+
+test("GET /api/export.txt without jobId returns 400", async () => {
+  const res = await fetch(`${baseUrl}/api/export.txt?token=${authToken}`);
+  assert.equal(res.status, 400);
+});
+
+test("GET /api/export.txt with unknown jobId returns 404", async () => {
+  const res = await fetch(`${baseUrl}/api/export.txt?token=${authToken}&jobId=does-not-exist`);
+  assert.equal(res.status, 404);
+});

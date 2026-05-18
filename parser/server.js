@@ -62,6 +62,26 @@ function requireAuth(req, res, next) {
   return res.status(401).json({ error: "unauthorized" });
 }
 
+const parseCache = new Map(); // jobId -> { chat, usernames, stats, expiresAt }
+let parseInProgress = false;
+
+function pruneCache() {
+  const now = Date.now();
+  for (const [k, v] of parseCache) {
+    if (v.expiresAt < now) parseCache.delete(k);
+  }
+}
+
+function withTimeout(promise, ms, errMessage) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(Object.assign(new Error(errMessage), { code: "TIMEOUT" })), ms);
+    promise.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); }
+    );
+  });
+}
+
 export function createApp() {
   const app = express();
   app.set("trust proxy", "loopback");
@@ -140,6 +160,90 @@ export function createApp() {
       console.error("[chats]", e);
       res.status(500).json({ error: "chats_failed", message: String(e?.message || e) });
     }
+  });
+
+  app.post("/api/parse", requireAuth, async (req, res) => {
+    if (!sessionStore.isAuthorized()) {
+      return res.status(403).json({ error: "not_authorized" });
+    }
+    const { chatRef } = req.body || {};
+    if (!chatRef) {
+      return res.status(400).json({ error: "chatRef_required" });
+    }
+    if (parseInProgress) {
+      return res.status(409).json({ error: "parse_in_progress" });
+    }
+    parseInProgress = true;
+    const startedAt = Date.now();
+    try {
+      ensureClientConfigured();
+      const { resolveChat, getParticipantUsernames } = await import("./lib/telegram.js");
+      const entity = await withTimeout(resolveChat(chatRef), 15000, "resolve_timeout");
+      const { usernames, stats } = await withTimeout(getParticipantUsernames(entity), 60000, "parse_timeout");
+
+      pruneCache();
+      const jobId = String(Date.now()) + "-" + Math.random().toString(36).slice(2, 8);
+      const chat = {
+        id: String(entity.id),
+        title: entity.title || entity.username || String(entity.id),
+        membersCount: Number(entity.participantsCount || stats.total || 0),
+      };
+      parseCache.set(jobId, {
+        chat,
+        usernames,
+        stats,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      });
+
+      res.json({
+        jobId,
+        chat,
+        usernames,
+        stats,
+        durationMs: Date.now() - startedAt,
+      });
+    } catch (e) {
+      const msg = String(e?.errorMessage || e?.message || e);
+      if (e?.code === "FLOOD_WAIT" || /FLOOD_WAIT_(\d+)/.test(msg)) {
+        const m = msg.match(/FLOOD_WAIT_(\d+)/);
+        const retryAfter = e?.seconds || (m ? Number(m[1]) : 5);
+        return res.status(429).json({ error: "flood_wait", retryAfter });
+      }
+      if (e?.code === "TIMEOUT" || e?.code === "parse_timeout" || e?.code === "resolve_timeout") {
+        return res.status(504).json({ error: "timeout" });
+      }
+      if (e?.code === "INVITE_NOT_SUPPORTED") {
+        return res.status(400).json({ error: "invite_not_supported", hint: "Сначала вступи в чат" });
+      }
+      if (/USERNAME_NOT_OCCUPIED|CHANNEL_INVALID|PEER_ID_INVALID|USERNAME_INVALID/.test(msg)) {
+        return res.status(404).json({ error: "chat_not_found" });
+      }
+      if (/CHANNEL_PRIVATE|CHAT_ADMIN_REQUIRED/.test(msg)) {
+        return res.status(403).json({ error: "no_access", hint: "Вступи в чат или нужны права админа" });
+      }
+      if (/AUTH_KEY_UNREGISTERED|SESSION_REVOKED/.test(msg)) {
+        return res.status(401).json({ error: "session_revoked", hint: "Нужно авторизоваться заново" });
+      }
+      console.error("[parse]", e);
+      res.status(500).json({ error: "parse_failed", message: msg });
+    } finally {
+      parseInProgress = false;
+    }
+  });
+
+  app.get("/api/export.txt", requireAuth, (req, res) => {
+    const { jobId } = req.query;
+    if (!jobId) return res.status(400).json({ error: "jobId_required" });
+    const entry = parseCache.get(String(jobId));
+    if (!entry) return res.status(404).json({ error: "job_not_found_or_expired" });
+
+    const date = new Date().toISOString().slice(0, 10);
+    const safeTitle = String(entry.chat.title).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40) || "chat";
+    const filename = `${safeTitle}-${date}.txt`;
+
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(entry.usernames.join("\n"));
   });
 
   return app;
