@@ -262,6 +262,20 @@ export function registerParserHandlers(bot, isOwner) {
           await ctx.reply("Сейчас уже идёт другой парсинг. Подожди и повтори.");
           return;
         }
+        if (status === 401 || body?.error === "session_revoked") {
+          await ctx.reply(
+            "Telegram отозвал сессию парсера. Это бывает когда параллельно работает реальный Telegram Desktop с тем же аккаунтом (мы используем публичные ключи).\n\n" +
+            "Что сделать:\n" +
+            "1. Открой веб-парсер: команда /parser → «🌐 Открыть в браузере»\n" +
+            "2. Пройди авторизацию заново (телефон → код → 2FA)\n" +
+            "3. Повтори /parser в боте"
+          );
+          return;
+        }
+        if (status === 202 && body?.error === "invite_request_sent") {
+          await ctx.reply(body.hint || "Заявка отправлена. Жди одобрения админа и повтори позже.");
+          return;
+        }
         if (status !== 200) {
           await ctx.reply(`Ошибка: ${body.error || body.message || status}`);
           return;
