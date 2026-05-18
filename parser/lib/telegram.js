@@ -124,28 +124,39 @@ export async function getParticipantUsernames(entity) {
   const c = await ensureConnected();
   const participants = await c.getParticipants(entity, { limit: 10000 });
 
+  // Robust id stringification: GramJS uses BigInteger / bigint, plain String() may yield "[object Object]"
+  const idStr = (v) => {
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    if (typeof v === "bigint") return v.toString();
+    if (typeof v === "number") return String(v);
+    if (typeof v.toString === "function") return v.toString();
+    return String(v);
+  };
+
   // Fetch admin list separately. Only supported on channels/supergroups; basic groups throw.
   const adminIds = new Set();
+  const adminUserById = new Map(); // userId -> User object (for adding admins missing from participants)
   let creatorId = null;
   try {
-    const admins = await c.getParticipants(entity, {
+    const adminList = await c.getParticipants(entity, {
       filter: new Api.ChannelParticipantsAdmins(),
       limit: 200,
     });
-    for (const a of admins) {
-      adminIds.add(String(a.id));
-      // Detect creator. GramJS attaches the raw participant on `.participant`.
+    for (const a of adminList) {
+      const candidateId = idStr(a.participant?.userId) || idStr(a.userId) || idStr(a.id);
+      if (!candidateId) continue;
+      adminIds.add(candidateId);
+      adminUserById.set(candidateId, a);
       const cls = a.participant?.className || a.participant?.constructor?.name;
-      if (cls === "ChannelParticipantCreator") {
-        creatorId = String(a.id);
-      }
+      if (cls === "ChannelParticipantCreator") creatorId = candidateId;
     }
   } catch (e) {
-    // Basic groups / chats without admin filter — skip admin marking
     console.warn("[getParticipants] admin filter not available:", e?.message || e);
   }
 
   const usernames = [];
+  const seenIds = new Set();
   let total = 0;
   let withUsername = 0;
   let withoutUsername = 0;
@@ -154,15 +165,16 @@ export async function getParticipantUsernames(entity) {
 
   for (const p of participants) {
     total++;
+    seenIds.add(idStr(p.id));
     if (p.bot) bots++;
     if (!p.username) {
       withoutUsername++;
       continue;
     }
     withUsername++;
-    const idStr = String(p.id);
-    const isCreator = idStr === creatorId;
-    const isAdmin = adminIds.has(idStr) && !isCreator;
+    const pid = idStr(p.id);
+    const isCreator = pid === creatorId;
+    const isAdmin = adminIds.has(pid) && !isCreator;
     if (isAdmin || isCreator) admins++;
 
     let prefix = "";
@@ -171,6 +183,26 @@ export async function getParticipantUsernames(entity) {
     else if (isAdmin) prefix += "👑";
 
     usernames.push(prefix ? `${prefix} @${p.username}` : `@${p.username}`);
+  }
+
+  // Add admins that weren't in the regular participants list (anonymous admins,
+  // admins from linked channels, hidden members, etc). They appear at the end.
+  for (const [aid, a] of adminUserById) {
+    if (seenIds.has(aid)) continue;
+    if (a.bot) bots++;
+    if (!a.username) {
+      // No username — can't represent in our @username-only output. Skip silently.
+      continue;
+    }
+    total++;
+    withUsername++;
+    admins++;
+    const cls = a.participant?.className || a.participant?.constructor?.name;
+    const isCreator = cls === "ChannelParticipantCreator" || aid === creatorId;
+    let prefix = "";
+    if (a.bot) prefix += "🤖";
+    prefix += isCreator ? "⭐" : "👑";
+    usernames.push(`${prefix} @${a.username}`);
   }
 
   return {
