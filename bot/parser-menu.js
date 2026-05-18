@@ -7,6 +7,23 @@ import { InlineKeyboard, InputFile } from "grammy";
 
 const PARSER_URL = process.env.PARSER_URL || "http://localhost:3000";
 
+function chunkByLines(text, maxLen) {
+  const lines = text.split("\n");
+  const chunks = [];
+  let current = "";
+  for (const line of lines) {
+    const candidate = current ? current + "\n" + line : line;
+    if (candidate.length > maxLen && current) {
+      chunks.push(current);
+      current = line;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks.length > 0 ? chunks : [""];
+}
+
 // FSM: userId -> { step, data }
 const states = new Map();
 
@@ -257,12 +274,22 @@ export function registerParserHandlers(bot, isOwner) {
 
         await ctx.api.editMessageText(ctx.chat.id, statusMsg.message_id, summary).catch(() => {});
 
-        const txt = body.usernames.join("\n");
         const safe = String(body.chat.title).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40);
         const date = new Date().toISOString().slice(0, 10);
         const filename = `${safe || "chat"}-${date}.txt`;
 
-        await ctx.replyWithDocument(new InputFile(Buffer.from(txt, "utf8"), filename), {
+        // Send .txt file first (no buttons — buttons go under the last message)
+        const numberedTxt = body.numberedList || body.usernames.map((u, i) => `${i + 1}. ${u}`).join("\n");
+        await ctx.replyWithDocument(new InputFile(Buffer.from(numberedTxt, "utf8"), filename));
+
+        // Send numbered list as text messages, chunked at line boundaries (≤3900 chars per chunk)
+        const chunks = chunkByLines(numberedTxt, 3900);
+        for (let i = 0; i < chunks.length - 1; i++) {
+          await ctx.reply(chunks[i]);
+          await new Promise((r) => setTimeout(r, 250)); // gentle pacing to avoid FloodWait
+        }
+        // Last chunk carries the action buttons
+        await ctx.reply(chunks[chunks.length - 1], {
           reply_markup: new InlineKeyboard()
             .text("🔁 Спарсить ещё", "parser_again").row()
             .text("📋 Главное меню", "parser_again"),

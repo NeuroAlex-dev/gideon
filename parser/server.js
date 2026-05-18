@@ -202,9 +202,11 @@ export function createApp() {
         title: entity.title || entity.username || String(entity.id),
         membersCount: Number(entity.participantsCount || stats.total || 0),
       };
+      const numberedList = usernames.map((u, i) => `${i + 1}. ${u}`).join("\n");
       parseCache.set(jobId, {
         chat,
         usernames,
+        numberedList,
         stats,
         expiresAt: Date.now() + 10 * 60 * 1000,
       });
@@ -213,6 +215,7 @@ export function createApp() {
         jobId,
         chat,
         usernames,
+        numberedList,
         stats,
         durationMs: Date.now() - startedAt,
       });
@@ -266,7 +269,7 @@ export function createApp() {
 
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.send(entry.usernames.join("\n"));
+    res.send(entry.numberedList || entry.usernames.map((u, i) => `${i + 1}. ${u}`).join("\n"));
   });
 
   return app;

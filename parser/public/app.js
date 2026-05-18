@@ -200,7 +200,7 @@ $("parse-button").addEventListener("click", async () => {
   $("result-title").textContent = body.chat.title;
   $("result-stats").textContent =
     `Всего: ${body.stats.total} · С username: ${body.stats.withUsername} · Без: ${body.stats.withoutUsername} · Боты: ${body.stats.bots}`;
-  $("result-list").value = body.usernames.join("\n");
+  $("result-list").value = body.numberedList || body.usernames.map((u, i) => `${i + 1}. ${u}`).join("\n");
   show("result");
 });
 
