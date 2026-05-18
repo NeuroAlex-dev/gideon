@@ -54,18 +54,70 @@ export async function resolveChat(chatRef) {
   const ref = normalizeChatRef(chatRef);
 
   if (ref.type === "username") {
-    return await c.getEntity(ref.value);
+    const entity = await c.getEntity(ref.value);
+    return { entity, joinedNow: false };
   }
   if (ref.type === "id") {
-    return await c.getEntity(Number(ref.value));
+    const entity = await c.getEntity(Number(ref.value));
+    return { entity, joinedNow: false };
   }
   if (ref.type === "invite") {
-    // Joining via invite link is out of scope; user must already be a member.
-    throw Object.assign(new Error("Invite links require joining first"), {
-      code: "INVITE_NOT_SUPPORTED",
-    });
+    return await joinByInvite(ref.value);
   }
   throw new Error("unsupported chat ref type");
+}
+
+async function joinByInvite(hash) {
+  const c = await ensureConnected();
+  try {
+    const result = await c.invoke(new Api.messages.ImportChatInvite({ hash }));
+    // result.chats contains the joined chat(s)
+    const chats = result.chats || [];
+    if (chats.length === 0) {
+      throw Object.assign(new Error("Invite returned no chats"), { code: "INVITE_EMPTY" });
+    }
+    return { entity: chats[0], joinedNow: true };
+  } catch (e) {
+    const msg = String(e?.errorMessage || e?.message || e);
+    // Already a member — fetch entity via CheckChatInvite
+    if (/USER_ALREADY_PARTICIPANT/.test(msg)) {
+      const check = await c.invoke(new Api.messages.CheckChatInvite({ hash }));
+      // check.chat is set when already a member
+      const entity = check?.chat;
+      if (entity) return { entity, joinedNow: false };
+      throw Object.assign(new Error("Already a member but no chat returned"), { code: "INVITE_ALREADY_MEMBER" });
+    }
+    if (/INVITE_REQUEST_SENT/.test(msg)) {
+      throw Object.assign(new Error("Invite request sent, waiting for admin approval"), {
+        code: "INVITE_REQUEST_SENT",
+      });
+    }
+    if (/INVITE_HASH_EXPIRED|INVITE_HASH_INVALID/.test(msg)) {
+      throw Object.assign(new Error("Invite link expired or invalid"), { code: "INVITE_INVALID" });
+    }
+    throw e;
+  }
+}
+
+export async function leaveChat(entity) {
+  const c = await ensureConnected();
+  try {
+    // Try LeaveChannel first (works for supergroups and channels)
+    await c.invoke(new Api.channels.LeaveChannel({ channel: entity }));
+    return true;
+  } catch (e) {
+    // For legacy basic groups, use DeleteChatUser with self
+    try {
+      const me = await c.getMe();
+      await c.invoke(
+        new Api.messages.DeleteChatUser({ chatId: entity.id, userId: me.id })
+      );
+      return true;
+    } catch (e2) {
+      console.error("[leaveChat] both attempts failed:", e.message, "and", e2.message);
+      return false;
+    }
+  }
 }
 
 export async function getParticipantUsernames(entity) {

@@ -178,9 +178,22 @@ export function createApp() {
     const startedAt = Date.now();
     try {
       ensureClientConfigured();
-      const { resolveChat, getParticipantUsernames } = await import("./lib/telegram.js");
-      const entity = await withTimeout(resolveChat(chatRef), 15000, "resolve_timeout");
-      const { usernames, stats } = await withTimeout(getParticipantUsernames(entity), 60000, "parse_timeout");
+      const { resolveChat, getParticipantUsernames, leaveChat } = await import("./lib/telegram.js");
+      const { entity, joinedNow } = await withTimeout(resolveChat(chatRef), 30000, "resolve_timeout");
+      let parsed;
+      try {
+        parsed = await withTimeout(getParticipantUsernames(entity), 60000, "parse_timeout");
+      } finally {
+        // If we joined just for this parse, leave whether or not parsing succeeded
+        if (joinedNow) {
+          try {
+            await withTimeout(leaveChat(entity), 10000, "leave_timeout");
+          } catch (leaveErr) {
+            console.warn("[parse] failed to leave after auto-join:", leaveErr?.message || leaveErr);
+          }
+        }
+      }
+      const { usernames, stats } = parsed;
 
       pruneCache();
       const jobId = String(Date.now()) + "-" + Math.random().toString(36).slice(2, 8);
@@ -213,8 +226,17 @@ export function createApp() {
       if (e?.code === "TIMEOUT" || e?.code === "parse_timeout" || e?.code === "resolve_timeout") {
         return res.status(504).json({ error: "timeout" });
       }
-      if (e?.code === "INVITE_NOT_SUPPORTED") {
-        return res.status(400).json({ error: "invite_not_supported", hint: "Сначала вступи в чат" });
+      if (e?.code === "INVITE_REQUEST_SENT") {
+        return res.status(202).json({
+          error: "invite_request_sent",
+          hint: "Заявка на вступление отправлена. Жди одобрения админа, потом повтори парсинг.",
+        });
+      }
+      if (e?.code === "INVITE_INVALID") {
+        return res.status(400).json({ error: "invite_invalid", hint: "Ссылка-приглашение устарела или невалидна" });
+      }
+      if (e?.code === "INVITE_EMPTY" || e?.code === "INVITE_ALREADY_MEMBER") {
+        return res.status(500).json({ error: "invite_resolve_failed", hint: String(e?.message || e) });
       }
       if (/USERNAME_NOT_OCCUPIED|CHANNEL_INVALID|PEER_ID_INVALID|USERNAME_INVALID/.test(msg)) {
         return res.status(404).json({ error: "chat_not_found" });

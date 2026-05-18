@@ -153,12 +153,18 @@ export function registerParserHandlers(bot, isOwner) {
     setState(ctx.from.id, "awaiting-chat-ref");
     try {
       await ctx.editMessageText(
-        "Пришли @username чата или ссылку (например: https://t.me/vibe_course).\n" +
+        "Пришли @username чата или ссылку. Форматы:\n" +
+        "• @vibe_course — публичный чат\n" +
+        "• https://t.me/vibe_course — публичный чат\n" +
+        "• https://t.me/+abcd1234 — приватный по invite (парсер вступит и выйдет)\n\n" +
         "Для отмены — /cancel."
       );
     } catch {
       await ctx.reply(
-        "Пришли @username чата или ссылку (например: https://t.me/vibe_course).\n" +
+        "Пришли @username чата или ссылку. Форматы:\n" +
+        "• @vibe_course — публичный чат\n" +
+        "• https://t.me/vibe_course — публичный чат\n" +
+        "• https://t.me/+abcd1234 — приватный по invite (парсер вступит и выйдет)\n\n" +
         "Для отмены — /cancel."
       );
     }
