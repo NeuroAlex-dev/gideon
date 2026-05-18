@@ -43,3 +43,29 @@ test("protected route with wrong token from explicit external IP would fail (smo
   const res = await fetch(`${baseUrl}/api/auth/status?token=${authToken}`);
   assert.equal(res.status, 200);
 });
+
+test("GET /api/auth/status returns shape", async () => {
+  const res = await fetch(`${baseUrl}/api/auth/status?token=${authToken}`);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(typeof body.authorized, "boolean");
+  assert.equal(typeof body.hasCredentials, "boolean");
+});
+
+test("POST /api/auth/send-code without phone returns 400", async () => {
+  const res = await fetch(`${baseUrl}/api/auth/send-code?token=${authToken}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  assert.equal(res.status, 400);
+});
+
+test("POST /api/auth/sign-in without fields returns 400", async () => {
+  const res = await fetch(`${baseUrl}/api/auth/sign-in?token=${authToken}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  assert.equal(res.status, 400);
+});
