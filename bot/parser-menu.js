@@ -284,10 +284,15 @@ export function registerParserHandlers(bot, isOwner) {
         const stats = body.stats;
         const adminLine = stats.admins != null ? ` · Админов: ${stats.admins}` : "";
         const botsLine = stats.bots != null ? ` · Ботов: ${stats.bots}` : "";
+        const adminList = Array.isArray(body.adminUsernames) ? body.adminUsernames : [];
+        const adminBlock = adminList.length > 0
+          ? `\n\n👑 Админы (${adminList.length}):\n${adminList.join("\n")}`
+          : "";
         const summary =
           `✅ Готово!\n\n📊 ${body.chat.title}\n` +
-          `Всего: ${stats.total} · С username: ${stats.withUsername} · Без: ${stats.withoutUsername}${adminLine}${botsLine}\n\n` +
-          `🤖 — бот · 👑 — админ · ⭐ — создатель чата`;
+          `Всего: ${stats.total} · С username: ${stats.withUsername} · Без: ${stats.withoutUsername}${adminLine}${botsLine}` +
+          adminBlock +
+          `\n\n🤖 — бот · 👑 — админ · ⭐ — создатель чата`;
 
         await ctx.api.editMessageText(ctx.chat.id, statusMsg.message_id, summary).catch(() => {});
 

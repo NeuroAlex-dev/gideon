@@ -193,7 +193,7 @@ export function createApp() {
           }
         }
       }
-      const { usernames, stats } = parsed;
+      const { usernames, stats, adminUsernames = [] } = parsed;
 
       pruneCache();
       const jobId = String(Date.now()) + "-" + Math.random().toString(36).slice(2, 8);
@@ -207,6 +207,7 @@ export function createApp() {
         chat,
         usernames,
         numberedList,
+        adminUsernames,
         stats,
         expiresAt: Date.now() + 10 * 60 * 1000,
       });
@@ -216,6 +217,7 @@ export function createApp() {
         chat,
         usernames,
         numberedList,
+        adminUsernames,
         stats,
         durationMs: Date.now() - startedAt,
       });

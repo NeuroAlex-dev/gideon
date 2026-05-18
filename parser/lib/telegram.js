@@ -205,8 +205,32 @@ export async function getParticipantUsernames(entity) {
     usernames.push(`${prefix} @${a.username}`);
   }
 
+  // Sort by role: creator → admin → bot → regular. Stable within each group.
+  const sortRank = (str) => {
+    if (str.startsWith("⭐") || str.startsWith("🤖⭐")) return 0;
+    if (str.startsWith("👑") || str.startsWith("🤖👑")) return 1;
+    if (str.startsWith("🤖")) return 2;
+    return 3;
+  };
+  // Pair each entry with its original index for stable sort within groups
+  const indexed = usernames.map((u, i) => ({ u, i }));
+  indexed.sort((a, b) => {
+    const r = sortRank(a.u) - sortRank(b.u);
+    return r !== 0 ? r : a.i - b.i;
+  });
+  const sortedUsernames = indexed.map((x) => x.u);
+
+  // Extract admin usernames (without prefixes) for the bot summary block
+  const adminUsernames = sortedUsernames
+    .filter((u) => u.startsWith("⭐") || u.startsWith("👑") || u.startsWith("🤖⭐") || u.startsWith("🤖👑"))
+    .map((u) => {
+      const at = u.indexOf("@");
+      return at >= 0 ? u.slice(at) : u;
+    });
+
   return {
-    usernames,
+    usernames: sortedUsernames,
+    adminUsernames,
     stats: { total, withUsername, withoutUsername, bots, admins },
   };
 }

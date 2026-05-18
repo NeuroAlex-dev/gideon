@@ -104,3 +104,5 @@ textarea {
 
 code { background: var(--panel); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
 a { color: var(--accent); }
+
+#result-stats { white-space: pre-wrap; }

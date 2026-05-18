@@ -199,8 +199,10 @@ $("parse-button").addEventListener("click", async () => {
   lastJobId = body.jobId;
   $("result-title").textContent = body.chat.title;
   const adminPart = body.stats.admins != null ? ` · Админов: ${body.stats.admins}` : "";
+  const adminList = Array.isArray(body.adminUsernames) ? body.adminUsernames : [];
+  const adminListLine = adminList.length > 0 ? `\n👑 ${adminList.join(", ")}` : "";
   $("result-stats").textContent =
-    `Всего: ${body.stats.total} · С username: ${body.stats.withUsername} · Без: ${body.stats.withoutUsername} · Боты: ${body.stats.bots}${adminPart}  ·  🤖 бот · 👑 админ · ⭐ создатель`;
+    `Всего: ${body.stats.total} · С username: ${body.stats.withUsername} · Без: ${body.stats.withoutUsername} · Боты: ${body.stats.bots}${adminPart}  ·  🤖 бот · 👑 админ · ⭐ создатель${adminListLine}`;
   $("result-list").value = body.numberedList || body.usernames.map((u, i) => `${i + 1}. ${u}`).join("\n");
   show("result");
 });
