@@ -69,3 +69,10 @@ test("POST /api/auth/sign-in without fields returns 400", async () => {
   });
   assert.equal(res.status, 400);
 });
+
+test("GET /api/chats without session returns 403", async () => {
+  const res = await fetch(`${baseUrl}/api/chats?token=${authToken}`);
+  assert.equal(res.status, 403);
+  const body = await res.json();
+  assert.equal(body.error, "not_authorized");
+});

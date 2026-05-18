@@ -127,6 +127,21 @@ export function createApp() {
     }
   });
 
+  app.get("/api/chats", requireAuth, async (_req, res) => {
+    if (!sessionStore.isAuthorized()) {
+      return res.status(403).json({ error: "not_authorized" });
+    }
+    try {
+      ensureClientConfigured();
+      const { listOwnerGroups } = await import("./lib/chats.js");
+      const chats = await listOwnerGroups();
+      res.json({ chats });
+    } catch (e) {
+      console.error("[chats]", e);
+      res.status(500).json({ error: "chats_failed", message: String(e?.message || e) });
+    }
+  });
+
   return app;
 }
 
