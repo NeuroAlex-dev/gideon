@@ -86,6 +86,7 @@ export function createApp() {
   const app = express();
   app.set("trust proxy", "loopback");
   app.use(express.json({ limit: "100kb" }));
+  app.use(express.static(join(__dirname, "public"), { index: "index.html" }));
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, version: VERSION });
