@@ -105,7 +105,122 @@ $("password-form").addEventListener("submit", async (e) => {
   location.reload();
 });
 
-// Parser screen handlers — Task 14
-async function loadChats() { /* implemented in Task 14 */ }
+let allChats = [];
+let selectedChatId = null;
+let lastJobId = null;
+
+async function loadChats() {
+  const { status, body } = await api("/api/chats");
+  if (status !== 200) {
+    $("parser-error").textContent = body.message || body.error || "Не удалось загрузить чаты";
+    show("parser-error");
+    return;
+  }
+  allChats = body.chats || [];
+  renderChats(allChats);
+}
+
+function renderChats(chats) {
+  const ul = $("chats-list");
+  ul.innerHTML = "";
+  for (const c of chats) {
+    const li = document.createElement("li");
+    li.dataset.id = c.id;
+    li.innerHTML = `<span class="members">${c.membersCount.toLocaleString()}</span>${escapeHtml(c.title)}`;
+    li.addEventListener("click", () => selectChat(c));
+    ul.appendChild(li);
+  }
+}
+
+function selectChat(c) {
+  selectedChatId = c.id;
+  for (const li of document.querySelectorAll("#chats-list li")) {
+    li.classList.toggle("selected", li.dataset.id === c.id);
+  }
+  $("parse-button").disabled = false;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+$("chat-search").addEventListener("input", (e) => {
+  const q = e.target.value.toLowerCase();
+  renderChats(allChats.filter((c) => c.title.toLowerCase().includes(q)));
+});
+
+document.querySelectorAll('input[name="source"]').forEach((r) => {
+  r.addEventListener("change", () => {
+    const isList = r.value === "list" && r.checked;
+    $("source-list").classList.toggle("hidden", !isList);
+    $("source-ref").classList.toggle("hidden", isList);
+    $("parse-button").disabled = isList ? !selectedChatId : !$("chat-ref-input").value.trim();
+  });
+});
+
+$("chat-ref-input").addEventListener("input", (e) => {
+  $("parse-button").disabled = !e.target.value.trim();
+});
+
+$("parse-button").addEventListener("click", async () => {
+  hide("parser-error");
+  hide("result");
+  $("parse-button").disabled = true;
+  $("parser-status").textContent = "Парсю…";
+  show("parser-status");
+
+  const source = document.querySelector('input[name="source"]:checked').value;
+  let chatRef;
+  if (source === "list") {
+    const c = allChats.find((x) => x.id === selectedChatId);
+    chatRef = c.username ? "@" + c.username : c.id;
+  } else {
+    chatRef = $("chat-ref-input").value.trim();
+  }
+
+  const { status, body } = await api("/api/parse", {
+    method: "POST",
+    body: JSON.stringify({ chatRef }),
+  });
+  hide("parser-status");
+  $("parse-button").disabled = false;
+
+  if (status === 429) {
+    $("parser-error").textContent = `Telegram попросил подождать ${body.retryAfter} сек. Попробуй позже.`;
+    show("parser-error");
+    return;
+  }
+  if (status !== 200) {
+    $("parser-error").textContent = body.hint || body.message || body.error || "Ошибка парсинга";
+    show("parser-error");
+    return;
+  }
+
+  lastJobId = body.jobId;
+  $("result-title").textContent = body.chat.title;
+  $("result-stats").textContent =
+    `Всего: ${body.stats.total} · С username: ${body.stats.withUsername} · Без: ${body.stats.withoutUsername} · Боты: ${body.stats.bots}`;
+  $("result-list").value = body.usernames.join("\n");
+  show("result");
+});
+
+$("copy-btn").addEventListener("click", async () => {
+  await navigator.clipboard.writeText($("result-list").value);
+  const t = $("copy-toast");
+  t.textContent = `Скопировано · ${$("result-list").value.split("\n").length} строк`;
+  show("copy-toast");
+  setTimeout(() => hide("copy-toast"), 2000);
+});
+
+$("download-btn").addEventListener("click", () => {
+  if (!lastJobId) return;
+  const url = `/api/export.txt?jobId=${encodeURIComponent(lastJobId)}${TOKEN ? "&token=" + TOKEN : ""}`;
+  location.href = url;
+});
+
+$("again-btn").addEventListener("click", () => {
+  hide("result");
+  $("parse-button").disabled = false;
+});
 
 init();
