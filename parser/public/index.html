@@ -1,4 +1,94 @@
 <!doctype html>
-<meta charset="utf-8">
-<title>Gideon Parser</title>
-<p>Loading…</p>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Гидеон · Парсер участников</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>Гидеон · Парсер участников</h1>
+    <div id="header-actions"></div>
+  </header>
+
+  <main id="app">
+    <section id="loading" class="screen">
+      <p>Загрузка…</p>
+    </section>
+
+    <section id="auth-screen" class="screen hidden">
+      <h2>Авторизация Telegram</h2>
+      <div id="no-credentials" class="hidden warning">
+        <p>В <code>parser/.env</code> не заполнены <code>API_ID</code> и <code>API_HASH</code>.</p>
+        <ol>
+          <li>Открой <a href="https://my.telegram.org" target="_blank" rel="noopener">my.telegram.org</a> → API development tools.</li>
+          <li>Создай приложение.</li>
+          <li>Скопируй <code>API_ID</code> и <code>API_HASH</code> в файл <code>parser/.env</code>.</li>
+          <li>Перезапусти сервис: <code>pm2 restart agent-parser</code>.</li>
+          <li>Обнови страницу.</li>
+        </ol>
+      </div>
+
+      <form id="phone-form" class="hidden">
+        <label>Номер телефона (с кодом страны)
+          <input type="tel" name="phone" placeholder="+79991234567" required>
+        </label>
+        <button type="submit">Получить код</button>
+      </form>
+
+      <form id="code-form" class="hidden">
+        <p>Код пришёл в официальный чат Telegram.</p>
+        <label>Код
+          <input type="text" name="code" placeholder="12345" inputmode="numeric" required>
+        </label>
+        <button type="submit">Подтвердить</button>
+      </form>
+
+      <form id="password-form" class="hidden">
+        <label>Пароль 2FA
+          <input type="password" name="password" required>
+        </label>
+        <button type="submit">Войти</button>
+      </form>
+
+      <p id="auth-error" class="error hidden"></p>
+    </section>
+
+    <section id="parser-screen" class="screen hidden">
+      <div class="row">
+        <label><input type="radio" name="source" value="list" checked> Из моих чатов</label>
+        <label><input type="radio" name="source" value="ref"> По ссылке / @username</label>
+      </div>
+
+      <div id="source-list">
+        <input id="chat-search" type="search" placeholder="Поиск по названию…">
+        <ul id="chats-list" class="chats"></ul>
+      </div>
+
+      <div id="source-ref" class="hidden">
+        <input id="chat-ref-input" type="text" placeholder="@vibe_course или https://t.me/...">
+      </div>
+
+      <button id="parse-button" disabled>Спарсить участников</button>
+
+      <p id="parser-status" class="hidden"></p>
+      <p id="parser-error" class="error hidden"></p>
+
+      <section id="result" class="hidden">
+        <h2 id="result-title"></h2>
+        <p id="result-stats"></p>
+        <textarea id="result-list" readonly rows="14"></textarea>
+        <div class="row">
+          <button id="copy-btn">Копировать всё</button>
+          <button id="download-btn">Скачать .txt</button>
+          <button id="again-btn">Новый парсинг</button>
+        </div>
+        <p id="copy-toast" class="toast hidden"></p>
+      </section>
+    </section>
+  </main>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
