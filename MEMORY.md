@@ -14,20 +14,29 @@
 ## Контакты и аккаунты
 
 - **Email (Git, основной):** alexpiterlair@gmail.com
+- **GitHub:** github.com/NeuroAlex-dev
 
 ---
 
 ## Активные проекты
 
-Пока не определены.
+- **Парсер участников Telegram-чатов** (`parser/`). Node.js + GramJS + Express. Работает под PM2 как `agent-parser` на порту 3000. Команда `/parser` в @flash_gideon_bot вызывает его по HTTP на localhost. Веб-доступ — `http://138.16.178.94:3000?token=<AUTH_TOKEN>`. Спека: `docs/superpowers/specs/2026-05-18-telegram-parser-design.md`. План: `docs/superpowers/plans/2026-05-18-telegram-parser.md`.
 
 ---
 
 ## Инфраструктура
 
-> Сюда дописывайте: серверы (VPS, IP, доступы), домены, базы данных, ключевые шаблоны deploy-команд. Чтобы Агент мог работать с инфраструктурой не переспрашивая.
-
-*Пока пусто. Появится когда заведёте свой сервер или домен.*
+- **VPS:** vdsina.ru, IP 138.16.178.94, Windows Server 2022, пользователь Administrator
+- **Рабочее место:** VS Code Desktop запущен на сервере, Александр подключается к серверу через RDP (mstsc). Локального VS Code на ноутбуке нет — все расширения и проекты живут на сервере.
+- **Telegram-бот:** @flash_gideon_bot (https://t.me/flash_gideon_bot, токен настроен). Запускается напрямую через node из `C:\Users\Administrator\.agent\start-bot.bat` (не через PM2). PM2 установлен глобально, но для бота не используется
+- **Автозапуск бота:** задача `GideonBot` в Планировщике Windows, действие — start-bot.bat, триггер по логону пользователя
+- **Парсер:** `parser/` в этом проекте, запускается через `pm2 start parser/ecosystem.config.cjs`, имя процесса `agent-parser`
+- **Node.js:** v20.19.1, путь `C:\Users\Administrator\nodejs\`
+- **Python:** 3.12.7, путь `C:\Program Files\Python312\` (в системном PATH, установлен 18.05.2026 для расширения Claude Voice в VS Code)
+- **Claude CLI:** `C:\Users\Administrator\.vscode\extensions\anthropic.claude-code-2.1.143-win32-x64\resources\native-binary\claude.exe`
+- **Бот:** `C:\Users\Administrator\.agent\bot\` (ecosystem.config.cjs, PM2)
+- **Workspace:** `C:\Users\Administrator\workspace\` (junction → gideon project)
+- **Автозапуск:** Планировщик задач Windows, задача GideonBot
 
 ---
 
