@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "parser/public",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://gideon-parser.duckdns.org/api/:path*" }
+    { "source": "/api/:path*", "destination": "https://parser.138-16-178-94.nip.io/api/:path*" }
   ],
   "headers": [
     {
