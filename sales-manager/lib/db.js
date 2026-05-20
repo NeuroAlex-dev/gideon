@@ -226,3 +226,39 @@ export function blockLead(db, tgUserId, reason) {
 export function isLeadBlocked(db, tgUserId) {
   return !!db.prepare("SELECT 1 FROM leads_blocked WHERE tg_user_id = ?").get(tgUserId);
 }
+
+export function getOrCreateConversation(db, leadId, campaignId) {
+  const existing = db.prepare("SELECT * FROM conversations WHERE lead_id = ? AND campaign_id = ?").get(leadId, campaignId);
+  if (existing) return existing;
+  const id = db.prepare("INSERT INTO conversations (lead_id, campaign_id) VALUES (?, ?)").run(leadId, campaignId).lastInsertRowid;
+  return db.prepare("SELECT * FROM conversations WHERE id = ?").get(id);
+}
+
+export function addMessage(db, { conversation_id, role, body, status, tg_message_id = null, scheduled_for = null, sent_at = null, received_at = null, ai_model = null, ai_tokens_in = null, ai_tokens_out = null }) {
+  const id = db.prepare(`
+    INSERT INTO messages (conversation_id, role, body, tg_message_id, status, scheduled_for, sent_at, received_at, ai_model, ai_tokens_in, ai_tokens_out)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(conversation_id, role, body, tg_message_id, status, scheduled_for, sent_at, received_at, ai_model, ai_tokens_in, ai_tokens_out).lastInsertRowid;
+  db.prepare("UPDATE conversations SET message_count = message_count + 1 WHERE id = ?").run(conversation_id);
+  if (role === "outbound") db.prepare("UPDATE conversations SET last_outbound_at = ? WHERE id = ?").run(sent_at ?? Date.now(), conversation_id);
+  if (role === "inbound") db.prepare("UPDATE conversations SET last_inbound_at = ? WHERE id = ?").run(received_at ?? Date.now(), conversation_id);
+  return id;
+}
+
+export function listMessages(db, conversationId, { limit = 200 } = {}) {
+  return db.prepare("SELECT * FROM messages WHERE conversation_id = ? ORDER BY id ASC LIMIT ?").all(conversationId, limit);
+}
+
+export function updateMessageStatus(db, id, status, patch = {}) {
+  const fields = ["status"];
+  const values = [status];
+  for (const k of ["sent_at", "received_at", "tg_message_id"]) {
+    if (patch[k] !== undefined) { fields.push(k); values.push(patch[k]); }
+  }
+  const sets = fields.map((f) => `${f} = ?`).join(", ");
+  db.prepare(`UPDATE messages SET ${sets} WHERE id = ?`).run(...values, id);
+}
+
+export function setConversationStage(db, conversationId, stage) {
+  db.prepare("UPDATE conversations SET stage = ? WHERE id = ?").run(stage, conversationId);
+}
