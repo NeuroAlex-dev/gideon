@@ -22,6 +22,7 @@ import http from "node:http";
 import { handlePendingInput, registerSecretsHandlers } from "./secrets-menu.js";
 import { hasAnyTranscriber, registerVoiceHelpers, voiceFallbackKeyboard, VOICE_FALLBACK_PROMPT } from "./voice-helper.js";
 import { registerParserHandlers } from "./parser-menu.js";
+import { registerSalesHandlers } from "./sales-menu.js";
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 
@@ -1004,6 +1005,9 @@ registerVoiceHelpers(bot, isOwner);
 
 // Парсер участников чатов (модуль parser-menu.js)
 registerParserHandlers(bot, isOwner);
+
+// Sales Manager — AI-продавец (модуль sales-menu.js)
+registerSalesHandlers(bot, isOwner);
 
 // /start
 bot.command("start", async (ctx) => {
