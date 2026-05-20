@@ -97,3 +97,62 @@ export function openDb(path = "./data/sales-manager.db") {
   db.exec(SCHEMA);
   return db;
 }
+
+export function createCampaign(db, fields) {
+  const now = Date.now();
+  const stmt = db.prepare(`
+    INSERT INTO campaigns (name, offer_text, offer_url, target_audience, goal_ikr, tone, stop_phrases, created_at)
+    VALUES (@name, @offer_text, @offer_url, @target_audience, @goal_ikr, @tone, @stop_phrases, @created_at)
+  `);
+  const res = stmt.run({
+    name: fields.name,
+    offer_text: fields.offer_text ?? null,
+    offer_url: fields.offer_url ?? null,
+    target_audience: fields.target_audience ?? null,
+    goal_ikr: fields.goal_ikr ?? null,
+    tone: fields.tone ?? null,
+    stop_phrases: fields.stop_phrases ?? null,
+    created_at: now,
+  });
+  return res.lastInsertRowid;
+}
+
+export function getCampaign(db, id) {
+  return db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id);
+}
+
+export function listCampaigns(db, { includeArchived = false } = {}) {
+  const sql = includeArchived
+    ? "SELECT * FROM campaigns ORDER BY created_at DESC"
+    : "SELECT * FROM campaigns WHERE status != 'archived' ORDER BY created_at DESC";
+  return db.prepare(sql).all();
+}
+
+const ALLOWED_UPDATE = new Set([
+  "name", "mode", "offer_text", "offer_url", "target_audience", "goal_ikr",
+  "tone", "stop_phrases", "daily_message_limit", "working_hours_start",
+  "working_hours_end", "timezone",
+]);
+
+export function updateCampaign(db, id, patch) {
+  const entries = Object.entries(patch).filter(([k]) => ALLOWED_UPDATE.has(k));
+  if (!entries.length) return 0;
+  const sets = entries.map(([k]) => `${k} = @${k}`).join(", ");
+  const stmt = db.prepare(`UPDATE campaigns SET ${sets} WHERE id = @id`);
+  return stmt.run({ ...Object.fromEntries(entries), id }).changes;
+}
+
+const STATUS_TIMESTAMP_FIELD = {
+  running: "started_at",
+  paused: "paused_at",
+  completed: "completed_at",
+};
+
+export function setCampaignStatus(db, id, status) {
+  const field = STATUS_TIMESTAMP_FIELD[status];
+  if (field) {
+    db.prepare(`UPDATE campaigns SET status = ?, ${field} = ? WHERE id = ?`).run(status, Date.now(), id);
+  } else {
+    db.prepare(`UPDATE campaigns SET status = ? WHERE id = ?`).run(status, id);
+  }
+}
