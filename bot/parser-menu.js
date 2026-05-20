@@ -74,16 +74,11 @@ export function registerParserHandlers(bot, isOwner) {
   bot.callbackQuery("parser_open_web", async (ctx) => {
     if (!isOwner(ctx)) return;
     await ctx.answerCallbackQuery();
-    const token = process.env.PARSER_AUTH_TOKEN || "";
-    if (!token) {
-      await ctx.reply(
-        "Не задан PARSER_AUTH_TOKEN в окружении бота. Возьми токен из логов парсера (`pm2 logs agent-parser`) и положи в `~/.agent/.env` как `PARSER_AUTH_TOKEN=...`, потом перезапусти бота."
-      );
-      return;
-    }
-    const host = process.env.PARSER_PUBLIC_HOST || "138.16.178.94";
-    const url = `http://${host}:3000?token=${token}`;
-    await ctx.reply(`Открой в браузере:\n${url}`);
+    const base =
+      process.env.PARSER_PUBLIC_URL ||
+      `http://${process.env.PARSER_PUBLIC_HOST || "138.16.178.94"}:3000`;
+    const url = base.replace(/\/$/, "") + "/";
+    await ctx.reply(`Открой в браузере:\n${url}\n\nВведи пароль на странице входа.`);
   });
 
   bot.callbackQuery("parser_source_list", async (ctx) => {

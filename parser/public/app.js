@@ -1,4 +1,16 @@
-const TOKEN = new URLSearchParams(location.search).get("token") || "";
+const SESSION_KEY = "gideon_parser_session";
+
+function getToken() {
+  return localStorage.getItem(SESSION_KEY) || "";
+}
+
+function setToken(t) {
+  localStorage.setItem(SESSION_KEY, t);
+}
+
+function clearToken() {
+  localStorage.removeItem(SESSION_KEY);
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -11,13 +23,18 @@ function showOnly(...ids) {
 
 async function api(path, options = {}) {
   const url = new URL(path, location.origin);
-  if (TOKEN) url.searchParams.set("token", TOKEN);
-  const res = await fetch(url, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-  });
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(url, { ...options, headers });
   const body = await res.json().catch(() => ({}));
   return { status: res.status, body };
+}
+
+function showLoginError(msg) {
+  const el = $("login-error");
+  el.textContent = msg;
+  show("login-error");
 }
 
 function showAuthError(msg) {
@@ -29,9 +46,52 @@ function showAuthError(msg) {
 let authState = { phone: "", phoneCodeHash: "" };
 
 async function init() {
+  if (!getToken()) {
+    await routeUnauthenticated();
+    return;
+  }
+  const { status } = await api("/api/auth/me");
+  if (status !== 200) {
+    clearToken();
+    await routeUnauthenticated();
+    return;
+  }
+  await loadAfterLogin();
+}
+
+async function routeUnauthenticated() {
+  const { body } = await api("/api/auth/needs-setup");
+  if (body && body.needsSetup) {
+    showSetupScreen();
+  } else {
+    showLoginScreen();
+  }
+}
+
+function hideAuthButtons() {
+  hide("logout-btn");
+  hide("change-password-btn");
+}
+
+function showLoginScreen() {
+  hideAuthButtons();
+  showOnly("login-screen");
+  setTimeout(() => $("login-form").querySelector("input[name=password]")?.focus(), 50);
+}
+
+function showSetupScreen() {
+  hideAuthButtons();
+  showOnly("setup-screen");
+  setTimeout(() => $("setup-form").querySelector("input[name=password]")?.focus(), 50);
+}
+
+async function loadAfterLogin() {
+  show("logout-btn");
+  show("change-password-btn");
   const { status, body } = await api("/api/auth/status");
   if (status === 401) {
-    document.body.innerHTML = "<p style='padding:24px;color:#e57373'>Нет доступа. Открой страницу с правильным <code>?token=</code> в URL.</p>";
+    clearToken();
+    await routeUnauthenticated();
     return;
   }
   if (!body.authorized) {
@@ -45,6 +105,125 @@ async function init() {
     showOnly("parser-screen");
     await loadChats();
   }
+}
+
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hide("login-error");
+  const password = new FormData(e.target).get("password");
+  const { status, body } = await api("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ password }),
+  });
+  if (status === 429) {
+    showLoginError(`Слишком много попыток. Подожди ${body.retryAfter} сек.`);
+    return;
+  }
+  if (status === 500 && body.error === "no_password_set") {
+    showLoginError(body.hint || "Пароль не задан на сервере.");
+    return;
+  }
+  if (status !== 200) {
+    showLoginError(body.error === "wrong_password" ? "Неверный пароль" : body.error || "Ошибка");
+    return;
+  }
+  setToken(body.token);
+  e.target.reset();
+  await loadAfterLogin();
+});
+
+$("logout-btn").addEventListener("click", async () => {
+  await api("/api/auth/logout", { method: "POST" });
+  clearToken();
+  await routeUnauthenticated();
+});
+
+$("setup-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hide("setup-error");
+  const fd = new FormData(e.target);
+  const password = fd.get("password");
+  const password2 = fd.get("password2");
+  if (password !== password2) {
+    showSetupError("Пароли не совпадают");
+    return;
+  }
+  if (String(password).length < 8) {
+    showSetupError("Пароль должен быть минимум 8 символов");
+    return;
+  }
+  const { status, body } = await api("/api/auth/setup", {
+    method: "POST",
+    body: JSON.stringify({ password }),
+  });
+  if (status === 409) {
+    showSetupError("Пароль уже установлен. Обнови страницу.");
+    return;
+  }
+  if (status !== 200) {
+    showSetupError(body.hint || body.error || "Ошибка");
+    return;
+  }
+  setToken(body.token);
+  e.target.reset();
+  await loadAfterLogin();
+});
+
+function showSetupError(msg) {
+  const el = $("setup-error");
+  el.textContent = msg;
+  show("setup-error");
+}
+
+$("change-password-btn").addEventListener("click", () => {
+  hide("change-password-error");
+  hide("change-password-success");
+  $("change-password-form").reset();
+  showOnly("change-password-screen");
+  setTimeout(() => $("change-password-form").querySelector("input[name=currentPassword]")?.focus(), 50);
+});
+
+$("change-password-cancel").addEventListener("click", async () => {
+  await loadAfterLogin();
+});
+
+$("change-password-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hide("change-password-error");
+  hide("change-password-success");
+  const fd = new FormData(e.target);
+  const currentPassword = fd.get("currentPassword");
+  const newPassword = fd.get("newPassword");
+  const newPassword2 = fd.get("newPassword2");
+  if (newPassword !== newPassword2) {
+    showChangePasswordError("Новые пароли не совпадают");
+    return;
+  }
+  if (String(newPassword).length < 8) {
+    showChangePasswordError("Новый пароль должен быть минимум 8 символов");
+    return;
+  }
+  const { status, body } = await api("/api/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  if (status === 401 && body.error === "wrong_current_password") {
+    showChangePasswordError("Текущий пароль неверный");
+    return;
+  }
+  if (status !== 200) {
+    showChangePasswordError(body.hint || body.error || "Ошибка");
+    return;
+  }
+  e.target.reset();
+  show("change-password-success");
+  setTimeout(() => loadAfterLogin(), 1500);
+});
+
+function showChangePasswordError(msg) {
+  const el = $("change-password-error");
+  el.textContent = msg;
+  show("change-password-error");
 }
 
 $("phone-form").addEventListener("submit", async (e) => {
@@ -82,7 +261,7 @@ $("code-form").addEventListener("submit", async (e) => {
     showAuthError(body.message || body.error || "Ошибка");
     return;
   }
-  location.reload();
+  await loadAfterLogin();
 });
 
 $("password-form").addEventListener("submit", async (e) => {
@@ -102,7 +281,7 @@ $("password-form").addEventListener("submit", async (e) => {
     showAuthError(body.message || body.error || "Ошибка");
     return;
   }
-  location.reload();
+  await loadAfterLogin();
 });
 
 let allChats = [];
@@ -111,6 +290,11 @@ let lastJobId = null;
 
 async function loadChats() {
   const { status, body } = await api("/api/chats");
+  if (status === 401) {
+    clearToken();
+    await routeUnauthenticated();
+    return;
+  }
   if (status !== 200) {
     $("parser-error").textContent = body.message || body.error || "Не удалось загрузить чаты";
     show("parser-error");
@@ -215,10 +399,29 @@ $("copy-btn").addEventListener("click", async () => {
   setTimeout(() => hide("copy-toast"), 2000);
 });
 
-$("download-btn").addEventListener("click", () => {
+$("download-btn").addEventListener("click", async () => {
   if (!lastJobId) return;
-  const url = `/api/export.txt?jobId=${encodeURIComponent(lastJobId)}${TOKEN ? "&token=" + TOKEN : ""}`;
-  location.href = url;
+  const url = `/api/export.txt?jobId=${encodeURIComponent(lastJobId)}`;
+  const token = getToken();
+  const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearToken();
+      showLoginScreen();
+      return;
+    }
+    return;
+  }
+  const blob = await res.blob();
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  const cd = res.headers.get("content-disposition") || "";
+  const m = /filename="([^"]+)"/.exec(cd);
+  link.download = m ? m[1] : "participants.txt";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
 });
 
 $("again-btn").addEventListener("click", () => {

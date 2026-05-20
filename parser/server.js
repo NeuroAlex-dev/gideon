@@ -7,6 +7,8 @@ import dotenv from "dotenv";
 import { createSessionStore } from "./lib/session.js";
 import { configureClient } from "./lib/telegram.js";
 import { sendCode, signIn, logout } from "./lib/auth.js";
+import { verifyPassword, hashPassword } from "./lib/password.js";
+import { issueSession, verifyToken } from "./lib/web-session.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,6 +23,10 @@ function hasCredentials() {
   return Boolean(process.env.API_ID && process.env.API_HASH);
 }
 
+function hasLoginPassword() {
+  return Boolean(process.env.LOGIN_PASSWORD_HASH && process.env.LOGIN_PASSWORD_HASH.trim());
+}
+
 function ensureClientConfigured() {
   if (!hasCredentials()) return false;
   configureClient({
@@ -31,23 +37,29 @@ function ensureClientConfigured() {
   return true;
 }
 
-function ensureAuthToken() {
-  if (process.env.AUTH_TOKEN && process.env.AUTH_TOKEN.trim() !== "") {
-    return process.env.AUTH_TOKEN.trim();
-  }
-  const generated = randomBytes(16).toString("hex");
-  process.env.AUTH_TOKEN = generated;
+function setEnvVar(name, value) {
   const envPath = join(__dirname, ".env");
+  const line = `${name}=${value}`;
   if (existsSync(envPath)) {
     const txt = readFileSync(envPath, "utf8");
-    if (/^AUTH_TOKEN=/m.test(txt)) {
-      writeFileSync(envPath, txt.replace(/^AUTH_TOKEN=.*$/m, `AUTH_TOKEN=${generated}`), "utf8");
+    const re = new RegExp(`^${name}=.*$`, "m");
+    if (re.test(txt)) {
+      writeFileSync(envPath, txt.replace(re, line), "utf8");
     } else {
-      appendFileSync(envPath, `\nAUTH_TOKEN=${generated}\n`, "utf8");
+      appendFileSync(envPath, `\n${line}\n`, "utf8");
     }
   } else {
-    writeFileSync(envPath, `AUTH_TOKEN=${generated}\n`, "utf8");
+    writeFileSync(envPath, `${line}\n`, "utf8");
   }
+  process.env[name] = value;
+}
+
+function ensureSessionSecret() {
+  if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.trim()) {
+    return process.env.SESSION_SECRET.trim();
+  }
+  const generated = randomBytes(32).toString("hex");
+  setEnvVar("SESSION_SECRET", generated);
   return generated;
 }
 
@@ -55,11 +67,43 @@ function isLoopback(ip) {
   return ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
 }
 
-function requireAuth(req, res, next) {
+function extractBearer(req) {
+  const h = req.headers.authorization || "";
+  const m = /^Bearer\s+(.+)$/i.exec(h);
+  return m ? m[1].trim() : null;
+}
+
+function requireSession(req, res, next) {
   if (isLoopback(req.ip)) return next();
-  const token = req.query.token || req.headers["x-auth-token"];
-  if (token && token === process.env.AUTH_TOKEN) return next();
-  return res.status(401).json({ error: "unauthorized" });
+  const token = extractBearer(req);
+  if (!token) return res.status(401).json({ error: "unauthorized" });
+  const payload = verifyToken(token, process.env.SESSION_SECRET);
+  if (!payload) return res.status(401).json({ error: "unauthorized" });
+  req.session = payload;
+  return next();
+}
+
+const loginAttempts = new Map(); // ip -> { count, firstAt }
+const LOGIN_WINDOW_MS = 5 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 10;
+
+function checkLoginRateLimit(ip) {
+  const now = Date.now();
+  const entry = loginAttempts.get(ip);
+  if (!entry || now - entry.firstAt > LOGIN_WINDOW_MS) {
+    loginAttempts.set(ip, { count: 1, firstAt: now });
+    return { allowed: true };
+  }
+  entry.count += 1;
+  if (entry.count > LOGIN_MAX_ATTEMPTS) {
+    const retryAfter = Math.ceil((LOGIN_WINDOW_MS - (now - entry.firstAt)) / 1000);
+    return { allowed: false, retryAfter };
+  }
+  return { allowed: true };
+}
+
+function clearLoginRateLimit(ip) {
+  loginAttempts.delete(ip);
 }
 
 const parseCache = new Map(); // jobId -> { chat, usernames, stats, expiresAt }
@@ -92,14 +136,81 @@ export function createApp() {
     res.json({ ok: true, version: VERSION });
   });
 
-  app.get("/api/auth/status", requireAuth, (_req, res) => {
+  app.get("/api/auth/needs-setup", (_req, res) => {
+    res.json({ needsSetup: !hasLoginPassword() });
+  });
+
+  app.post("/api/auth/setup", (req, res) => {
+    if (hasLoginPassword()) {
+      return res.status(409).json({ error: "already_set", hint: "Пароль уже задан. Используй смену пароля." });
+    }
+    const { password } = req.body || {};
+    if (!password || typeof password !== "string") {
+      return res.status(400).json({ error: "password_required" });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: "password_too_short", hint: "Минимум 8 символов" });
+    }
+    const hash = hashPassword(password);
+    setEnvVar("LOGIN_PASSWORD_HASH", hash);
+    const token = issueSession(process.env.SESSION_SECRET);
+    res.json({ token });
+  });
+
+  app.post("/api/auth/change-password", requireSession, (req, res) => {
+    if (!hasLoginPassword()) {
+      return res.status(400).json({ error: "no_password_set" });
+    }
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "fields_required" });
+    }
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
+      return res.status(400).json({ error: "password_too_short", hint: "Минимум 8 символов" });
+    }
+    if (!verifyPassword(currentPassword, process.env.LOGIN_PASSWORD_HASH)) {
+      return res.status(401).json({ error: "wrong_current_password" });
+    }
+    const hash = hashPassword(newPassword);
+    setEnvVar("LOGIN_PASSWORD_HASH", hash);
+    res.json({ ok: true });
+  });
+
+  app.post("/api/auth/login", (req, res) => {
+    const rate = checkLoginRateLimit(req.ip);
+    if (!rate.allowed) {
+      return res.status(429).json({ error: "too_many_attempts", retryAfter: rate.retryAfter });
+    }
+    if (!hasLoginPassword()) {
+      return res.status(500).json({
+        error: "no_password_set",
+        hint: "Запусти на сервере: node parser/scripts/set-password.js <пароль>",
+      });
+    }
+    const { password } = req.body || {};
+    if (!password || typeof password !== "string") {
+      return res.status(400).json({ error: "password_required" });
+    }
+    if (!verifyPassword(password, process.env.LOGIN_PASSWORD_HASH)) {
+      return res.status(401).json({ error: "wrong_password" });
+    }
+    clearLoginRateLimit(req.ip);
+    const token = issueSession(process.env.SESSION_SECRET);
+    res.json({ token });
+  });
+
+  app.get("/api/auth/me", requireSession, (_req, res) => {
+    res.json({ ok: true });
+  });
+
+  app.get("/api/auth/status", requireSession, (_req, res) => {
     res.json({
       authorized: sessionStore.isAuthorized(),
       hasCredentials: hasCredentials(),
     });
   });
 
-  app.post("/api/auth/send-code", requireAuth, async (req, res) => {
+  app.post("/api/auth/send-code", requireSession, async (req, res) => {
     if (!hasCredentials()) {
       return res.status(400).json({ error: "no_credentials", hint: "Заполни API_ID/API_HASH в parser/.env" });
     }
@@ -117,7 +228,7 @@ export function createApp() {
     }
   });
 
-  app.post("/api/auth/sign-in", requireAuth, async (req, res) => {
+  app.post("/api/auth/sign-in", requireSession, async (req, res) => {
     const { phone, phoneCodeHash, code, password } = req.body || {};
     if (!phone || !phoneCodeHash || !code) {
       return res.status(400).json({ error: "missing_fields" });
@@ -135,7 +246,7 @@ export function createApp() {
     }
   });
 
-  app.post("/api/auth/logout", requireAuth, async (_req, res) => {
+  app.post("/api/auth/tg-logout", requireSession, async (_req, res) => {
     try {
       if (hasCredentials()) {
         ensureClientConfigured();
@@ -143,12 +254,16 @@ export function createApp() {
       await logout(sessionStore);
       res.json({ ok: true });
     } catch (e) {
-      console.error("[logout]", e);
+      console.error("[tg-logout]", e);
       res.status(500).json({ error: "logout_failed" });
     }
   });
 
-  app.get("/api/chats", requireAuth, async (_req, res) => {
+  app.post("/api/auth/logout", (_req, res) => {
+    res.json({ ok: true });
+  });
+
+  app.get("/api/chats", requireSession, async (_req, res) => {
     if (!sessionStore.isAuthorized()) {
       return res.status(403).json({ error: "not_authorized" });
     }
@@ -163,7 +278,7 @@ export function createApp() {
     }
   });
 
-  app.post("/api/parse", requireAuth, async (req, res) => {
+  app.post("/api/parse", requireSession, async (req, res) => {
     if (!sessionStore.isAuthorized()) {
       return res.status(403).json({ error: "not_authorized" });
     }
@@ -184,7 +299,6 @@ export function createApp() {
       try {
         parsed = await withTimeout(getParticipantUsernames(entity), 60000, "parse_timeout");
       } finally {
-        // If we joined just for this parse, leave whether or not parsing succeeded
         if (joinedNow) {
           try {
             await withTimeout(leaveChat(entity), 10000, "leave_timeout");
@@ -259,7 +373,7 @@ export function createApp() {
     }
   });
 
-  app.get("/api/export.txt", requireAuth, (req, res) => {
+  app.get("/api/export.txt", requireSession, (req, res) => {
     const { jobId } = req.query;
     if (!jobId) return res.status(400).json({ error: "jobId_required" });
     const entry = parseCache.get(String(jobId));
@@ -278,19 +392,22 @@ export function createApp() {
 }
 
 export function startServer() {
-  const token = ensureAuthToken();
+  ensureSessionSecret();
   const app = createApp();
   const port = Number(process.env.PORT || 3000);
   const server = app.listen(port, () => {
     const actualPort = server.address().port;
     console.log(`[parser] listening on http://localhost:${actualPort}`);
-    console.log(`[parser] AUTH_TOKEN=${token}`);
-    console.log(`[parser] open: http://localhost:${actualPort}?token=${token}`);
+    if (!hasLoginPassword()) {
+      console.log("[parser] ВНИМАНИЕ: LOGIN_PASSWORD_HASH не задан в .env");
+      console.log("[parser] Запусти: node parser/scripts/set-password.js <пароль>");
+    } else {
+      console.log("[parser] login password is set, ready");
+    }
   });
   return server;
 }
 
-// Only auto-start when this file is run directly (not when imported in tests)
 const isMainModule = process.argv[1] && import.meta.url.endsWith(
   process.argv[1].replace(/\\/g, "/")
 );

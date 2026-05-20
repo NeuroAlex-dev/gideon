@@ -9,12 +9,62 @@
 <body>
   <header>
     <h1>Гидеон · Парсер участников</h1>
-    <div id="header-actions"></div>
+    <div id="header-actions">
+      <button id="change-password-btn" class="hidden" type="button">Сменить пароль</button>
+      <button id="logout-btn" class="hidden" type="button">Выйти</button>
+    </div>
   </header>
 
   <main id="app">
     <section id="loading" class="screen">
       <p>Загрузка…</p>
+    </section>
+
+    <section id="setup-screen" class="screen hidden">
+      <h2>Создай пароль для парсера</h2>
+      <p class="muted">Первый запуск. Придумай пароль (минимум 8 символов) — он будет защищать доступ к парсеру.</p>
+      <form id="setup-form">
+        <label>Новый пароль
+          <input type="password" name="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label>Повтори пароль
+          <input type="password" name="password2" autocomplete="new-password" minlength="8" required>
+        </label>
+        <button type="submit">Создать пароль и войти</button>
+      </form>
+      <p id="setup-error" class="error hidden"></p>
+    </section>
+
+    <section id="login-screen" class="screen hidden">
+      <h2>Вход в парсер</h2>
+      <form id="login-form">
+        <label>Пароль
+          <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit">Войти</button>
+      </form>
+      <p id="login-error" class="error hidden"></p>
+    </section>
+
+    <section id="change-password-screen" class="screen hidden">
+      <h2>Сменить пароль</h2>
+      <form id="change-password-form">
+        <label>Текущий пароль
+          <input type="password" name="currentPassword" autocomplete="current-password" required>
+        </label>
+        <label>Новый пароль
+          <input type="password" name="newPassword" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label>Повтори новый пароль
+          <input type="password" name="newPassword2" autocomplete="new-password" minlength="8" required>
+        </label>
+        <div class="row">
+          <button type="submit">Сменить пароль</button>
+          <button type="button" id="change-password-cancel">Отмена</button>
+        </div>
+      </form>
+      <p id="change-password-error" class="error hidden"></p>
+      <p id="change-password-success" class="success hidden">Пароль успешно изменён.</p>
     </section>
 
     <section id="auth-screen" class="screen hidden">

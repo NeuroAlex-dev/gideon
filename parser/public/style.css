@@ -106,3 +106,31 @@ code { background: var(--panel); padding: 2px 6px; border-radius: 4px; font-size
 a { color: var(--accent); }
 
 #result-stats { white-space: pre-wrap; }
+
+#logout-btn {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  font-size: 13px;
+  margin: 0;
+}
+#logout-btn:hover { color: var(--text); border-color: var(--accent); }
+
+#login-screen,
+#setup-screen,
+#change-password-screen { max-width: 420px; margin: 40px auto; }
+
+.muted { color: var(--muted); margin: 0 0 16px; }
+.success { color: var(--success); }
+
+#header-actions { display: flex; gap: 8px; }
+#change-password-btn {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  font-size: 13px;
+  margin: 0;
+}
+#change-password-btn:hover { color: var(--text); border-color: var(--accent); }
