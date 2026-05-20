@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Sales Manager — Кампании</title>
+<link rel="stylesheet" href="./style.css">
+<style>
+  .campaign-card { border: 1px solid #ccc; padding: 1em; margin: 0.5em 0; border-radius: 6px; }
+  .campaign-card .meta { color: #888; font-size: 0.9em; margin: 0.3em 0; }
+  .status-running { color: #2a8f3e; font-weight: bold; }
+  .status-paused { color: #d68f00; font-weight: bold; }
+  .status-draft { color: #888; }
+  .status-ready { color: #007acc; }
+  .status-completed { color: #555; }
+  nav { margin-bottom: 1em; }
+  nav a { margin-right: 1em; }
+  .auth-form { max-width: 320px; margin: 2em auto; padding: 1em; border: 1px solid #ddd; border-radius: 6px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Sales Manager</h1>
+    <nav><a href="./index.html">Парсер</a> · <a href="./sales.html">Кампании</a></nav>
+  </header>
+  <main>
+    <div id="auth-section" class="auth-form" hidden>
+      <h3>Вход</h3>
+      <input id="pwd" type="password" placeholder="Пароль" style="width: 100%; padding: 0.5em;">
+      <button id="login" style="margin-top: 0.5em; width: 100%; padding: 0.5em;">Войти</button>
+      <div id="auth-error" style="color: red; margin-top: 0.5em;"></div>
+    </div>
+    <div id="campaigns-section" hidden>
+      <div id="campaigns-list"></div>
+    </div>
+  </main>
+  <script src="./sales.js"></script>
+</body>
+</html>
