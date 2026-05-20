@@ -44,6 +44,20 @@
         <button type="submit">Войти</button>
       </form>
       <p id="login-error" class="error hidden"></p>
+      <p class="muted" style="text-align:center; margin-top:20px;">
+        <a id="forgot-password-link" href="#">Забыл пароль?</a>
+      </p>
+    </section>
+
+    <section id="forgot-password-screen" class="screen hidden">
+      <h2>Сброс пароля через Telegram</h2>
+      <ol style="color:var(--muted); line-height:1.8; padding-left:20px;">
+        <li>Открой бот <a href="https://t.me/flash_gideon_bot" target="_blank" rel="noopener">@flash_gideon_bot</a> в Telegram</li>
+        <li>Отправь команду <code>/reset_parser_password</code> (или открой <code>/parser</code> → 🔑 Сбросить пароль)</li>
+        <li>Нажми <b>«Да, сбросить»</b></li>
+        <li>Вернись сюда, обнови страницу (<code>Ctrl+F5</code>) — увидишь экран «Создай пароль»</li>
+      </ol>
+      <button id="forgot-back-btn" type="button">← Назад ко входу</button>
     </section>
 
     <section id="change-password-screen" class="screen hidden">

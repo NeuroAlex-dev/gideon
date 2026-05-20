@@ -132,6 +132,16 @@ $("login-form").addEventListener("submit", async (e) => {
   await loadAfterLogin();
 });
 
+$("forgot-password-link").addEventListener("click", (e) => {
+  e.preventDefault();
+  hideAuthButtons();
+  showOnly("forgot-password-screen");
+});
+
+$("forgot-back-btn").addEventListener("click", async () => {
+  await routeUnauthenticated();
+});
+
 $("logout-btn").addEventListener("click", async () => {
   await api("/api/auth/logout", { method: "POST" });
   clearToken();

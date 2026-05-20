@@ -20,13 +20,17 @@
 
 ## Активные проекты
 
-- **Парсер участников Telegram-чатов** (`parser/`). Node.js + GramJS + Express. Работает под PM2 как `agent-parser` на порту 3000. Команда `/parser` в @flash_gideon_bot вызывает его по HTTP на localhost. Веб-доступ — `http://138.16.178.94:3000?token=<AUTH_TOKEN>`. Спека: `docs/superpowers/specs/2026-05-18-telegram-parser-design.md`. План: `docs/superpowers/plans/2026-05-18-telegram-parser.md`.
+- **Парсер участников Telegram-чатов** (`parser/`). Node.js + GramJS + Express. Работает под PM2 как `agent-parser` на порту 3000. Команда `/parser` в @flash_gideon_bot вызывает его по HTTP на localhost (loopback bypass — без пароля). Веб-доступ — через Vercel на красивый URL (см. раздел «Инфраструктура» → Vercel + nip.io). Авторизация: пароль через UI, токен сессии — HMAC в localStorage. Спека: `docs/superpowers/specs/2026-05-18-telegram-parser-design.md`. План: `docs/superpowers/plans/2026-05-18-telegram-parser.md`.
 
 ---
 
 ## Инфраструктура
 
-- **VPS:** vdsina.ru, IP 138.16.178.94, Windows Server 2022, пользователь Administrator
+- **VPS:** vdsina.ru, Windows Server 2022, пользователь Administrator. **Inbound IP (на сетевом интерфейсе): `138.16.178.94`** — то что нужно для DNS A-записей и прокси (поправлено 2026-05-20: ранее в MEMORY стояло 165.231.33.74, это outbound NAT, на нём сидит чужая машина). **Outbound IP (что видят api.ipify.org и т.п.): `165.231.33.74`** — это NAT-адрес для исходящего трафика.
+- **Веб-доступ к парсеру (production):** Vercel-фронт + rewrites на nip.io бэкенд. Текущий URL: `https://gideon-muiqjp4ta-neuroalex-devs-projects.vercel.app/` (можно переименовать проект в Vercel для более красивого URL). `vercel.json` в корне репы шлёт `/api/*` на `https://parser.138-16-178-94.nip.io/api/*`.
+- **nip.io** заменил DuckDNS — DuckDNS глючил с пропагацией A-записи. nip.io это wildcard DNS: `*.138-16-178-94.nip.io` → 138.16.178.94 автоматически. Без регистрации.
+- **Caddyfile** (запущен из `C:\Users\Administrator\projects\voice-input\Caddyfile`): блок `parser.138-16-178-94.nip.io { reverse_proxy localhost:3000 }`. Сертификат Let's Encrypt автоматически.
+- ~~Публичный URL парсера: `https://gideon-parser.duckdns.org`~~ — устарело, DuckDNS отключаем, блок в Caddyfile пока висит но не используется.
 - **Рабочее место:** VS Code Desktop запущен на сервере, Александр подключается к серверу через RDP (mstsc). Локального VS Code на ноутбуке нет — все расширения и проекты живут на сервере.
 - **Telegram-бот:** @flash_gideon_bot (https://t.me/flash_gideon_bot, токен настроен). Запускается напрямую через node из `C:\Users\Administrator\.agent\start-bot.bat` (не через PM2). PM2 установлен глобально, но для бота не используется
 - **Автозапуск бота:** задача `GideonBot` в Планировщике Windows, действие — start-bot.bat, триггер по логону пользователя

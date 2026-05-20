@@ -51,7 +51,14 @@ function mainMenuKeyboard() {
     .text("📋 Из моих чатов", "parser_source_list").row()
     .text("🔗 По ссылке/@username", "parser_source_ref").row()
     .text("🌐 Открыть в браузере", "parser_open_web").row()
+    .text("🔑 Сбросить пароль веб-парсера", "parser_reset_password").row()
     .text("❌ Отмена", "parser_cancel");
+}
+
+function resetConfirmKeyboard() {
+  return new InlineKeyboard()
+    .text("✅ Да, сбросить", "parser_reset_confirm")
+    .text("✖ Отмена", "parser_reset_cancel");
 }
 
 export function registerParserHandlers(bot, isOwner) {
@@ -69,6 +76,54 @@ export function registerParserHandlers(bot, isOwner) {
     await ctx.answerCallbackQuery();
     clearState(ctx.from.id);
     try { await ctx.editMessageText("Отменено."); } catch {}
+  });
+
+  bot.command("reset_parser_password", async (ctx) => {
+    if (!isOwner(ctx)) return;
+    await ctx.reply(
+      "🔑 Сбросить пароль веб-парсера?\n\nПосле сброса все активные сессии разлогинятся. Откроешь сайт — увидишь экран «Создай пароль».",
+      { reply_markup: resetConfirmKeyboard() }
+    );
+  });
+
+  bot.callbackQuery("parser_reset_password", async (ctx) => {
+    if (!isOwner(ctx)) return;
+    await ctx.answerCallbackQuery();
+    try {
+      await ctx.editMessageText(
+        "🔑 Сбросить пароль веб-парсера?\n\nПосле сброса все активные сессии разлогинятся. Откроешь сайт — увидишь экран «Создай пароль».",
+        { reply_markup: resetConfirmKeyboard() }
+      );
+    } catch {
+      await ctx.reply(
+        "🔑 Сбросить пароль веб-парсера?\n\nПосле сброса все активные сессии разлогинятся. Откроешь сайт — увидишь экран «Создай пароль».",
+        { reply_markup: resetConfirmKeyboard() }
+      );
+    }
+  });
+
+  bot.callbackQuery("parser_reset_cancel", async (ctx) => {
+    if (!isOwner(ctx)) return;
+    await ctx.answerCallbackQuery();
+    try { await ctx.editMessageText("Сброс пароля отменён."); } catch {}
+  });
+
+  bot.callbackQuery("parser_reset_confirm", async (ctx) => {
+    if (!isOwner(ctx)) return;
+    await ctx.answerCallbackQuery();
+    try { await ctx.editMessageText("⏳ Сбрасываю…"); } catch {}
+    const { status, body } = await parserFetch("/api/auth/reset-password-from-bot", { method: "POST" });
+    if (status !== 200) {
+      await ctx.reply(`Не удалось сбросить пароль: ${body?.error || status}`);
+      return;
+    }
+    const base =
+      process.env.PARSER_PUBLIC_URL ||
+      `http://${process.env.PARSER_PUBLIC_HOST || "138.16.178.94"}:3000`;
+    const url = base.replace(/\/$/, "") + "/";
+    await ctx.reply(
+      `✅ Пароль сброшен.\n\nОткрой парсер и создай новый:\n${url}`
+    );
   });
 
   bot.callbackQuery("parser_open_web", async (ctx) => {

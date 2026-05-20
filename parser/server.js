@@ -157,6 +157,17 @@ export function createApp() {
     res.json({ token });
   });
 
+  app.post("/api/auth/reset-password-from-bot", (req, res) => {
+    if (!isLoopback(req.ip)) {
+      return res.status(403).json({ error: "loopback_only" });
+    }
+    setEnvVar("LOGIN_PASSWORD_HASH", "");
+    delete process.env.LOGIN_PASSWORD_HASH;
+    const newSecret = randomBytes(32).toString("hex");
+    setEnvVar("SESSION_SECRET", newSecret);
+    res.json({ ok: true });
+  });
+
   app.post("/api/auth/change-password", requireSession, (req, res) => {
     if (!hasLoginPassword()) {
       return res.status(400).json({ error: "no_password_set" });
