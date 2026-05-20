@@ -21,6 +21,7 @@
 ## Активные проекты
 
 - **Парсер участников Telegram-чатов** (`parser/`). Node.js + GramJS + Express. Работает под PM2 как `agent-parser` на порту 3000. Команда `/parser` в @flash_gideon_bot вызывает его по HTTP на localhost (loopback bypass — без пароля). Веб-доступ — через Vercel на красивый URL (см. раздел «Инфраструктура» → Vercel + nip.io). Авторизация: пароль через UI, токен сессии — HMAC в localStorage. Спека: `docs/superpowers/specs/2026-05-18-telegram-parser-design.md`. План: `docs/superpowers/plans/2026-05-18-telegram-parser.md`.
+- **Sales Manager — AI-продавец** (`sales-manager/`). Node.js + GramJS + Express + better-sqlite3. Два процесса PM2: `agent-sales-manager-server` (HTTP API на :3001) и `agent-sales-manager-worker` (outbound scheduler + inbound NewMessage listener). Шарит TG-сессию с парсером через `parser/data/session.txt`. AI через Claude CLI по подписке (как бот). Брифинг кампаний в `/sales` в @flash_gideon_bot, метрики в `gideon-bay.vercel.app/sales.html` (rewrite `/api/sales/*` → sales.138-16-178-94.nip.io). MVP: режимы `full_auto` + `draft_approval`, тёплый аутрич 10-20 первых сообщений/день, многоуровневый анти-бан. Спека: `docs/superpowers/specs/2026-05-21-sales-manager-design.md`. План: `docs/superpowers/plans/2026-05-21-sales-manager.md`. 54/54 тестов проходят.
 
 ---
 
