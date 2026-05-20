@@ -4,11 +4,18 @@ import { ensureConnected, persistSession, getClient, resetClient } from "./teleg
 
 export async function sendCode(phone) {
   const c = await ensureConnected();
-  const result = await c.invoke(
+  return sendCodeOnClient(c, phone);
+}
+
+export async function sendCodeOnClient(client, phone) {
+  if (!client.connected) {
+    await client.connect();
+  }
+  const result = await client.invoke(
     new Api.auth.SendCode({
       phoneNumber: phone,
-      apiId: c.apiId,
-      apiHash: c.apiHash,
+      apiId: client.apiId,
+      apiHash: client.apiHash,
       settings: new Api.CodeSettings({}),
     })
   );
@@ -20,16 +27,22 @@ export async function sendCode(phone) {
 
 export async function signIn({ phone, phoneCodeHash, code, password }) {
   const c = await ensureConnected();
+  return signInOnClient(c, { phone, phoneCodeHash, code, password, persistTo: "active" });
+}
 
+export async function signInOnClient(client, { phone, phoneCodeHash, code, password, persistTo }) {
+  if (!client.connected) {
+    await client.connect();
+  }
   try {
-    const res = await c.invoke(
+    const res = await client.invoke(
       new Api.auth.SignIn({
         phoneNumber: phone,
         phoneCodeHash,
         phoneCode: code,
       })
     );
-    await persistSession();
+    if (persistTo === "active") await persistSession();
     return { ok: true, user: extractUser(res.user) };
   } catch (e) {
     if (e?.errorMessage === "SESSION_PASSWORD_NEEDED") {
@@ -38,18 +51,17 @@ export async function signIn({ phone, phoneCodeHash, code, password }) {
         err.code = "2fa_required";
         throw err;
       }
-      return await checkPassword(password);
+      return await checkPasswordOnClient(client, password, persistTo);
     }
     throw e;
   }
 }
 
-async function checkPassword(password) {
-  const c = getClient();
-  const pwd = await c.invoke(new Api.account.GetPassword());
+async function checkPasswordOnClient(client, password, persistTo) {
+  const pwd = await client.invoke(new Api.account.GetPassword());
   const check = await computeCheck(pwd, password);
-  const res = await c.invoke(new Api.auth.CheckPassword({ password: check }));
-  await persistSession();
+  const res = await client.invoke(new Api.auth.CheckPassword({ password: check }));
+  if (persistTo === "active") await persistSession();
   return { ok: true, user: extractUser(res.user) };
 }
 
@@ -73,3 +85,5 @@ function extractUser(u) {
     firstName: u.firstName || null,
   };
 }
+
+export { extractUser };

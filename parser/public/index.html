@@ -10,6 +10,7 @@
   <header>
     <h1>Гидеон · Парсер участников</h1>
     <div id="header-actions">
+      <button id="sessions-btn" class="hidden" type="button">🔄 TG-аккаунты</button>
       <button id="change-password-btn" class="hidden" type="button">Сменить пароль</button>
       <button id="logout-btn" class="hidden" type="button">Выйти</button>
     </div>
@@ -79,6 +80,51 @@
       </form>
       <p id="change-password-error" class="error hidden"></p>
       <p id="change-password-success" class="success hidden">Пароль успешно изменён.</p>
+    </section>
+
+    <section id="sessions-screen" class="screen hidden">
+      <h2>Telegram-аккаунты</h2>
+      <p class="muted">Выбери активный аккаунт для парсинга или добавь новый.</p>
+      <ul id="sessions-list" class="sessions-list"></ul>
+      <button id="add-tg-btn" type="button">+ Добавить TG-аккаунт</button>
+      <p class="muted" style="text-align:center; margin-top:16px;">
+        <a id="sessions-back-link" href="#">← Назад к парсеру</a>
+      </p>
+    </section>
+
+    <section id="add-tg-screen" class="screen hidden">
+      <h2 id="add-tg-title">Добавить TG-аккаунт</h2>
+
+      <form id="add-tg-phone-form">
+        <label>Название аккаунта (для тебя)
+          <input type="text" name="label" placeholder="Личный / Рабочий / Тестовый" maxlength="64" required>
+        </label>
+        <label>Номер телефона (с кодом страны)
+          <input type="tel" name="phone" placeholder="+79991234567" required>
+        </label>
+        <button type="submit">Получить код</button>
+      </form>
+
+      <form id="add-tg-code-form" class="hidden">
+        <p class="muted">Код пришёл в официальный чат Telegram «<b id="add-tg-phone-display"></b>».</p>
+        <label>Код
+          <input type="text" name="code" placeholder="12345" inputmode="numeric" required>
+        </label>
+        <button type="submit">Подтвердить</button>
+      </form>
+
+      <form id="add-tg-password-form" class="hidden">
+        <p class="muted">У этого аккаунта включён облачный пароль 2FA.</p>
+        <label>Пароль 2FA
+          <input type="password" name="password" required>
+        </label>
+        <button type="submit">Войти</button>
+      </form>
+
+      <p id="add-tg-error" class="error hidden"></p>
+      <p class="muted" style="text-align:center; margin-top:16px;">
+        <a id="add-tg-cancel-link" href="#">← Отмена</a>
+      </p>
     </section>
 
     <section id="auth-screen" class="screen hidden">

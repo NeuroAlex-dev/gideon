@@ -4,11 +4,19 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import dotenv from "dotenv";
-import { createSessionStore } from "./lib/session.js";
-import { configureClient } from "./lib/telegram.js";
-import { sendCode, signIn, logout } from "./lib/auth.js";
+import {
+  configureClient,
+  reconfigureClient,
+  resetClient,
+  createTempClient,
+  extractSessionString,
+  disconnectClient,
+  getClient,
+} from "./lib/telegram.js";
+import { sendCode, signIn, sendCodeOnClient, signInOnClient, logout } from "./lib/auth.js";
 import { verifyPassword, hashPassword } from "./lib/password.js";
 import { issueSession, verifyToken } from "./lib/web-session.js";
+import { createSessionsManager } from "./lib/sessions-manager.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,7 +25,11 @@ dotenv.config({ path: join(__dirname, ".env") });
 
 const VERSION = "1.0.0";
 
-const sessionStore = createSessionStore(join(__dirname, "data", "session.txt"));
+const sessionsManager = createSessionsManager(join(__dirname, "data"));
+
+function activeSessionStore() {
+  return sessionsManager.getActiveStore();
+}
 
 function hasCredentials() {
   return Boolean(process.env.API_ID && process.env.API_HASH);
@@ -29,13 +41,30 @@ function hasLoginPassword() {
 
 function ensureClientConfigured() {
   if (!hasCredentials()) return false;
+  const store = activeSessionStore();
+  if (!store) return false;
   configureClient({
     apiId: process.env.API_ID,
     apiHash: process.env.API_HASH,
-    sessionStore,
+    sessionStore: store,
   });
   return true;
 }
+
+const tempClients = new Map(); // tempId -> { client, label, phone, expiresAt }
+const TEMP_TTL_MS = 10 * 60 * 1000;
+
+function pruneTempClients() {
+  const now = Date.now();
+  for (const [k, v] of tempClients) {
+    if (v.expiresAt < now) {
+      try { v.client?.disconnect?.(); } catch {}
+      tempClients.delete(k);
+    }
+  }
+}
+
+setInterval(pruneTempClients, 60 * 1000).unref?.();
 
 function setEnvVar(name, value) {
   const envPath = join(__dirname, ".env");
@@ -215,9 +244,17 @@ export function createApp() {
   });
 
   app.get("/api/auth/status", requireSession, (_req, res) => {
+    const active = sessionsManager.getActive();
     res.json({
-      authorized: sessionStore.isAuthorized(),
+      authorized: (activeSessionStore()?.isAuthorized() ?? false),
       hasCredentials: hasCredentials(),
+      hasActiveSession: Boolean(active),
+      activeSession: active ? {
+        id: active.id,
+        label: active.label,
+        username: active.username,
+        tgUserId: active.tgUserId,
+      } : null,
     });
   });
 
@@ -258,15 +295,155 @@ export function createApp() {
   });
 
   app.post("/api/auth/tg-logout", requireSession, async (_req, res) => {
+    const active = sessionsManager.getActive();
+    if (!active) {
+      return res.status(400).json({ error: "no_active_session" });
+    }
     try {
+      const store = sessionsManager.createStoreForId(active.id);
       if (hasCredentials()) {
         ensureClientConfigured();
       }
-      await logout(sessionStore);
+      try { await logout(store); } catch {}
+      sessionsManager.remove(active.id);
+      resetClient();
       res.json({ ok: true });
     } catch (e) {
       console.error("[tg-logout]", e);
       res.status(500).json({ error: "logout_failed" });
+    }
+  });
+
+  app.get("/api/sessions", requireSession, (_req, res) => {
+    res.json({
+      sessions: sessionsManager.list(),
+      activeId: sessionsManager.getActiveId(),
+    });
+  });
+
+  app.post("/api/sessions/activate", requireSession, async (req, res) => {
+    if (parseInProgress) {
+      return res.status(409).json({ error: "parse_in_progress", hint: "Дождись окончания парсинга и попробуй снова" });
+    }
+    const { id } = req.body || {};
+    if (!id) return res.status(400).json({ error: "id_required" });
+    const target = sessionsManager.find(id);
+    if (!target) return res.status(404).json({ error: "session_not_found" });
+    try {
+      try { await disconnectClient(); } catch {}
+      resetClient();
+      sessionsManager.setActive(id);
+      ensureClientConfigured();
+      res.json({ ok: true, activeId: id });
+    } catch (e) {
+      console.error("[sessions/activate]", e);
+      res.status(500).json({ error: "activate_failed", message: String(e?.message || e) });
+    }
+  });
+
+  app.patch("/api/sessions/:id", requireSession, (req, res) => {
+    const { id } = req.params;
+    const { label } = req.body || {};
+    if (!label || typeof label !== "string") {
+      return res.status(400).json({ error: "label_required" });
+    }
+    try {
+      const updated = sessionsManager.rename(id, label);
+      res.json(updated);
+    } catch (e) {
+      res.status(404).json({ error: "session_not_found" });
+    }
+  });
+
+  app.delete("/api/sessions/:id", requireSession, async (req, res) => {
+    if (parseInProgress) {
+      return res.status(409).json({ error: "parse_in_progress" });
+    }
+    const { id } = req.params;
+    const target = sessionsManager.find(id);
+    if (!target) return res.status(404).json({ error: "session_not_found" });
+    const wasActive = sessionsManager.getActiveId() === id;
+    try {
+      if (wasActive) {
+        try { await disconnectClient(); } catch {}
+        resetClient();
+      }
+      sessionsManager.remove(id);
+      if (wasActive) {
+        if (sessionsManager.getActiveId()) {
+          ensureClientConfigured();
+        }
+      }
+      res.json({ ok: true, newActiveId: sessionsManager.getActiveId() });
+    } catch (e) {
+      console.error("[sessions/delete]", e);
+      res.status(500).json({ error: "delete_failed" });
+    }
+  });
+
+  app.post("/api/sessions/add/send-code", requireSession, async (req, res) => {
+    if (!hasCredentials()) {
+      return res.status(400).json({ error: "no_credentials", hint: "Заполни API_ID/API_HASH в parser/.env" });
+    }
+    const { phone, label } = req.body || {};
+    if (!phone || typeof phone !== "string") {
+      return res.status(400).json({ error: "phone_required" });
+    }
+    try {
+      pruneTempClients();
+      const client = createTempClient({ apiId: process.env.API_ID, apiHash: process.env.API_HASH });
+      const result = await sendCodeOnClient(client, phone);
+      const tempId = "tmp_" + randomBytes(8).toString("hex");
+      tempClients.set(tempId, {
+        client,
+        label: label || "Новый аккаунт",
+        phone,
+        phoneCodeHash: result.phoneCodeHash,
+        expiresAt: Date.now() + TEMP_TTL_MS,
+      });
+      res.json({ tempId, phoneCodeHash: result.phoneCodeHash, timeout: result.timeout });
+    } catch (e) {
+      console.error("[sessions/add/send-code]", e);
+      res.status(500).json({ error: "send_code_failed", message: String(e?.message || e) });
+    }
+  });
+
+  app.post("/api/sessions/add/sign-in", requireSession, async (req, res) => {
+    const { tempId, phone, phoneCodeHash, code, password, label, activate } = req.body || {};
+    if (!tempId || !phone || !phoneCodeHash || !code) {
+      return res.status(400).json({ error: "missing_fields" });
+    }
+    const entry = tempClients.get(tempId);
+    if (!entry) {
+      return res.status(404).json({ error: "temp_session_expired", hint: "Запроси код заново" });
+    }
+    try {
+      const result = await signInOnClient(entry.client, { phone, phoneCodeHash, code, password });
+      const sessionString = extractSessionString(entry.client);
+      const finalLabel = label || entry.label || "Новый аккаунт";
+      const added = sessionsManager.add({
+        label: finalLabel,
+        sessionString,
+        phone: entry.phone,
+        tgUserId: result.user?.id || null,
+        username: result.user?.username || null,
+      });
+      try { await entry.client.disconnect(); } catch {}
+      tempClients.delete(tempId);
+
+      if (activate || !sessionsManager.getActiveId() || sessionsManager.getActiveId() === added.id) {
+        try { await disconnectClient(); } catch {}
+        resetClient();
+        sessionsManager.setActive(added.id);
+        ensureClientConfigured();
+      }
+      res.json({ ok: true, session: added, user: result.user });
+    } catch (e) {
+      if (e?.code === "2fa_required") {
+        return res.status(400).json({ error: "2fa_required" });
+      }
+      console.error("[sessions/add/sign-in]", e);
+      res.status(500).json({ error: "sign_in_failed", message: String(e?.message || e) });
     }
   });
 
@@ -275,7 +452,7 @@ export function createApp() {
   });
 
   app.get("/api/chats", requireSession, async (_req, res) => {
-    if (!sessionStore.isAuthorized()) {
+    if (!(activeSessionStore()?.isAuthorized() ?? false)) {
       return res.status(403).json({ error: "not_authorized" });
     }
     try {
@@ -290,7 +467,7 @@ export function createApp() {
   });
 
   app.post("/api/parse", requireSession, async (req, res) => {
-    if (!sessionStore.isAuthorized()) {
+    if (!(activeSessionStore()?.isAuthorized() ?? false)) {
       return res.status(403).json({ error: "not_authorized" });
     }
     const { chatRef } = req.body || {};
@@ -404,16 +581,20 @@ export function createApp() {
 
 export function startServer() {
   ensureSessionSecret();
+  if (hasCredentials() && sessionsManager.getActiveId()) {
+    try { ensureClientConfigured(); } catch (e) {
+      console.warn("[parser] failed to configure client for active session:", e?.message || e);
+    }
+  }
   const app = createApp();
   const port = Number(process.env.PORT || 3000);
   const server = app.listen(port, () => {
     const actualPort = server.address().port;
     console.log(`[parser] listening on http://localhost:${actualPort}`);
+    const sessions = sessionsManager.list();
+    console.log(`[parser] TG sessions: ${sessions.length} | active: ${sessionsManager.getActiveId() || "(none)"}`);
     if (!hasLoginPassword()) {
       console.log("[parser] ВНИМАНИЕ: LOGIN_PASSWORD_HASH не задан в .env");
-      console.log("[parser] Запусти: node parser/scripts/set-password.js <пароль>");
-    } else {
-      console.log("[parser] login password is set, ready");
     }
   });
   return server;

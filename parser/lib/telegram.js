@@ -6,12 +6,16 @@ import { normalizeChatRef } from "./chatref.js";
 let _client = null;
 let _sessionStore = null;
 let _configured = false;
+let _apiId = null;
+let _apiHash = null;
 
 export function configureClient({ apiId, apiHash, sessionStore }) {
-  if (_configured) return _client; // idempotent: keep existing client and its connection
+  if (_configured) return _client;
+  _apiId = Number(apiId);
+  _apiHash = apiHash;
   const sessionString = sessionStore.load();
   const session = new StringSession(sessionString);
-  _client = new TelegramClient(session, Number(apiId), apiHash, {
+  _client = new TelegramClient(session, _apiId, _apiHash, {
     connectionRetries: 3,
     useWSS: true,
   });
@@ -20,8 +24,17 @@ export function configureClient({ apiId, apiHash, sessionStore }) {
   return _client;
 }
 
+export async function reconfigureClient({ apiId, apiHash, sessionStore }) {
+  if (_client && _client.connected) {
+    try { await _client.disconnect(); } catch {}
+  }
+  _client = null;
+  _sessionStore = null;
+  _configured = false;
+  return configureClient({ apiId, apiHash, sessionStore });
+}
+
 export function resetClient() {
-  // Used by tests and after logout
   _client = null;
   _sessionStore = null;
   _configured = false;
@@ -32,6 +45,10 @@ export function getClient() {
     throw new Error("Telegram client not configured. Call configureClient() first.");
   }
   return _client;
+}
+
+export function getActiveStore() {
+  return _sessionStore;
 }
 
 export async function ensureConnected() {
@@ -47,6 +64,19 @@ export async function persistSession() {
   if (!_sessionStore) throw new Error("sessionStore not set; call configureClient() first");
   const s = c.session.save();
   _sessionStore.save(s);
+}
+
+export function createTempClient({ apiId, apiHash }) {
+  const session = new StringSession("");
+  const client = new TelegramClient(session, Number(apiId), apiHash, {
+    connectionRetries: 3,
+    useWSS: true,
+  });
+  return client;
+}
+
+export function extractSessionString(client) {
+  return client.session.save();
 }
 
 export async function resolveChat(chatRef) {
@@ -71,7 +101,6 @@ async function joinByInvite(hash) {
   const c = await ensureConnected();
   try {
     const result = await c.invoke(new Api.messages.ImportChatInvite({ hash }));
-    // result.chats contains the joined chat(s)
     const chats = result.chats || [];
     if (chats.length === 0) {
       throw Object.assign(new Error("Invite returned no chats"), { code: "INVITE_EMPTY" });
@@ -79,10 +108,8 @@ async function joinByInvite(hash) {
     return { entity: chats[0], joinedNow: true };
   } catch (e) {
     const msg = String(e?.errorMessage || e?.message || e);
-    // Already a member — fetch entity via CheckChatInvite
     if (/USER_ALREADY_PARTICIPANT/.test(msg)) {
       const check = await c.invoke(new Api.messages.CheckChatInvite({ hash }));
-      // check.chat is set when already a member
       const entity = check?.chat;
       if (entity) return { entity, joinedNow: false };
       throw Object.assign(new Error("Already a member but no chat returned"), { code: "INVITE_ALREADY_MEMBER" });
@@ -102,11 +129,9 @@ async function joinByInvite(hash) {
 export async function leaveChat(entity) {
   const c = await ensureConnected();
   try {
-    // Try LeaveChannel first (works for supergroups and channels)
     await c.invoke(new Api.channels.LeaveChannel({ channel: entity }));
     return true;
   } catch (e) {
-    // For legacy basic groups, use DeleteChatUser with self
     try {
       const me = await c.getMe();
       await c.invoke(
@@ -124,7 +149,6 @@ export async function getParticipantUsernames(entity) {
   const c = await ensureConnected();
   const participants = await c.getParticipants(entity, { limit: 10000 });
 
-  // Robust id stringification: GramJS uses BigInteger / bigint, plain String() may yield "[object Object]"
   const idStr = (v) => {
     if (v == null) return "";
     if (typeof v === "string") return v;
@@ -134,9 +158,8 @@ export async function getParticipantUsernames(entity) {
     return String(v);
   };
 
-  // Fetch admin list separately. Only supported on channels/supergroups; basic groups throw.
   const adminIds = new Set();
-  const adminUserById = new Map(); // userId -> User object (for adding admins missing from participants)
+  const adminUserById = new Map();
   let creatorId = null;
   try {
     const adminList = await c.getParticipants(entity, {
@@ -185,13 +208,10 @@ export async function getParticipantUsernames(entity) {
     usernames.push(prefix ? `${prefix} @${p.username}` : `@${p.username}`);
   }
 
-  // Add admins that weren't in the regular participants list (anonymous admins,
-  // admins from linked channels, hidden members, etc). They appear at the end.
   for (const [aid, a] of adminUserById) {
     if (seenIds.has(aid)) continue;
     if (a.bot) bots++;
     if (!a.username) {
-      // No username — can't represent in our @username-only output. Skip silently.
       continue;
     }
     total++;
@@ -205,14 +225,12 @@ export async function getParticipantUsernames(entity) {
     usernames.push(`${prefix} @${a.username}`);
   }
 
-  // Sort by role: creator → admin → bot → regular. Stable within each group.
   const sortRank = (str) => {
     if (str.startsWith("⭐") || str.startsWith("🤖⭐")) return 0;
     if (str.startsWith("👑") || str.startsWith("🤖👑")) return 1;
     if (str.startsWith("🤖")) return 2;
     return 3;
   };
-  // Pair each entry with its original index for stable sort within groups
   const indexed = usernames.map((u, i) => ({ u, i }));
   indexed.sort((a, b) => {
     const r = sortRank(a.u) - sortRank(b.u);
@@ -220,7 +238,6 @@ export async function getParticipantUsernames(entity) {
   });
   const sortedUsernames = indexed.map((x) => x.u);
 
-  // Extract admin usernames (without prefixes) for the bot summary block
   const adminUsernames = sortedUsernames
     .filter((u) => u.startsWith("⭐") || u.startsWith("👑") || u.startsWith("🤖⭐") || u.startsWith("🤖👑"))
     .map((u) => {

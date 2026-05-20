@@ -71,6 +71,7 @@ async function routeUnauthenticated() {
 function hideAuthButtons() {
   hide("logout-btn");
   hide("change-password-btn");
+  hide("sessions-btn");
 }
 
 function showLoginScreen() {
@@ -88,23 +89,223 @@ function showSetupScreen() {
 async function loadAfterLogin() {
   show("logout-btn");
   show("change-password-btn");
+  show("sessions-btn");
   const { status, body } = await api("/api/auth/status");
   if (status === 401) {
     clearToken();
     await routeUnauthenticated();
     return;
   }
-  if (!body.authorized) {
+  if (!body.hasCredentials) {
     showOnly("auth-screen");
-    if (!body.hasCredentials) {
-      show("no-credentials");
-    } else {
-      show("phone-form");
-    }
-  } else {
-    showOnly("parser-screen");
-    await loadChats();
+    show("no-credentials");
+    return;
   }
+  if (!body.hasActiveSession || !body.authorized) {
+    openAddTgScreen({ firstRun: true });
+    return;
+  }
+  showOnly("parser-screen");
+  await loadChats();
+}
+
+let addTgState = { tempId: null, phone: "", label: "", phoneCodeHash: "", firstRun: false };
+
+function openAddTgScreen({ firstRun = false } = {}) {
+  addTgState = { tempId: null, phone: "", label: "", phoneCodeHash: "", firstRun };
+  hide("add-tg-error");
+  $("add-tg-phone-form").reset();
+  $("add-tg-code-form").reset();
+  $("add-tg-password-form").reset();
+  $("add-tg-title").textContent = firstRun
+    ? "Подключи свой первый Telegram-аккаунт"
+    : "Добавить TG-аккаунт";
+  $("add-tg-cancel-link").style.display = firstRun ? "none" : "";
+  hide("add-tg-code-form");
+  hide("add-tg-password-form");
+  show("add-tg-phone-form");
+  showOnly("add-tg-screen");
+}
+
+async function openSessionsScreen() {
+  hide("add-tg-error");
+  const { status, body } = await api("/api/sessions");
+  if (status !== 200) {
+    alert("Не удалось загрузить список TG-аккаунтов: " + (body.error || status));
+    return;
+  }
+  renderSessionsList(body.sessions, body.activeId);
+  showOnly("sessions-screen");
+}
+
+function renderSessionsList(sessions, activeId) {
+  const ul = $("sessions-list");
+  ul.innerHTML = "";
+  if (!sessions || sessions.length === 0) {
+    const li = document.createElement("li");
+    li.innerHTML = `<div class="session-info"><div class="session-label">Аккаунтов пока нет</div><div class="session-meta">Добавь свой первый Telegram-аккаунт</div></div>`;
+    ul.appendChild(li);
+    return;
+  }
+  for (const s of sessions) {
+    const li = document.createElement("li");
+    if (s.id === activeId) li.classList.add("active");
+    const usernameOrPhone = s.username ? "@" + s.username : (s.phone || "—");
+    const isActiveBadge = s.id === activeId ? `<span class="active-badge">активный</span>` : "";
+    li.innerHTML = `
+      <div class="session-info">
+        <div class="session-label">${escapeHtml(s.label)} ${isActiveBadge}</div>
+        <div class="session-meta">${escapeHtml(usernameOrPhone)}</div>
+      </div>
+      <div class="session-actions">
+        ${s.id !== activeId ? `<button type="button" class="use-btn" data-id="${s.id}">Использовать</button>` : ""}
+        <button type="button" class="rename-btn" data-id="${s.id}" data-label="${escapeHtml(s.label)}">Переименовать</button>
+        <button type="button" class="delete-btn" data-id="${s.id}" data-label="${escapeHtml(s.label)}">Удалить</button>
+      </div>
+    `;
+    ul.appendChild(li);
+  }
+  ul.querySelectorAll(".use-btn").forEach((b) => b.addEventListener("click", () => activateSession(b.dataset.id)));
+  ul.querySelectorAll(".rename-btn").forEach((b) => b.addEventListener("click", () => renameSession(b.dataset.id, b.dataset.label)));
+  ul.querySelectorAll(".delete-btn").forEach((b) => b.addEventListener("click", () => deleteSession(b.dataset.id, b.dataset.label)));
+}
+
+async function activateSession(id) {
+  const { status, body } = await api("/api/sessions/activate", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+  if (status !== 200) {
+    alert("Не удалось переключить: " + (body.hint || body.error || status));
+    return;
+  }
+  await openSessionsScreen();
+}
+
+async function renameSession(id, currentLabel) {
+  const label = prompt("Новое название аккаунта:", currentLabel);
+  if (!label || label === currentLabel) return;
+  const { status, body } = await api(`/api/sessions/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ label }),
+  });
+  if (status !== 200) {
+    alert("Не удалось переименовать: " + (body.error || status));
+    return;
+  }
+  await openSessionsScreen();
+}
+
+async function deleteSession(id, label) {
+  if (!confirm(`Удалить аккаунт «${label}»? Это разлогинит этот Telegram-аккаунт с парсера. Операция необратима.`)) return;
+  const { status, body } = await api(`/api/sessions/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+  if (status !== 200) {
+    alert("Не удалось удалить: " + (body.error || status));
+    return;
+  }
+  await openSessionsScreen();
+}
+
+$("sessions-btn").addEventListener("click", openSessionsScreen);
+
+$("sessions-back-link").addEventListener("click", async (e) => {
+  e.preventDefault();
+  await loadAfterLogin();
+});
+
+$("add-tg-btn").addEventListener("click", () => openAddTgScreen());
+
+$("add-tg-cancel-link").addEventListener("click", async (e) => {
+  e.preventDefault();
+  await openSessionsScreen();
+});
+
+$("add-tg-phone-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hide("add-tg-error");
+  const fd = new FormData(e.target);
+  const label = String(fd.get("label") || "").trim();
+  const phone = String(fd.get("phone") || "").trim();
+  if (!label || !phone) {
+    showAddTgError("Заполни оба поля");
+    return;
+  }
+  const { status, body } = await api("/api/sessions/add/send-code", {
+    method: "POST",
+    body: JSON.stringify({ phone, label }),
+  });
+  if (status !== 200) {
+    showAddTgError(body.hint || body.message || body.error || "Ошибка");
+    return;
+  }
+  addTgState.tempId = body.tempId;
+  addTgState.phone = phone;
+  addTgState.label = label;
+  addTgState.phoneCodeHash = body.phoneCodeHash;
+  $("add-tg-phone-display").textContent = phone;
+  hide("add-tg-phone-form");
+  show("add-tg-code-form");
+  setTimeout(() => $("add-tg-code-form").querySelector("input[name=code]")?.focus(), 50);
+});
+
+$("add-tg-code-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hide("add-tg-error");
+  const code = String(new FormData(e.target).get("code") || "").trim();
+  await submitAddTgSignIn({ code });
+});
+
+$("add-tg-password-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hide("add-tg-error");
+  const password = String(new FormData(e.target).get("password") || "");
+  await submitAddTgSignIn({ code: addTgState.code, password });
+});
+
+async function submitAddTgSignIn({ code, password }) {
+  if (!addTgState.tempId) {
+    showAddTgError("Сессия добавления истекла. Начни сначала.");
+    return;
+  }
+  const { status, body } = await api("/api/sessions/add/sign-in", {
+    method: "POST",
+    body: JSON.stringify({
+      tempId: addTgState.tempId,
+      phone: addTgState.phone,
+      phoneCodeHash: addTgState.phoneCodeHash,
+      code,
+      password,
+      label: addTgState.label,
+      activate: true,
+    }),
+  });
+  if (status === 400 && body.error === "2fa_required") {
+    addTgState.code = code;
+    hide("add-tg-code-form");
+    show("add-tg-password-form");
+    setTimeout(() => $("add-tg-password-form").querySelector("input[name=password]")?.focus(), 50);
+    return;
+  }
+  if (status === 404 && body.error === "temp_session_expired") {
+    showAddTgError("Сессия истекла. Запроси код заново.");
+    hide("add-tg-code-form");
+    hide("add-tg-password-form");
+    show("add-tg-phone-form");
+    return;
+  }
+  if (status !== 200) {
+    showAddTgError(body.hint || body.message || body.error || "Ошибка");
+    return;
+  }
+  await loadAfterLogin();
+}
+
+function showAddTgError(msg) {
+  const el = $("add-tg-error");
+  el.textContent = msg;
+  show("add-tg-error");
 }
 
 $("login-form").addEventListener("submit", async (e) => {
