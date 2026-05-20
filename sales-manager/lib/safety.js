@@ -45,4 +45,31 @@ export function nextTypingDuration(rng = Math.random) {
   return Math.floor(2_000 + rng() * (8_000 - 2_000));
 }
 
+export function classifyTelegramError(err) {
+  const msg = (err?.errorMessage || err?.message || "").toUpperCase();
+  if (msg.includes("USER_DEACTIVATED_BAN") || msg.includes("USER_BANNED")) return { kind: "ban" };
+  if (msg.includes("PEER_FLOOD")) return { kind: "flood" };
+  const fw = msg.match(/FLOOD_WAIT_(\d+)/);
+  if (fw) return { kind: "flood_wait", waitSec: Number(fw[1]) };
+  if (msg.includes("USER_PRIVACY_RESTRICTED") || msg.includes("CHAT_WRITE_FORBIDDEN")) return { kind: "privacy" };
+  if (msg.includes("INPUT_USER_DEACTIVATED")) return { kind: "deactivated" };
+  return { kind: "unknown", raw: msg };
+}
+
+const UNSUB_PATTERNS = [
+  /отстань/i,
+  /не\s*пиши/i,
+  /не\s*писать/i,
+  /спам/i,
+  /unsubscribe/i,
+  /отпис(ка|аться|ыва)/i,
+  /жалоб[ауы]/i,
+  /блокирую/i,
+];
+
+export function isUnsubscribeMessage(text) {
+  if (!text) return false;
+  return UNSUB_PATTERNS.some((re) => re.test(text));
+}
+
 export const _internal = { MIN_OUTBOUND_DELAY_MS, MAX_OUTBOUND_DELAY_MS, HOURLY_FIRST_MESSAGE_LIMIT };
