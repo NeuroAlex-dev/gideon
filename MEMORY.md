@@ -27,7 +27,8 @@
 ## Инфраструктура
 
 - **VPS:** vdsina.ru, Windows Server 2022, пользователь Administrator. **Inbound IP (на сетевом интерфейсе): `138.16.178.94`** — то что нужно для DNS A-записей и прокси (поправлено 2026-05-20: ранее в MEMORY стояло 165.231.33.74, это outbound NAT, на нём сидит чужая машина). **Outbound IP (что видят api.ipify.org и т.п.): `165.231.33.74`** — это NAT-адрес для исходящего трафика.
-- **Веб-доступ к парсеру (production):** Vercel-фронт + rewrites на nip.io бэкенд. Текущий URL: `https://gideon-muiqjp4ta-neuroalex-devs-projects.vercel.app/` (можно переименовать проект в Vercel для более красивого URL). `vercel.json` в корне репы шлёт `/api/*` на `https://parser.138-16-178-94.nip.io/api/*`.
+- **Веб-доступ к парсеру (production):** `https://gideon-bay.vercel.app/` — это **постоянный production URL** Vercel-проекта. Всегда указывает на последний deploy в main. URL вида `gideon-XXXXXX-neuroalex-devs-projects.vercel.app` — preview deployments конкретного коммита, не использовать.
+- **Архитектура веб-доступа:** Vercel-фронт + rewrites на nip.io бэкенд. `vercel.json` в корне репы шлёт `/api/*` на `https://parser.138-16-178-94.nip.io/api/*`. Vercel автоматически передеплоит при push в main.
 - **nip.io** заменил DuckDNS — DuckDNS глючил с пропагацией A-записи. nip.io это wildcard DNS: `*.138-16-178-94.nip.io` → 138.16.178.94 автоматически. Без регистрации.
 - **Caddyfile** (запущен из `C:\Users\Administrator\projects\voice-input\Caddyfile`): блок `parser.138-16-178-94.nip.io { reverse_proxy localhost:3000 }`. Сертификат Let's Encrypt автоматически.
 - ~~Публичный URL парсера: `https://gideon-parser.duckdns.org`~~ — устарело, DuckDNS отключаем, блок в Caddyfile пока висит но не используется.
