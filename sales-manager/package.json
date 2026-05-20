@@ -1,0 +1,23 @@
+{
+  "name": "agent-sales-manager",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AI sales manager — outbound + inbound Telegram dialogs",
+  "main": "server.js",
+  "scripts": {
+    "start:server": "node server.js",
+    "start:worker": "node worker.js",
+    "dev:server": "node --watch server.js",
+    "dev:worker": "node --watch worker.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "telegram": "^2.26.16",
+    "express": "^4.21.2",
+    "better-sqlite3": "^11.3.0",
+    "dotenv": "^16.4.7"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

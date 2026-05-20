@@ -1,0 +1,6 @@
+node_modules/
+data/sales-manager.db
+data/sales-manager.db-journal
+data/*.db
+data/*.db-*
+.env
