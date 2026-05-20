@@ -262,3 +262,64 @@ export function updateMessageStatus(db, id, status, patch = {}) {
 export function setConversationStage(db, conversationId, stage) {
   db.prepare("UPDATE conversations SET stage = ? WHERE id = ?").run(stage, conversationId);
 }
+
+export function createDraft(db, messageId, telegramBotMessageId = null) {
+  return db.prepare(`
+    INSERT INTO drafts (message_id, telegram_bot_message_id, created_at) VALUES (?, ?, ?)
+  `).run(messageId, telegramBotMessageId, Date.now()).lastInsertRowid;
+}
+
+export function getDraft(db, id) {
+  return db.prepare("SELECT * FROM drafts WHERE id = ?").get(id);
+}
+
+export function getDraftByMessage(db, messageId) {
+  return db.prepare("SELECT * FROM drafts WHERE message_id = ? ORDER BY id DESC LIMIT 1").get(messageId);
+}
+
+export function resolveDraft(db, id, status, humanEditText = null) {
+  db.prepare("UPDATE drafts SET status = ?, human_edit_text = ?, resolved_at = ? WHERE id = ?")
+    .run(status, humanEditText, Date.now(), id);
+}
+
+export function logEvent(db, { type, lead_id = null, campaign_id = null, payload = null }) {
+  return db.prepare("INSERT INTO events (ts, type, lead_id, campaign_id, payload_json) VALUES (?, ?, ?, ?, ?)")
+    .run(Date.now(), type, lead_id, campaign_id, payload ? JSON.stringify(payload) : null).lastInsertRowid;
+}
+
+export function listEvents(db, { campaignId = null, leadId = null, limit = 500 } = {}) {
+  if (campaignId) return db.prepare("SELECT * FROM events WHERE campaign_id = ? ORDER BY id DESC LIMIT ?").all(campaignId, limit);
+  if (leadId) return db.prepare("SELECT * FROM events WHERE lead_id = ? ORDER BY id DESC LIMIT ?").all(leadId, limit);
+  return db.prepare("SELECT * FROM events ORDER BY id DESC LIMIT ?").all(limit);
+}
+
+export function campaignStats(db, campaignId) {
+  const leads = db.prepare("SELECT status, COUNT(*) as n FROM leads WHERE campaign_id = ? GROUP BY status").all(campaignId);
+  const by = {};
+  let total = 0;
+  for (const r of leads) { by[r.status] = r.n; total += r.n; }
+  const msgs = db.prepare(`
+    SELECT m.role, COUNT(*) as n
+    FROM messages m
+    JOIN conversations c ON c.id = m.conversation_id
+    WHERE c.campaign_id = ?
+    GROUP BY m.role
+  `).all(campaignId);
+  const msgBy = {};
+  for (const r of msgs) msgBy[r.role] = r.n;
+  return {
+    leads_total: total,
+    leads_by_status: by,
+    messages_outbound: msgBy.outbound ?? 0,
+    messages_inbound: msgBy.inbound ?? 0,
+    messages_human_takeover: msgBy.human_takeover ?? 0,
+  };
+}
+
+export function countOutboundFirstMessagesSince(db, sinceTs) {
+  return db.prepare(`
+    SELECT COUNT(*) as n FROM messages m
+    WHERE m.role = 'outbound' AND m.status = 'sent' AND m.sent_at >= ?
+      AND m.id = (SELECT MIN(id) FROM messages WHERE conversation_id = m.conversation_id)
+  `).get(sinceTs).n;
+}
