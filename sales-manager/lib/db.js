@@ -156,3 +156,73 @@ export function setCampaignStatus(db, id, status) {
     db.prepare(`UPDATE campaigns SET status = ? WHERE id = ?`).run(status, id);
   }
 }
+
+export function addLeads(db, campaignId, leads) {
+  const now = Date.now();
+  const insert = db.prepare(`
+    INSERT INTO leads (campaign_id, tg_user_id, tg_username, first_name, last_name, bio, source_chat_title, source_parse_id, next_action_at, created_at)
+    SELECT @campaign_id, @tg_user_id, @tg_username, @first_name, @last_name, @bio, @source_chat_title, @source_parse_id, @next_action_at, @created_at
+    WHERE NOT EXISTS (
+      SELECT 1 FROM leads WHERE campaign_id = @campaign_id AND tg_user_id IS NOT NULL AND tg_user_id = @tg_user_id
+    )
+  `);
+  const tx = db.transaction((rows) => {
+    let inserted = 0;
+    for (const r of rows) {
+      const res = insert.run({
+        campaign_id: campaignId,
+        tg_user_id: r.tg_user_id ?? null,
+        tg_username: r.tg_username ?? null,
+        first_name: r.first_name ?? null,
+        last_name: r.last_name ?? null,
+        bio: r.bio ?? null,
+        source_chat_title: r.source_chat_title ?? null,
+        source_parse_id: r.source_parse_id ?? null,
+        next_action_at: r.next_action_at ?? now,
+        created_at: now,
+      });
+      if (res.changes) inserted++;
+    }
+    return inserted;
+  });
+  return tx(leads);
+}
+
+export function getLead(db, id) {
+  return db.prepare("SELECT * FROM leads WHERE id = ?").get(id);
+}
+
+export function listLeads(db, campaignId, { status = null, limit = 1000 } = {}) {
+  const sql = status
+    ? "SELECT * FROM leads WHERE campaign_id = ? AND status = ? ORDER BY created_at LIMIT ?"
+    : "SELECT * FROM leads WHERE campaign_id = ? ORDER BY created_at LIMIT ?";
+  return status
+    ? db.prepare(sql).all(campaignId, status, limit)
+    : db.prepare(sql).all(campaignId, limit);
+}
+
+export function setLeadStatus(db, id, status, nextActionAt = null) {
+  if (nextActionAt !== null) {
+    db.prepare("UPDATE leads SET status = ?, next_action_at = ? WHERE id = ?").run(status, nextActionAt, id);
+  } else {
+    db.prepare("UPDATE leads SET status = ? WHERE id = ?").run(status, id);
+  }
+}
+
+export function nextLeadToContact(db, campaignId, now) {
+  return db.prepare(`
+    SELECT * FROM leads
+    WHERE campaign_id = ? AND status = 'queued' AND (next_action_at IS NULL OR next_action_at <= ?)
+    ORDER BY next_action_at ASC, id ASC
+    LIMIT 1
+  `).get(campaignId, now) ?? null;
+}
+
+export function blockLead(db, tgUserId, reason) {
+  db.prepare("INSERT OR REPLACE INTO leads_blocked (tg_user_id, reason, blocked_at) VALUES (?, ?, ?)")
+    .run(tgUserId, reason ?? null, Date.now());
+}
+
+export function isLeadBlocked(db, tgUserId) {
+  return !!db.prepare("SELECT 1 FROM leads_blocked WHERE tg_user_id = ?").get(tgUserId);
+}
