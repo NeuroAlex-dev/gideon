@@ -525,14 +525,109 @@ export function registerSalesHandlers(bot, isOwner) {
     return false;
   }
 
+  // Текстовые поля брифинга, которые могут принимать файл как значение (через caption + extract)
+  function isTextFieldStep(w) {
+    if (!w || w.mode !== "brief") return false;
+    const field = FIELDS[w.step];
+    return field && !field.multiMessage;
+  }
+
+  async function handleFileForTextField(ctx, w) {
+    const info = extractMediaInfo(ctx.message);
+    const caption = (ctx.message.caption || "").trim();
+    if (!info) {
+      // нет известного медиа — попросим текст
+      await ctx.reply("На этом шаге нужно текстовое описание. Если хочешь приложить материалы — это будет шаг «Доп. материалы» дальше. Пришли просто текст.");
+      return;
+    }
+    // Если это текстовый файл — скачиваем и извлекаем
+    const ext = (info.filename || "").toLowerCase().split(".").pop();
+    const extractable = ["txt", "md", "csv", "log", "json", "html", "htm", "pdf", "docx"];
+    let extracted = "";
+    let savedPath = null;
+    if (extractable.includes(ext)) {
+      try {
+        const file = await ctx.api.getFile(info.fileId);
+        const token = process.env.BOT_TOKEN;
+        const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+        const dir = path.join(MATERIALS_DIR, "brief-text-fields");
+        ensureDir(dir);
+        savedPath = path.join(dir, `${Date.now()}_${info.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`);
+        await downloadToFile(url, savedPath);
+        const er = await api("POST", "/extract", { path: savedPath });
+        if (er?.text) extracted = er.text;
+      } catch (e) {
+        await ctx.reply(`⚠️ Не смог извлечь содержимое файла: ${esc(e.message)}. Использую только подпись/имя файла.`);
+      }
+    }
+    // Собираем значение поля: caption + содержимое файла (если извлеклось)
+    const parts = [];
+    if (caption) parts.push(caption);
+    if (extracted) parts.push(`\n[содержимое файла «${info.filename}»]\n${extracted}`);
+    if (!caption && !extracted) parts.push(`[приложенный файл: ${info.filename}]`);
+    const value = parts.join("\n").trim();
+    const field = FIELDS[w.step];
+    w.data[field.key] = value;
+    await ctx.reply(`📎 Файл принят как значение поля «${esc(shortLabel(field.key))}»${extracted ? ` (содержимое распознано: ${extracted.length} симв.)` : ""}.`);
+    await advanceBrief(ctx, w);
+  }
+
   // Один универсальный handler на все типы медиа
   for (const filter of ["message:document", "message:photo", "message:video", "message:audio", "message:voice", "message:animation", "message:video_note", "message:sticker"]) {
     bot.on(filter, async (ctx, next) => {
       if (!isOwner(ctx)) return next();
       const w = wizards.get(ctx.chat.id);
-      if (!isInMaterialsCollect(w)) return next();
-      await handleAttachment(ctx, w);
+      if (!w) return next();
+      // 1) В режиме сбора материалов — стандартный аплоад
+      if (isInMaterialsCollect(w)) return handleAttachment(ctx, w);
+      // 2) В режиме редактирования одного поля (edit_field) или текстового шага брифинга — извлекаем содержимое/caption как значение
+      if (w.mode === "edit_field" || isTextFieldStep(w)) {
+        if (w.mode === "edit_field") {
+          // переиспользуем логику текстового поля: считаем что step указывает на field через w.field
+          return handleFileForEditField(ctx, w);
+        }
+        return handleFileForTextField(ctx, w);
+      }
+      // 3) Прочие режимы (manual_leads, edit_draft) — файл не подходит, скажем
+      await ctx.reply("На этом шаге жду текст, не файл. Пришли текстом.");
     });
+  }
+
+  async function handleFileForEditField(ctx, w) {
+    const info = extractMediaInfo(ctx.message);
+    const caption = (ctx.message.caption || "").trim();
+    if (!info) { await ctx.reply("Жду текст."); return; }
+    const ext = (info.filename || "").toLowerCase().split(".").pop();
+    const extractable = ["txt", "md", "csv", "log", "json", "html", "htm", "pdf", "docx"];
+    let extracted = "";
+    if (extractable.includes(ext)) {
+      try {
+        const file = await ctx.api.getFile(info.fileId);
+        const token = process.env.BOT_TOKEN;
+        const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+        const dir = path.join(MATERIALS_DIR, "brief-text-fields");
+        ensureDir(dir);
+        const savedPath = path.join(dir, `${Date.now()}_${info.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`);
+        await downloadToFile(url, savedPath);
+        const er = await api("POST", "/extract", { path: savedPath });
+        if (er?.text) extracted = er.text;
+      } catch (e) {
+        await ctx.reply(`⚠️ Не смог извлечь: ${esc(e.message)}`);
+      }
+    }
+    const parts = [];
+    if (caption) parts.push(caption);
+    if (extracted) parts.push(`\n[содержимое файла «${info.filename}»]\n${extracted}`);
+    if (!caption && !extracted) parts.push(`[приложенный файл: ${info.filename}]`);
+    const value = parts.join("\n").trim();
+    wizards.delete(ctx.chat.id);
+    try {
+      await api("PUT", `/campaigns/${w.campaignId}`, { [w.field]: value });
+      const kb = new InlineKeyboard().text("⬅️ К кампании", `sm:manage:${w.campaignId}`);
+      await ctx.reply(`✅ Поле «${esc(shortLabel(w.field))}» обновлено${extracted ? ` (распознано ${extracted.length} симв. из файла)` : ""}.`, { reply_markup: kb });
+    } catch (e) {
+      await ctx.reply(`⚠️ ${esc(e.message)}`);
+    }
   }
 
   bot.callbackQuery(/^sm:brief:materials-done$/, async (ctx) => {
