@@ -108,6 +108,23 @@ export function createTelegramAdapter({ sessionLoader = defaultSessionLoader, cl
     }
   }
 
+  async function getRecentMessages(peer, limit = 20) {
+    if (!connected) throw new Error("telegram: connect() сначала");
+    try {
+      const msgs = await client.getMessages(peer, { limit });
+      return msgs.map((m) => ({
+        id: m.id,
+        out: !!m.out,
+        date: m.date ? m.date * 1000 : null,
+        text: m.message || "",
+        senderId: m.senderId ? Number(m.senderId.toString()) : null,
+      }));
+    } catch (e) {
+      console.warn(`[telegram] getRecentMessages failed for ${peer}: ${e.message}`);
+      return [];
+    }
+  }
+
   async function getUserProfile(usernameOrId) {
     if (!connected) throw new Error("telegram: connect() сначала");
     try {
@@ -129,7 +146,7 @@ export function createTelegramAdapter({ sessionLoader = defaultSessionLoader, cl
 
   function rawClient() { return client; }
 
-  return { connect, disconnect, sendMessage, sendFile, onNewMessage, getUserBio, getUserProfile, rawClient };
+  return { connect, disconnect, sendMessage, sendFile, onNewMessage, getUserBio, getUserProfile, getRecentMessages, rawClient };
 }
 
 // Безопасность: путь к файлу должен лежать внутри data/materials/ — нельзя AI отправлять системные файлы.

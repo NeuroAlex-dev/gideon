@@ -33,6 +33,49 @@ export function createWorker({ db, telegram, askClaude, notifyAlexander = null, 
 
     // Recovery: на старте обработать inbound-ы которые остались без ответа (после крэша/рестарта)
     recoverPendingInbound().catch((err) => console.error("recover error:", err));
+    // Recovery 2: подтянуть из TG сообщения которые могли быть пропущены пока worker был offline/reconnecting
+    fetchMissedFromTelegram().catch((err) => console.error("fetch-missed error:", err));
+  }
+
+  async function fetchMissedFromTelegram() {
+    if (!telegram.getRecentMessages) return;
+    const activeLeads = db.prepare(`
+      SELECT l.id, l.tg_user_id, l.tg_username, l.status, c.id as campaign_id, c.name as campaign_name
+      FROM leads l
+      JOIN campaigns c ON c.id = l.campaign_id
+      WHERE c.status = 'running'
+        AND l.status NOT IN ('queued','unsubscribed','blocked','human_takeover','lost','won')
+    `).all();
+    if (!activeLeads.length) return;
+    console.log(`[worker] fetch-missed: проверяю ${activeLeads.length} активных лидов на пропущенные входящие из TG`);
+    for (const lead of activeLeads) {
+      const peer = lead.tg_username || lead.tg_user_id;
+      if (!peer) continue;
+      try {
+        // Берём timestamp нашего последнего ИСХОДЯЩЕГО — пропускать всё что было раньше или равно ему
+        const conv = db.prepare("SELECT id FROM conversations WHERE lead_id = ? AND campaign_id = ?").get(lead.id, lead.campaign_id);
+        if (!conv) continue;
+        const lastOut = db.prepare("SELECT MAX(sent_at) as ts FROM messages WHERE conversation_id = ? AND role = 'outbound' AND status = 'sent'").get(conv.id);
+        const cutoff = lastOut?.ts || 0;
+        const tgMsgs = await telegram.getRecentMessages(peer, 15);
+        const known = new Set(
+          db.prepare("SELECT tg_message_id FROM messages WHERE conversation_id = ? AND tg_message_id IS NOT NULL").all(conv.id).map((r) => r.tg_message_id)
+        );
+        // Только входящие СТРОГО ПОСЛЕ нашего последнего исходящего (старый диалог — мимо, мы уже ответили)
+        // tgMsgs идут от новых к старым — реверсим для хронологического порядка
+        const missing = tgMsgs
+          .filter((m) => !m.out && m.text && !known.has(m.id) && m.date && m.date > cutoff)
+          .reverse();
+        if (missing.length) {
+          console.log(`[worker] fetch-missed: лид ${lead.id} (@${lead.tg_username}) — пропущено ${missing.length} новых входящих (после ${new Date(cutoff).toISOString()})`);
+          for (const m of missing) {
+            await processor.onInbound({ tgUserId: lead.tg_user_id, tgUsername: lead.tg_username, text: m.text, tgMessageId: m.id });
+          }
+        }
+      } catch (e) {
+        console.warn(`[worker] fetch-missed для лида ${lead.id}: ${e.message}`);
+      }
+    }
   }
 
   async function recoverPendingInbound() {
