@@ -49,22 +49,3 @@ export function createWorker({ db, telegram, askClaude, notifyAlexander = null, 
   return { start, stop, tick, runTickNow };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const dotenv = await import("dotenv");
-  dotenv.config();
-  const { openDb } = await import("./lib/db.js");
-  const { createTelegramAdapter } = await import("./lib/telegram.js");
-  const { askClaude } = await import("./lib/ai.js");
-  const { createBotNotifier } = await import("./lib/bot-notifier.js");
-
-  const db = openDb(process.env.SM_DB_PATH || "./data/sales-manager.db");
-  const telegram = createTelegramAdapter();
-  const notifyAlexander = createBotNotifier({
-    botToken: process.env.TG_BOT_TOKEN,
-    chatId: process.env.OWNER_CHAT_ID,
-  });
-  const worker = createWorker({ db, telegram, askClaude, notifyAlexander });
-  await worker.start();
-  console.log("sales-manager worker started");
-  process.on("SIGINT", async () => { await worker.stop(); process.exit(0); });
-}

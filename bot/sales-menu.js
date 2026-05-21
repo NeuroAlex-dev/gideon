@@ -5,10 +5,32 @@
  */
 import { InlineKeyboard } from "grammy";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 
-const SM_API_BASE = process.env.SM_API_BASE || "http://127.0.0.1:3001/api";
-const SM_PASSWORD = process.env.SM_PASSWORD || "change-me";
-const SM_SECRET = process.env.SM_SECRET || "change-me-secret";
+function loadSmEnv() {
+  const candidates = [
+    process.env.SM_ENV_PATH,
+    path.resolve(process.cwd(), "../sales-manager/.env"),
+    "C:/Users/Administrator/Documents/Projects/gideon/sales-manager/.env",
+  ].filter(Boolean);
+  for (const p of candidates) {
+    try {
+      if (!fs.existsSync(p)) continue;
+      const out = {};
+      for (const line of fs.readFileSync(p, "utf8").split(/\r?\n/)) {
+        const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/i);
+        if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, "");
+      }
+      return out;
+    } catch {}
+  }
+  return {};
+}
+const smEnv = loadSmEnv();
+const SM_API_BASE = process.env.SM_API_BASE || smEnv.SM_API_BASE || `http://127.0.0.1:${smEnv.SM_PORT || 3001}/api`;
+const SM_PASSWORD = process.env.SM_PASSWORD || smEnv.SM_PASSWORD || "change-me";
+const SM_SECRET = process.env.SM_SECRET || smEnv.SM_SECRET || "change-me-secret";
 const AUTH_TOKEN = crypto.createHmac("sha256", SM_SECRET).update(SM_PASSWORD).digest("hex");
 
 const FIELDS = [

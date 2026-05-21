@@ -4,19 +4,47 @@ import { TelegramClient, Api } from "telegram";
 import { StringSession } from "telegram/sessions/index.js";
 import { NewMessage } from "telegram/events/index.js";
 
-const DEFAULT_SESSION_PATH = path.resolve("../parser/data/session.txt");
+const PARSER_DATA_DIR = path.resolve("../parser/data");
+const LEGACY_SESSION_PATH = path.resolve("../parser/data/session.txt");
+const SESSIONS_META_PATH = path.resolve("../parser/data/sessions/_meta.json");
+const PARSER_ENV_PATH = path.resolve("../parser/.env");
 
 function defaultSessionLoader() {
-  if (!fs.existsSync(DEFAULT_SESSION_PATH)) {
-    throw new Error(`sessions: ${DEFAULT_SESSION_PATH} не найден — сначала залогинься в парсере`);
+  if (fs.existsSync(SESSIONS_META_PATH)) {
+    const meta = JSON.parse(fs.readFileSync(SESSIONS_META_PATH, "utf8"));
+    const activeId = meta.activeId;
+    if (!activeId) throw new Error(`sessions: в ${SESSIONS_META_PATH} нет activeId`);
+    const sessionFile = path.join(PARSER_DATA_DIR, "sessions", `${activeId}.txt`);
+    if (!fs.existsSync(sessionFile)) {
+      throw new Error(`sessions: активная сессия ${activeId} (${sessionFile}) не найдена`);
+    }
+    return fs.readFileSync(sessionFile, "utf8").trim();
   }
-  return fs.readFileSync(DEFAULT_SESSION_PATH, "utf8").trim();
+  if (fs.existsSync(LEGACY_SESSION_PATH)) {
+    return fs.readFileSync(LEGACY_SESSION_PATH, "utf8").trim();
+  }
+  throw new Error(`sessions: ни ${SESSIONS_META_PATH}, ни ${LEGACY_SESSION_PATH} не найдены — сначала залогинься в парсере`);
+}
+
+function readParserEnv() {
+  if (!fs.existsSync(PARSER_ENV_PATH)) return {};
+  const out = {};
+  for (const line of fs.readFileSync(PARSER_ENV_PATH, "utf8").split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/i);
+    if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  }
+  return out;
 }
 
 function defaultClientFactory(sessionString) {
-  const apiId = Number(process.env.TG_API_ID || process.env.API_ID);
-  const apiHash = process.env.TG_API_HASH || process.env.API_HASH;
-  if (!apiId || !apiHash) throw new Error("TG_API_ID/TG_API_HASH не заданы в env");
+  let apiId = Number(process.env.TG_API_ID || process.env.API_ID);
+  let apiHash = process.env.TG_API_HASH || process.env.API_HASH;
+  if (!apiId || !apiHash) {
+    const parserEnv = readParserEnv();
+    apiId = apiId || Number(parserEnv.TG_API_ID || parserEnv.API_ID);
+    apiHash = apiHash || parserEnv.TG_API_HASH || parserEnv.API_HASH;
+  }
+  if (!apiId || !apiHash) throw new Error("TG_API_ID/TG_API_HASH не заданы (ни в env, ни в parser/.env)");
   return new TelegramClient(new StringSession(sessionString), apiId, apiHash, {
     connectionRetries: 3,
     useWSS: true,

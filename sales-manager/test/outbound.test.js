@@ -44,7 +44,7 @@ test("outbound: пишет первое сообщение и переводит
 
 test("outbound: вне рабочих часов — ничего не отправляет, лид остаётся queued", async () => {
   const { db, cid } = setup();
-  addLeads(db, cid, [{ tg_user_id: 11, tg_username: "vasya" }]);
+  addLeads(db, cid, [{ tg_user_id: 11, tg_username: "vasya", next_action_at: 0 }]);
   const res = await runOutboundTick({
     db,
     now: new Date("2026-05-21T00:00:00Z").getTime(),
