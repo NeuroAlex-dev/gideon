@@ -33,12 +33,22 @@ const KIND_LABEL = {
   animation: "GIF",
   video_note: "Видеокружок",
   sticker: "Стикер",
+  link: "Ссылка",
 };
+
+const URL_RE = /\bhttps?:\/\/[^\s<>"']+/gi;
+
+function extractUrls(text) {
+  if (!text) return [];
+  const matches = text.match(URL_RE);
+  return matches ? [...new Set(matches)] : [];
+}
 
 function renderMaterials(items) {
   if (!items.length) return "";
   return items.map((it) => {
     if (it.kind === "text") return `- ${it.text}`;
+    if (it.kind === "link") return `- Ссылка: ${it.url}${it.description ? ` — ${it.description}` : ""}`;
     const label = KIND_LABEL[it.kind] || "Файл";
     const name = it.filename ? `«${it.filename}» ` : "";
     return `- ${label} ${name}(${it.path})${it.caption ? `: ${it.caption}` : ""}`;
@@ -78,7 +88,7 @@ const FIELDS = [
   { key: "goal_ikr", q: "Идеальный конечный результат — что считаем закрытием?" },
   { key: "conversation_context", q: "Контекст переписки — с кем общаемся и на какую тему? Опиши кратко предысторию, чтобы AI понимал поле игры. (`-` если не нужно)", optional: true },
   { key: "first_message_template", q: "Шаблон/описание первого сообщения — как оно должно выглядеть? AI возьмёт это как ориентир и адаптирует под каждого лида. (`-` если пусть AI сам решает)", optional: true },
-  { key: "supporting_materials", q: "Доп. материалы — присылай текст, ссылки, файлы или фото несколькими сообщениями. Когда закончишь — нажми кнопку «✅ Готово» или напиши `готово`. Пропустить — `-`.", optional: true, multiMessage: true },
+  { key: "supporting_materials", q: "Доп. материалы — присылай несколькими сообщениями:\n• Текст / описание\n• 🔗 Ссылки (URL распознаётся автоматически)\n• 📎 Файлы любого типа (документы, фото, видео, аудио, голосовые, GIF, кружочки, стикеры)\n\nКогда закончишь — нажми «✅ Готово» или напиши `готово`. Пропустить — `-`.", optional: true, multiMessage: true },
   { key: "tone", q: "Тон? (можно пропустить — введи `-`)", optional: true },
   { key: "stop_phrases", q: "Стоп-фразы — чего точно не говорим? (`-` если пропустить)", optional: true },
 ];
@@ -246,7 +256,7 @@ export function registerSalesHandlers(bot, isOwner) {
       catch (e) { await ctx.reply(`⚠️ ${esc(e.message)}`); return; }
     }
     wizards.set(ctx.chat.id, { mode: "materials_edit", campaignId: cid, materials: [], appendTo });
-    await ctx.reply(`Шли материалы (текст / документы / фото). Принимаю всё подряд. Когда закончишь — кнопка «✅ Готово» или напиши «готово». «-» = очистить.`,
+    await ctx.reply(`Шли материалы:\n• Текст / описание\n• 🔗 Ссылки (URL автоматически распознаётся)\n• 📎 Файлы любого типа (документы, фото, видео, аудио, голосовые, GIF, кружочки, стикеры)\n\nКогда закончишь — кнопка «✅ Готово» или напиши «готово». «-» = очистить.`,
       { reply_markup: new InlineKeyboard().text("✅ Готово", "sm:materials-done") });
   });
 
@@ -394,6 +404,22 @@ export function registerSalesHandlers(bot, isOwner) {
     await ctx.answerCallbackQuery();
     await ctx.reply("Пришли свой текст — отправлю его вместо AI-варианта:");
   });
+
+  function addTextOrLinks(items, val) {
+    const urls = extractUrls(val);
+    if (urls.length === 0) {
+      items.push({ kind: "text", text: val });
+      return { summary: "📝 Текст добавлен" };
+    }
+    // Если есть URL — каждая ссылка отдельным элементом, остальной текст становится описанием первой ссылки
+    let description = val;
+    for (const u of urls) description = description.split(u).join(" ");
+    description = description.trim().replace(/\s+/g, " ");
+    for (let i = 0; i < urls.length; i++) {
+      items.push({ kind: "link", url: urls[i], description: i === 0 ? description : "" });
+    }
+    return { summary: `🔗 Ссылок добавлено: ${urls.length}` };
+  }
 
   async function advanceBrief(ctx, w) {
     w.step++;
@@ -574,8 +600,8 @@ export function registerSalesHandlers(bot, isOwner) {
           w.data[field.key] = w.materials.length ? renderMaterials(w.materials) : null;
           return advanceBrief(ctx, w);
         }
-        w.materials.push({ kind: "text", text: val });
-        await ctx.reply(`Добавил (всего: ${w.materials.length}). Шли ещё или напиши «готово».`,
+        const added = addTextOrLinks(w.materials, val);
+        await ctx.reply(`${added.summary} (всего: ${w.materials.length}). Шли ещё или напиши «готово».`,
           { reply_markup: new InlineKeyboard().text("✅ Готово", "sm:brief:materials-done") });
         return;
       }
@@ -605,8 +631,8 @@ export function registerSalesHandlers(bot, isOwner) {
         await ctx.reply("Материалы очищены.");
         return;
       }
-      w.materials.push({ kind: "text", text: val });
-      await ctx.reply(`Добавил (всего новых: ${w.materials.length}). Шли ещё или напиши «готово».`,
+      const added = addTextOrLinks(w.materials, val);
+      await ctx.reply(`${added.summary} (всего новых: ${w.materials.length}). Шли ещё или напиши «готово».`,
         { reply_markup: new InlineKeyboard().text("✅ Готово", "sm:materials-done") });
       return;
     }
