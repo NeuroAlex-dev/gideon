@@ -1,7 +1,7 @@
 import { runOutboundTick, processApprovedDrafts } from "./lib/outbound.js";
 import { createInboundProcessor } from "./lib/inbound.js";
 
-export function createWorker({ db, telegram, askClaude, notifyAlexander = null, tickIntervalMs = 60_000, batchWindowMs = 60_000, forceCheckIntervalMs = 3_000 }) {
+export function createWorker({ db, telegram, askClaude, notifyAlexander = null, tickIntervalMs = 60_000, batchWindowMs = 25_000, forceCheckIntervalMs = 3_000 }) {
   let timer = null;
   let forceTimer = null;
   let lastForceEventId = 0;

@@ -42,7 +42,7 @@ export function nextInboundReadDelay(rng = Math.random) {
 }
 
 export function nextTypingDuration(rng = Math.random) {
-  return Math.floor(2_000 + rng() * (8_000 - 2_000));
+  return Math.floor(1_000 + rng() * (3_000 - 1_000));
 }
 
 export function classifyTelegramError(err) {
