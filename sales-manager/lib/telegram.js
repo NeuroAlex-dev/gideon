@@ -108,9 +108,28 @@ export function createTelegramAdapter({ sessionLoader = defaultSessionLoader, cl
     }
   }
 
+  async function getUserProfile(usernameOrId) {
+    if (!connected) throw new Error("telegram: connect() сначала");
+    try {
+      const entity = await client.getEntity(usernameOrId);
+      const firstName = entity?.firstName ?? entity?.first_name ?? null;
+      const lastName = entity?.lastName ?? entity?.last_name ?? null;
+      const username = entity?.username ?? null;
+      const tgUserId = entity?.id ? Number(entity.id.toString()) : null;
+      let bio = null;
+      try {
+        const full = await client.invoke(new Api.users.GetFullUser({ id: entity }));
+        bio = full?.fullUser?.about ?? null;
+      } catch {}
+      return { tgUserId, firstName, lastName, username, bio };
+    } catch {
+      return null;
+    }
+  }
+
   function rawClient() { return client; }
 
-  return { connect, disconnect, sendMessage, sendFile, onNewMessage, getUserBio, rawClient };
+  return { connect, disconnect, sendMessage, sendFile, onNewMessage, getUserBio, getUserProfile, rawClient };
 }
 
 // Безопасность: путь к файлу должен лежать внутри data/materials/ — нельзя AI отправлять системные файлы.

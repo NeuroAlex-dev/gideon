@@ -53,13 +53,36 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
       continue;
     }
 
+    // Подтягиваем реальный first_name/bio из TG если их ещё нет в БД
+    let leadEnriched = lead;
+    if ((!lead.first_name || !lead.bio) && telegram.getUserProfile) {
+      try {
+        const profile = await telegram.getUserProfile(lead.tg_username || lead.tg_user_id);
+        if (profile) {
+          const patch = {};
+          if (!lead.first_name && profile.firstName) patch.first_name = profile.firstName;
+          if (!lead.last_name && profile.lastName) patch.last_name = profile.lastName;
+          if (!lead.bio && profile.bio) patch.bio = profile.bio;
+          if (!lead.tg_user_id && profile.tgUserId) patch.tg_user_id = profile.tgUserId;
+          if (Object.keys(patch).length) {
+            const sets = Object.keys(patch).map((k) => `${k} = ?`).join(", ");
+            db.prepare(`UPDATE leads SET ${sets} WHERE id = ?`).run(...Object.values(patch), lead.id);
+            leadEnriched = { ...lead, ...patch };
+            console.log(`[outbound] enriched lead ${lead.id}: ${Object.keys(patch).join(", ")}`);
+          }
+        }
+      } catch (e) {
+        console.warn(`[outbound] не смог получить профиль лида ${lead.id}: ${e.message}`);
+      }
+    }
+
     let aiText;
     let aiAttachments = [];
     try {
       const ai = await askClaude({
         systemPrompt: buildOutboundSystemPrompt(campaign),
         history: [],
-        userMessage: buildFirstMessageUserPrompt(lead),
+        userMessage: buildFirstMessageUserPrompt(leadEnriched),
       });
       const parsed = JSON.parse(extractJson(ai.text));
       aiText = parsed.text;
