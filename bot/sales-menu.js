@@ -166,6 +166,15 @@ function formatCampaignSummary(c, stats) {
 }
 
 export function registerSalesHandlers(bot, isOwner) {
+  async function getCampaignLabel(id) {
+    try {
+      const c = await api("GET", `/campaigns/${id}`);
+      return `«${c.name}» (#${id})`;
+    } catch {
+      return `#${id}`;
+    }
+  }
+
   async function showMainMenu(ctx) {
     const kb = new InlineKeyboard()
       .text("➕ Новая кампания", "sm:new").row()
@@ -294,9 +303,10 @@ export function registerSalesHandlers(bot, isOwner) {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     const id = ctx.match[1];
     try {
+      const label = await getCampaignLabel(id);
       await api("POST", `/campaigns/${id}/pause`);
       await ctx.answerCallbackQuery({ text: "На паузе" });
-      await ctx.reply(`⏸ Кампания #${id} приостановлена.`);
+      await ctx.reply(`⏸ Кампания ${esc(label)} приостановлена.`, { parse_mode: "HTML" });
     } catch (e) {
       await ctx.answerCallbackQuery({ text: "Ошибка" });
     }
@@ -306,9 +316,10 @@ export function registerSalesHandlers(bot, isOwner) {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     const id = ctx.match[1];
     try {
+      const label = await getCampaignLabel(id);
       await api("DELETE", `/campaigns/${id}`);
       await ctx.answerCallbackQuery({ text: "Архивирована" });
-      await ctx.reply(`🗑 Кампания #${id} в архиве.`);
+      await ctx.reply(`🗑 Кампания ${esc(label)} в архиве.`, { parse_mode: "HTML" });
     } catch (e) {
       await ctx.answerCallbackQuery({ text: "Ошибка" });
     }
@@ -372,10 +383,11 @@ export function registerSalesHandlers(bot, isOwner) {
     const id = ctx.match[1];
     try {
       await api("POST", `/campaigns/${id}/start`);
+      const label = await getCampaignLabel(id);
       await ctx.answerCallbackQuery();
       const kb = new InlineKeyboard()
         .text("📨 Отправить первое сейчас", `sm:sendnow:${id}`);
-      await ctx.reply(`🚀 Кампания #${id} запущена.\n\nПо умолчанию ждёт рандом-окна 5-40 мин и рабочих часов. Жми кнопку, чтобы отправить ближайший лид немедленно (для smoke-теста):`, { reply_markup: kb });
+      await ctx.reply(`🚀 Кампания ${esc(label)} запущена.\n\nПо умолчанию ждёт рандом-окна 5-40 мин и рабочих часов. Жми кнопку, чтобы отправить ближайший лид немедленно (для smoke-теста):`, { parse_mode: "HTML", reply_markup: kb });
     } catch (e) {
       await ctx.answerCallbackQuery({ text: "Ошибка" });
       await ctx.reply(`⚠️ ${esc(e.message)}`);
@@ -387,8 +399,9 @@ export function registerSalesHandlers(bot, isOwner) {
     const id = ctx.match[1];
     try {
       await api("POST", `/campaigns/${id}/send-now`);
+      const label = await getCampaignLabel(id);
       await ctx.answerCallbackQuery({ text: "Триггер отправлен" });
-      await ctx.reply(`📨 Запрос на немедленную отправку отправлен. Воркер выполнит в течение 3 секунд (если есть queued лиды).`);
+      await ctx.reply(`📨 Запрос на немедленную отправку для ${esc(label)} отправлен. Воркер выполнит в течение 3 секунд.`, { parse_mode: "HTML" });
     } catch (e) {
       await ctx.answerCallbackQuery({ text: "Ошибка" });
       await ctx.reply(`⚠️ ${esc(e.message)}`);
