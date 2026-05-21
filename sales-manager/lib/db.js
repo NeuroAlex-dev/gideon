@@ -180,6 +180,24 @@ export function setCampaignStatus(db, id, status) {
   }
 }
 
+export function hardDeleteCampaign(db, id) {
+  const tx = db.transaction((cid) => {
+    // Берём все conversations этой кампании
+    const convIds = db.prepare("SELECT id FROM conversations WHERE campaign_id = ?").all(cid).map((r) => r.id);
+    for (const cv of convIds) {
+      // Drafts по messages в этой conversation
+      db.prepare(`DELETE FROM drafts WHERE message_id IN (SELECT id FROM messages WHERE conversation_id = ?)`).run(cv);
+      db.prepare("DELETE FROM messages WHERE conversation_id = ?").run(cv);
+    }
+    db.prepare("DELETE FROM conversations WHERE campaign_id = ?").run(cid);
+    db.prepare("DELETE FROM leads WHERE campaign_id = ?").run(cid);
+    db.prepare("DELETE FROM events WHERE campaign_id = ?").run(cid);
+    const res = db.prepare("DELETE FROM campaigns WHERE id = ?").run(cid);
+    return res.changes;
+  });
+  return tx(id);
+}
+
 export function addLeads(db, campaignId, leads) {
   const now = Date.now();
   const insert = db.prepare(`

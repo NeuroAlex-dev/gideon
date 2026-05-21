@@ -88,6 +88,7 @@ function isOwner(ctx) {
 const mainKeyboard = new Keyboard()
   .text("📋 Статус").text("🔄 Новый диалог").row()
   .text("📁 Проекты").text("🧠 Память").row()
+  .text("🎯 Парсер").text("💼 Продажи").row()
   .resized()
   .persistent();
 
@@ -1073,6 +1074,21 @@ bot.hears("🧠 Память", async (ctx) => {
   await ctx.reply(getMemoryText(), { reply_markup: mainKeyboard });
 });
 
+bot.hears("🎯 Парсер", async (ctx) => {
+  if (!isOwner(ctx)) return;
+  // Симулируем команду /parser
+  ctx.message.text = "/parser";
+  ctx.message.entities = [{ type: "bot_command", offset: 0, length: 7 }];
+  await bot.handleUpdate({ update_id: 0, message: ctx.message });
+});
+
+bot.hears("💼 Продажи", async (ctx) => {
+  if (!isOwner(ctx)) return;
+  ctx.message.text = "/sales";
+  ctx.message.entities = [{ type: "bot_command", offset: 0, length: 6 }];
+  await bot.handleUpdate({ update_id: 0, message: ctx.message });
+});
+
 // ─── CONFIRMATION CALLBACKS ─────────────────────────────────────────────────
 
 bot.callbackQuery("confirm_yes", async (ctx) => {
@@ -1284,6 +1300,12 @@ bot.start({
       { command: "parser",   description: "Парсер участников чатов" },
       { command: "sales",    description: "Sales Manager — AI-продавец" },
     ]);
+    // Принудительно обновляем reply keyboard у владельца (новые кнопки 🎯 Парсер / 💼 Продажи)
+    if (_ownerId) {
+      try {
+        await bot.api.sendMessage(_ownerId, "🔧 Меню обновлено: добавлены кнопки 🎯 Парсер и 💼 Продажи", { reply_markup: mainKeyboard });
+      } catch {}
+    }
     console.log(`Agent bot started (workspace: ${WORKSPACE}, projects: ${PROJECTS})`);
     if (_ownerId) console.log(`Owner: ${_ownerId} (only owner can use bot)`);
     else console.log("No owner yet — first /start will auto-lock");

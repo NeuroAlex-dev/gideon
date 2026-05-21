@@ -4,6 +4,7 @@ import {
   listCampaigns, getCampaign, createCampaign, updateCampaign, setCampaignStatus,
   addLeads, listLeads, campaignStats, getDraft, resolveDraft,
   getOrCreateConversation, listMessages, getLead, listEvents, logEvent,
+  hardDeleteCampaign,
 } from "./lib/db.js";
 import { extractText } from "./lib/file-extractor.js";
 import { isAttachmentSafe } from "./lib/telegram.js";
@@ -59,7 +60,12 @@ export function createServer({ db, password, secret }) {
 
   app.delete("/api/campaigns/:id", (req, res) => {
     const id = Number(req.params.id);
-    if (!getCampaign(db, id)) return res.status(404).json({ error: "not found" });
+    const c = getCampaign(db, id);
+    if (!c) return res.status(404).json({ error: "not found" });
+    if (req.query.hard === "1") {
+      const changes = hardDeleteCampaign(db, id);
+      return res.json({ ok: true, deleted: changes, name: c.name });
+    }
     setCampaignStatus(db, id, "archived");
     res.status(204).end();
   });

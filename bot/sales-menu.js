@@ -179,6 +179,7 @@ export function registerSalesHandlers(bot, isOwner) {
     const kb = new InlineKeyboard()
       .text("➕ Новая кампания", "sm:new").row()
       .text("📋 Мои кампании", "sm:list").row()
+      .text("📁 Архив", "sm:archive-list").row()
       .text("📊 Статус", "sm:status");
     await ctx.reply("Sales Manager — что делаем?", { reply_markup: kb });
   }
@@ -339,6 +340,57 @@ export function registerSalesHandlers(bot, isOwner) {
       await ctx.reply(text, { parse_mode: "HTML" });
     } catch (e) {
       await ctx.answerCallbackQuery({ text: "Ошибка" });
+    }
+  });
+
+  bot.callbackQuery(/^sm:archive-list$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    try {
+      const all = await api("GET", "/campaigns?includeArchived=1");
+      const archived = all.filter((c) => c.status === "archived");
+      await ctx.answerCallbackQuery();
+      if (!archived.length) {
+        const kb = new InlineKeyboard().text("🏠 Главное", "sm:menu");
+        await ctx.reply("📁 Архив пуст.", { reply_markup: kb });
+        return;
+      }
+      await ctx.reply(`📁 <b>Архив</b> (${archived.length}):`, { parse_mode: "HTML" });
+      for (const c of archived) {
+        const kb = new InlineKeyboard()
+          .text("🗑 Удалить навсегда", `sm:harddel:${c.id}`);
+        await ctx.reply(`<b>#${c.id} ${esc(c.name)}</b>\nСтатус: archived · Режим: ${esc(c.mode || "—")}`, { parse_mode: "HTML", reply_markup: kb });
+      }
+      const kbBack = new InlineKeyboard().text("🏠 Главное", "sm:menu");
+      await ctx.reply("Удаление — необратимое: удалит кампанию, всех лидов, всю переписку, события.", { reply_markup: kbBack });
+    } catch (e) {
+      await ctx.answerCallbackQuery({ text: "Ошибка API" });
+      await ctx.reply(`⚠️ ${esc(e.message)}`);
+    }
+  });
+
+  bot.callbackQuery(/^sm:harddel:(\d+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const id = ctx.match[1];
+    const label = await getCampaignLabel(id);
+    const kb = new InlineKeyboard()
+      .text("⚠️ Подтверждаю — удалить", `sm:harddel-confirm:${id}`)
+      .text("❌ Отмена", "sm:archive-list");
+    await ctx.answerCallbackQuery();
+    await ctx.reply(`Удалить ${esc(label)} <b>НАВСЕГДА</b>?\n\nБудут стёрты: все лиды, переписки, сообщения, события. Это необратимо.`,
+      { parse_mode: "HTML", reply_markup: kb });
+  });
+
+  bot.callbackQuery(/^sm:harddel-confirm:(\d+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const id = ctx.match[1];
+    try {
+      const result = await api("DELETE", `/campaigns/${id}?hard=1`);
+      await ctx.answerCallbackQuery({ text: "Удалено" });
+      const kb = new InlineKeyboard().text("📁 К архиву", "sm:archive-list").text("🏠 Главное", "sm:menu");
+      await ctx.reply(`🗑 Кампания «${esc(result?.name || id)}» удалена навсегда.`, { reply_markup: kb });
+    } catch (e) {
+      await ctx.answerCallbackQuery({ text: "Ошибка" });
+      await ctx.reply(`⚠️ ${esc(e.message)}`);
     }
   });
 
