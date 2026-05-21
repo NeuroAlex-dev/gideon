@@ -166,13 +166,23 @@ function formatCampaignSummary(c, stats) {
 }
 
 export function registerSalesHandlers(bot, isOwner) {
-  bot.command("sales", async (ctx) => {
-    if (!isOwner(ctx)) return;
+  async function showMainMenu(ctx) {
     const kb = new InlineKeyboard()
       .text("➕ Новая кампания", "sm:new").row()
       .text("📋 Мои кампании", "sm:list").row()
       .text("📊 Статус", "sm:status");
     await ctx.reply("Sales Manager — что делаем?", { reply_markup: kb });
+  }
+
+  bot.command("sales", async (ctx) => {
+    if (!isOwner(ctx)) return;
+    await showMainMenu(ctx);
+  });
+
+  bot.callbackQuery(/^sm:menu$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    await ctx.answerCallbackQuery();
+    await showMainMenu(ctx);
   });
 
   bot.callbackQuery(/^sm:list$/, async (ctx) => {
@@ -203,7 +213,9 @@ export function registerSalesHandlers(bot, isOwner) {
         .text("📨 Сейчас", `sm:sendnow:${id}`).row()
         .text("📥 Лиды", `sm:leads:${id}`)
         .text("📊 Метрики", `sm:stats:${id}`).row()
-        .text("🗑 В архив", `sm:archive:${id}`);
+        .text("🗑 В архив", `sm:archive:${id}`).row()
+        .text("⬅️ К списку", "sm:list")
+        .text("🏠 Главное меню", "sm:menu");
       const summary = formatCampaignSummary(c, stats);
       await ctx.answerCallbackQuery();
       await ctx.reply(summary, { parse_mode: "HTML", reply_markup: kb });
@@ -222,7 +234,7 @@ export function registerSalesHandlers(bot, isOwner) {
       if (FIELDS[i + 1]) kb.text(`✏️ ${shortLabel(FIELDS[i + 1].key)}`, `sm:editfield:${id}:${FIELDS[i + 1].key}`);
       kb.row();
     }
-    kb.text("⬅️ Назад", `sm:manage:${id}`);
+    kb.text("⬅️ К кампании", `sm:manage:${id}`).text("🏠 Главное", "sm:menu");
     await ctx.answerCallbackQuery();
     await ctx.reply(`<b>Кампания #${id}</b> — что правим?`, { parse_mode: "HTML", reply_markup: kb });
   });
