@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS campaigns (
   goal_ikr TEXT,
   tone TEXT,
   stop_phrases TEXT,
+  first_message_template TEXT,
+  conversation_context TEXT,
+  supporting_materials TEXT,
   daily_message_limit INTEGER NOT NULL DEFAULT 20,
   working_hours_start INTEGER NOT NULL DEFAULT 10,
   working_hours_end INTEGER NOT NULL DEFAULT 21,
@@ -95,14 +98,30 @@ export function openDb(path = "./data/sales-manager.db") {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA);
+  migrate(db);
   return db;
+}
+
+// Idempotent миграции: ALTER TABLE если колонки нет
+function migrate(db) {
+  const cols = db.prepare("PRAGMA table_info(campaigns)").all().map((c) => c.name);
+  const additions = [
+    ["first_message_template", "TEXT"],
+    ["conversation_context", "TEXT"],
+    ["supporting_materials", "TEXT"],
+  ];
+  for (const [name, type] of additions) {
+    if (!cols.includes(name)) {
+      db.exec(`ALTER TABLE campaigns ADD COLUMN ${name} ${type}`);
+    }
+  }
 }
 
 export function createCampaign(db, fields) {
   const now = Date.now();
   const stmt = db.prepare(`
-    INSERT INTO campaigns (name, offer_text, offer_url, target_audience, goal_ikr, tone, stop_phrases, created_at)
-    VALUES (@name, @offer_text, @offer_url, @target_audience, @goal_ikr, @tone, @stop_phrases, @created_at)
+    INSERT INTO campaigns (name, offer_text, offer_url, target_audience, goal_ikr, tone, stop_phrases, first_message_template, conversation_context, supporting_materials, created_at)
+    VALUES (@name, @offer_text, @offer_url, @target_audience, @goal_ikr, @tone, @stop_phrases, @first_message_template, @conversation_context, @supporting_materials, @created_at)
   `);
   const res = stmt.run({
     name: fields.name,
@@ -112,6 +131,9 @@ export function createCampaign(db, fields) {
     goal_ikr: fields.goal_ikr ?? null,
     tone: fields.tone ?? null,
     stop_phrases: fields.stop_phrases ?? null,
+    first_message_template: fields.first_message_template ?? null,
+    conversation_context: fields.conversation_context ?? null,
+    supporting_materials: fields.supporting_materials ?? null,
     created_at: now,
   });
   return res.lastInsertRowid;
@@ -130,7 +152,8 @@ export function listCampaigns(db, { includeArchived = false } = {}) {
 
 const ALLOWED_UPDATE = new Set([
   "name", "mode", "offer_text", "offer_url", "target_audience", "goal_ikr",
-  "tone", "stop_phrases", "daily_message_limit", "working_hours_start",
+  "tone", "stop_phrases", "first_message_template", "conversation_context",
+  "supporting_materials", "daily_message_limit", "working_hours_start",
   "working_hours_end", "timezone",
 ]);
 

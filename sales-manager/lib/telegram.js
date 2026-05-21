@@ -46,7 +46,9 @@ function defaultClientFactory(sessionString) {
   }
   if (!apiId || !apiHash) throw new Error("TG_API_ID/TG_API_HASH не заданы (ни в env, ни в parser/.env)");
   return new TelegramClient(new StringSession(sessionString), apiId, apiHash, {
-    connectionRetries: 3,
+    connectionRetries: 1000,
+    autoReconnect: true,
+    retryDelay: 2000,
     useWSS: true,
   });
 }
