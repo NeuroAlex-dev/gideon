@@ -24,13 +24,24 @@ function downloadToFile(url, dest) {
   });
 }
 
+const KIND_LABEL = {
+  file: "Файл",
+  photo: "Фото",
+  video: "Видео",
+  audio: "Аудио",
+  voice: "Голосовое",
+  animation: "GIF",
+  video_note: "Видеокружок",
+  sticker: "Стикер",
+};
+
 function renderMaterials(items) {
   if (!items.length) return "";
   return items.map((it) => {
     if (it.kind === "text") return `- ${it.text}`;
-    if (it.kind === "file") return `- Файл «${it.filename}» (${it.path})${it.caption ? `: ${it.caption}` : ""}`;
-    if (it.kind === "photo") return `- Фото (${it.path})${it.caption ? `: ${it.caption}` : ""}`;
-    return "";
+    const label = KIND_LABEL[it.kind] || "Файл";
+    const name = it.filename ? `«${it.filename}» ` : "";
+    return `- ${label} ${name}(${it.path})${it.caption ? `: ${it.caption}` : ""}`;
   }).filter(Boolean).join("\n");
 }
 
@@ -406,55 +417,78 @@ export function registerSalesHandlers(bot, isOwner) {
     }
   }
 
-  async function handleAttachment(ctx, w, kind) {
-    let fileId, filename, mime, caption;
-    if (kind === "document") {
-      fileId = ctx.message.document.file_id;
-      filename = ctx.message.document.file_name || `doc_${Date.now()}`;
-      mime = ctx.message.document.mime_type;
-    } else if (kind === "photo") {
-      const photo = ctx.message.photo[ctx.message.photo.length - 1];
-      fileId = photo.file_id;
-      filename = `photo_${Date.now()}.jpg`;
+  // Извлекает file_id и предлагаемое имя из любого типа медиа в сообщении
+  function extractMediaInfo(message) {
+    if (message.document) {
+      return { kind: "file", fileId: message.document.file_id, filename: message.document.file_name || `doc_${Date.now()}`, mime: message.document.mime_type };
     }
-    caption = ctx.message.caption || null;
+    if (message.photo) {
+      const p = message.photo[message.photo.length - 1];
+      return { kind: "photo", fileId: p.file_id, filename: `photo_${Date.now()}.jpg`, mime: "image/jpeg" };
+    }
+    if (message.video) {
+      return { kind: "video", fileId: message.video.file_id, filename: message.video.file_name || `video_${Date.now()}.mp4`, mime: message.video.mime_type || "video/mp4" };
+    }
+    if (message.audio) {
+      return { kind: "audio", fileId: message.audio.file_id, filename: message.audio.file_name || `audio_${Date.now()}.mp3`, mime: message.audio.mime_type || "audio/mpeg" };
+    }
+    if (message.voice) {
+      return { kind: "voice", fileId: message.voice.file_id, filename: `voice_${Date.now()}.ogg`, mime: message.voice.mime_type || "audio/ogg" };
+    }
+    if (message.animation) {
+      return { kind: "animation", fileId: message.animation.file_id, filename: message.animation.file_name || `anim_${Date.now()}.mp4`, mime: message.animation.mime_type || "video/mp4" };
+    }
+    if (message.video_note) {
+      return { kind: "video_note", fileId: message.video_note.file_id, filename: `vnote_${Date.now()}.mp4`, mime: "video/mp4" };
+    }
+    if (message.sticker) {
+      const ext = message.sticker.is_animated ? "tgs" : (message.sticker.is_video ? "webm" : "webp");
+      return { kind: "sticker", fileId: message.sticker.file_id, filename: `sticker_${Date.now()}.${ext}`, mime: null };
+    }
+    return null;
+  }
+
+  async function handleAttachment(ctx, w) {
+    const info = extractMediaInfo(ctx.message);
+    if (!info) {
+      await ctx.reply("⚠️ Не распознал тип файла. Пришли как документ (📎 → файл).");
+      return;
+    }
+    const caption = ctx.message.caption || null;
     try {
-      const file = await ctx.api.getFile(fileId);
+      const file = await ctx.api.getFile(info.fileId);
       const token = process.env.BOT_TOKEN;
       const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
       const campaignKey = w.campaignId ? `campaign-${w.campaignId}` : `brief-${Date.now()}`;
       const dir = path.join(MATERIALS_DIR, campaignKey);
       ensureDir(dir);
-      const dest = path.join(dir, `${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`);
+      const dest = path.join(dir, `${Date.now()}_${info.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`);
       await downloadToFile(url, dest);
       if (!w.materials) w.materials = [];
-      w.materials.push({ kind: kind === "document" ? "file" : "photo", filename, path: dest, caption, mime });
-      await ctx.reply(`📎 Сохранён: ${esc(filename)} (всего: ${w.materials.length}). Шли ещё или «готово».`,
+      w.materials.push({ kind: info.kind, filename: info.filename, path: dest, caption, mime: info.mime });
+      await ctx.reply(`📎 Сохранён (${info.kind}): ${esc(info.filename)} (всего: ${w.materials.length}). Шли ещё или «готово».`,
         { reply_markup: new InlineKeyboard().text("✅ Готово", w.mode === "brief" ? "sm:brief:materials-done" : "sm:materials-done") });
     } catch (e) {
       await ctx.reply(`⚠️ Не смог сохранить файл: ${esc(e.message)}`);
     }
   }
 
-  bot.on("message:document", async (ctx, next) => {
-    if (!isOwner(ctx)) return next();
-    const w = wizards.get(ctx.chat.id);
-    if (!w) return next();
-    const inMaterialsBrief = w.mode === "brief" && FIELDS[w.step]?.multiMessage;
-    const inMaterialsEdit = w.mode === "materials_edit";
-    if (!inMaterialsBrief && !inMaterialsEdit) return next();
-    await handleAttachment(ctx, w, "document");
-  });
+  function isInMaterialsCollect(w) {
+    if (!w) return false;
+    if (w.mode === "materials_edit") return true;
+    if (w.mode === "brief" && FIELDS[w.step]?.multiMessage) return true;
+    return false;
+  }
 
-  bot.on("message:photo", async (ctx, next) => {
-    if (!isOwner(ctx)) return next();
-    const w = wizards.get(ctx.chat.id);
-    if (!w) return next();
-    const inMaterialsBrief = w.mode === "brief" && FIELDS[w.step]?.multiMessage;
-    const inMaterialsEdit = w.mode === "materials_edit";
-    if (!inMaterialsBrief && !inMaterialsEdit) return next();
-    await handleAttachment(ctx, w, "photo");
-  });
+  // Один универсальный handler на все типы медиа
+  for (const filter of ["message:document", "message:photo", "message:video", "message:audio", "message:voice", "message:animation", "message:video_note", "message:sticker"]) {
+    bot.on(filter, async (ctx, next) => {
+      if (!isOwner(ctx)) return next();
+      const w = wizards.get(ctx.chat.id);
+      if (!isInMaterialsCollect(w)) return next();
+      await handleAttachment(ctx, w);
+    });
+  }
 
   bot.callbackQuery(/^sm:brief:materials-done$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
