@@ -1282,6 +1282,7 @@ bot.start({
       { command: "status", description: "Статус системы" },
       { command: "settings", description: "Подключить API-ключи" },
       { command: "parser",   description: "Парсер участников чатов" },
+      { command: "sales",    description: "Sales Manager — AI-продавец" },
     ]);
     console.log(`Agent bot started (workspace: ${WORKSPACE}, projects: ${PROJECTS})`);
     if (_ownerId) console.log(`Owner: ${_ownerId} (only owner can use bot)`);
