@@ -37,8 +37,28 @@ export async function decideInboundAction({ campaign, lead, conversation, histor
   if (campaign.mode === "draft_approval") {
     return { ...decision, action: "create_draft" };
   }
-  if (campaign.mode === "full_auto") {
+  if (campaign.mode === "qualify_then_handoff") {
+    if (parsed.intent === "qualified") {
+      return { action: "handoff", reason: parsed.reason || "AI отметил лида как qualified" };
+    }
     return { ...decision, action: "send_now" };
   }
+  if (campaign.mode === "hybrid") {
+    if (shouldEscalateToDraft({ inboundText, stage: parsed.new_stage, intent: parsed.intent })) {
+      return { ...decision, action: "create_draft" };
+    }
+    return { ...decision, action: "send_now" };
+  }
+  // По умолчанию (full_auto и неизвестные режимы)
   return { ...decision, action: "send_now" };
+}
+
+const HYBRID_TRIGGER_WORDS = /цена|сколько\s*стоит|оплат|договор|счёт|реквизит|карт[ау]|перевод|купить/i;
+const HYBRID_TRIGGER_STAGES = new Set(["pitch", "objection", "closing"]);
+
+function shouldEscalateToDraft({ inboundText, stage, intent }) {
+  if (HYBRID_TRIGGER_WORDS.test(inboundText || "")) return true;
+  if (HYBRID_TRIGGER_STAGES.has(stage)) return true;
+  if (intent === "qualified" || intent === "won") return true;
+  return false;
 }

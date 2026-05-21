@@ -220,7 +220,9 @@ export function registerSalesHandlers(bot, isOwner) {
         const created = await api("POST", "/campaigns", w.data);
         const kb = new InlineKeyboard()
           .text("🤖 Полная автономия", `sm:mode:${created.id}:full_auto`).row()
-          .text("✋ Драфты на одобрение", `sm:mode:${created.id}:draft_approval`);
+          .text("🎯 Автономная квалификация", `sm:mode:${created.id}:qualify_then_handoff`).row()
+          .text("✋ Драфты на одобрение", `sm:mode:${created.id}:draft_approval`).row()
+          .text("⚡ Гибрид (auto + драфт на «цене»)", `sm:mode:${created.id}:hybrid`);
         await ctx.reply(`<b>Кампания создана</b>\n\n${summary}\n\nВыбери режим:`, { parse_mode: "HTML", reply_markup: kb });
       } catch (e) {
         await ctx.reply(`⚠️ ${esc(e.message)}`);

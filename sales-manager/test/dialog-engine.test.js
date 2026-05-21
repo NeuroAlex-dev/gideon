@@ -36,3 +36,33 @@ test("safety: локальный детектор unsub перекрывает A
   const dec = await decideInboundAction({ campaign: baseCampaign, lead: baseLead, conversation: baseConv, history: [], inboundText: "не пиши мне", askClaude: ai });
   assert.equal(dec.action, "mark_unsubscribed");
 });
+
+test("qualify_then_handoff: intent=qualified → handoff (бот не отправляет, передаёт Александру)", async () => {
+  const ai = fakeAi({ text: "ок, давай встретимся", new_stage: "closing", intent: "qualified", reason: "лид готов" });
+  const dec = await decideInboundAction({ campaign: { mode: "qualify_then_handoff" }, lead: baseLead, conversation: baseConv, history: [], inboundText: "да, давай созвон", askClaude: ai });
+  assert.equal(dec.action, "handoff");
+});
+
+test("qualify_then_handoff: intent=reply → send_now (AI продолжает сам)", async () => {
+  const ai = fakeAi({ text: "класс, расскажи больше", new_stage: "discovery", intent: "reply", reason: "" });
+  const dec = await decideInboundAction({ campaign: { mode: "qualify_then_handoff" }, lead: baseLead, conversation: baseConv, history: [], inboundText: "интересно", askClaude: ai });
+  assert.equal(dec.action, "send_now");
+});
+
+test("hybrid: триггерное слово 'цена' → create_draft", async () => {
+  const ai = fakeAi({ text: "вот предложение", new_stage: "pitch", intent: "reply", reason: "" });
+  const dec = await decideInboundAction({ campaign: { mode: "hybrid" }, lead: baseLead, conversation: baseConv, history: [], inboundText: "а какая цена?", askClaude: ai });
+  assert.equal(dec.action, "create_draft");
+});
+
+test("hybrid: стадия closing → create_draft даже без триггерных слов", async () => {
+  const ai = fakeAi({ text: "финал", new_stage: "closing", intent: "reply", reason: "" });
+  const dec = await decideInboundAction({ campaign: { mode: "hybrid" }, lead: baseLead, conversation: baseConv, history: [], inboundText: "ок", askClaude: ai });
+  assert.equal(dec.action, "create_draft");
+});
+
+test("hybrid: нейтральный диалог на intro → send_now", async () => {
+  const ai = fakeAi({ text: "привет", new_stage: "intro", intent: "reply", reason: "" });
+  const dec = await decideInboundAction({ campaign: { mode: "hybrid" }, lead: baseLead, conversation: baseConv, history: [], inboundText: "о, привет", askClaude: ai });
+  assert.equal(dec.action, "send_now");
+});
