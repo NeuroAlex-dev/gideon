@@ -1,5 +1,6 @@
 import { buildInboundSystemPrompt } from "./prompts.js";
 import { isUnsubscribeMessage } from "./safety.js";
+import { extractJson } from "./ai.js";
 
 export async function decideInboundAction({ campaign, lead, conversation, history, inboundText, askClaude }) {
   if (isUnsubscribeMessage(inboundText)) {
@@ -15,7 +16,7 @@ export async function decideInboundAction({ campaign, lead, conversation, histor
   const res = await askClaude({ systemPrompt: system, history: aiHistory, userMessage: inboundText });
   let parsed;
   try {
-    parsed = JSON.parse(res.text);
+    parsed = JSON.parse(extractJson(res.text));
   } catch {
     return { action: "escalate_error", reason: `AI вернул не-JSON: ${res.text?.slice(0, 100)}` };
   }

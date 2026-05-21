@@ -5,16 +5,20 @@ import {
 } from "./db.js";
 import { canSendNow, nextOutboundDelay, nextTypingDuration, classifyTelegramError, dayKeyInTimezone } from "./safety.js";
 import { buildOutboundSystemPrompt, buildFirstMessageUserPrompt } from "./prompts.js";
+import { extractJson } from "./ai.js";
 
-export async function runOutboundTick({ db, now = Date.now(), askClaude, telegram, rng = Math.random }) {
+export async function runOutboundTick({ db, now = Date.now(), askClaude, telegram, rng = Math.random, force = false, campaignFilter = null }) {
   const result = { sent: [], skipped: [], errors: [] };
-  const runningCampaigns = listCampaigns(db).filter((c) => c.status === "running");
+  let runningCampaigns = listCampaigns(db).filter((c) => c.status === "running");
+  if (campaignFilter) runningCampaigns = runningCampaigns.filter((c) => c.id === campaignFilter);
 
   const dayStart = startOfDayMs(now, "Europe/Moscow");
   const sentTodayGlobal = countOutboundFirstMessagesSince(db, dayStart);
 
   for (const campaign of runningCampaigns) {
-    const lead = nextLeadToContact(db, campaign.id, now);
+    // В force-режиме сбрасываем next_action_at чтобы лид был "сейчас или раньше"
+    const queryNow = force ? Date.now() + 60_000 : now;
+    const lead = nextLeadToContact(db, campaign.id, queryNow);
     if (!lead) { continue; }
 
     if (lead.tg_user_id && isLeadBlocked(db, lead.tg_user_id)) {
@@ -35,13 +39,14 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
       WHERE c.campaign_id = ? AND m.role = 'outbound' AND m.status = 'sent' AND m.sent_at >= ?
     `).get(campaign.id, now - 3600_000).n;
 
-    const check = canSendNow({
+    const check = force ? { ok: true } : canSendNow({
       now, campaign,
       sentTodayCount: sentTodayGlobal,
       sentLastHourCount: sentLastHour,
       lastSentAt: lastSent,
     });
     if (!check.ok) {
+      console.log(`[outbound] skip lead ${lead.id} (campaign ${campaign.id}): ${check.reason}`);
       result.skipped.push({ leadId: lead.id, reason: check.reason });
       setLeadStatus(db, lead.id, "queued", now + nextOutboundDelay(rng));
       continue;
@@ -54,7 +59,7 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
         history: [],
         userMessage: buildFirstMessageUserPrompt(lead),
       });
-      const parsed = JSON.parse(ai.text);
+      const parsed = JSON.parse(extractJson(ai.text));
       aiText = parsed.text;
       if (!aiText) throw new Error("AI вернул пустой text");
     } catch (e) {
@@ -66,7 +71,7 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
 
     const conv = getOrCreateConversation(db, lead.id, campaign.id);
     const peer = lead.tg_username || lead.tg_user_id;
-    const typingMs = nextTypingDuration(rng);
+    const typingMs = force ? 0 : nextTypingDuration(rng);
 
     try {
       const tgMsgId = await telegram.sendMessage({ peer, text: aiText, typingMs });

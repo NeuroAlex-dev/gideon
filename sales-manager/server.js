@@ -3,7 +3,7 @@ import { authMiddleware, makeToken } from "./lib/auth.js";
 import {
   listCampaigns, getCampaign, createCampaign, updateCampaign, setCampaignStatus,
   addLeads, listLeads, campaignStats, getDraft, resolveDraft,
-  getOrCreateConversation, listMessages, getLead, listEvents,
+  getOrCreateConversation, listMessages, getLead, listEvents, logEvent,
 } from "./lib/db.js";
 
 export function createServer({ db, password, secret }) {
@@ -82,6 +82,17 @@ export function createServer({ db, password, secret }) {
 
   app.get("/api/campaigns/:id/stats", (req, res) => {
     res.json(campaignStats(db, Number(req.params.id)));
+  });
+
+  app.post("/api/campaigns/:id/send-now", (req, res) => {
+    const id = Number(req.params.id);
+    const c = getCampaign(db, id);
+    if (!c) return res.status(404).json({ error: "not found" });
+    if (c.status !== "running") return res.status(409).json({ error: `кампания не в статусе running (сейчас ${c.status})` });
+    // Снимаем next_action_at чтобы лиды стали "доступны сейчас"
+    db.prepare("UPDATE leads SET next_action_at = 0 WHERE campaign_id = ? AND status = 'queued'").run(id);
+    logEvent(db, { type: "force_send_request", campaign_id: id });
+    res.json({ ok: true, message: "worker подхватит в течение 3 секунд" });
   });
 
   app.post("/api/drafts/:id/approve", (req, res) => {

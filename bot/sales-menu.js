@@ -128,7 +128,22 @@ export function registerSalesHandlers(bot, isOwner) {
     try {
       await api("POST", `/campaigns/${id}/start`);
       await ctx.answerCallbackQuery();
-      await ctx.reply(`🚀 Кампания #${id} запущена.`);
+      const kb = new InlineKeyboard()
+        .text("📨 Отправить первое сейчас", `sm:sendnow:${id}`);
+      await ctx.reply(`🚀 Кампания #${id} запущена.\n\nПо умолчанию ждёт рандом-окна 5-40 мин и рабочих часов. Жми кнопку, чтобы отправить ближайший лид немедленно (для smoke-теста):`, { reply_markup: kb });
+    } catch (e) {
+      await ctx.answerCallbackQuery({ text: "Ошибка" });
+      await ctx.reply(`⚠️ ${esc(e.message)}`);
+    }
+  });
+
+  bot.callbackQuery(/^sm:sendnow:(\d+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const id = ctx.match[1];
+    try {
+      await api("POST", `/campaigns/${id}/send-now`);
+      await ctx.answerCallbackQuery({ text: "Триггер отправлен" });
+      await ctx.reply(`📨 Запрос на немедленную отправку отправлен. Воркер выполнит в течение 3 секунд (если есть queued лиды).`);
     } catch (e) {
       await ctx.answerCallbackQuery({ text: "Ошибка" });
       await ctx.reply(`⚠️ ${esc(e.message)}`);
