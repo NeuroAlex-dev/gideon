@@ -3,7 +3,9 @@ export function buildOutboundSystemPrompt(campaign) {
     ? `\n# Контекст переписки\n${campaign.conversation_context}\n`
     : "";
   const materialsBlock = campaign.supporting_materials
-    ? `\n# Доп. материалы (ссылки/файлы)\nЭто можно использовать когда лид заинтересуется или будет уместно по контексту:\n${campaign.supporting_materials}\n`
+    ? `\n# Доп. материалы (ссылки/файлы)\nЭто можно использовать когда лид заинтересуется или будет уместно по контексту:\n${campaign.supporting_materials}\n\n` +
+      `**Как отправлять файлы лиду:** если хочешь приложить файл из материалов выше — добавь в JSON-ответ массив "attachments" с **точными путями файлов** (то что в скобках после «Файл "..."» или «Фото»). Например: "attachments": ["C:/.../data/materials/campaign-2/1779.../presentation.pdf"]. Если файлов не нужно — не добавляй "attachments" или верни пустой массив [].\n` +
+      `Не выдумывай пути — используй только те что выше в списке материалов. Не указывай ссылки (только реальные файлы); ссылки и URL пиши в обычном тексте сообщения.\n`
     : "";
   const templateBlock = campaign.first_message_template
     ? `\n# Шаблон первого сообщения\nИспользуй как ориентир при составлении первого сообщения (адаптируй под профиль лида, не копируй буквально):\n${campaign.first_message_template}\n`
@@ -46,6 +48,7 @@ export function buildInboundSystemPrompt(campaign) {
 Ответь СТРОГО в JSON:
 {
   "text": "твой ответ лиду или null если не отвечать",
+  "attachments": ["абсолютный путь файла из supporting_materials, если уместно приложить"],
   "new_stage": "intro|discovery|pitch|objection|closing|post_close",
   "intent": "reply|unsubscribe|handoff|qualified|won|lost",
   "reason": "коротко почему такое решение"
@@ -68,6 +71,7 @@ export function buildFirstMessageUserPrompt(lead) {
 Ответь СТРОГО в JSON:
 {
   "text": "первое сообщение лиду",
+  "attachments": ["опционально — путь к файлу из supporting_materials, если уместно сразу приложить"],
   "reason": "коротко зачем именно так"
 }`;
 }

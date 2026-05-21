@@ -4,6 +4,7 @@ import {
 } from "./db.js";
 import { decideInboundAction } from "./dialog-engine.js";
 import { nextTypingDuration } from "./safety.js";
+import { filterSafeAttachments } from "./telegram.js";
 
 export function createInboundProcessor({ db, askClaude, telegram, notifyAlexander = null, rng = Math.random, batchWindowMs = 60_000 }) {
   const buffers = new Map();
@@ -92,6 +93,20 @@ export function createInboundProcessor({ db, askClaude, telegram, notifyAlexande
           conversation_id: conv.id, role: "outbound", body: dec.text, status: "sent",
           tg_message_id: tgMsgId, sent_at: sentAt, ai_tokens_in: dec.tokensIn, ai_tokens_out: dec.tokensOut,
         });
+        // Приложения (если AI указал в attachments)
+        const safeAttachments = filterSafeAttachments(dec.attachments);
+        for (const att of safeAttachments) {
+          try {
+            const attMsgId = await telegram.sendFile({ peer, filePath: att, typingMs: 0 });
+            addMessage(db, {
+              conversation_id: conv.id, role: "outbound", body: `[файл: ${att}]`,
+              status: "sent", tg_message_id: attMsgId, sent_at: Date.now(),
+            });
+            logEvent(db, { type: "sent_file", campaign_id: campaign.id, lead_id: lead.id, payload: { path: att } });
+          } catch (err) {
+            logEvent(db, { type: "error", campaign_id: campaign.id, lead_id: lead.id, payload: { stage: "send-file-reply", path: att, message: err.message } });
+          }
+        }
         setLeadStatus(db, lead.id, "in_dialog");
         logEvent(db, { type: "sent", campaign_id: campaign.id, lead_id: lead.id, payload: { message_id: messageId } });
       } catch (e) {

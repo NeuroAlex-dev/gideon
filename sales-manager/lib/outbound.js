@@ -6,6 +6,7 @@ import {
 import { canSendNow, nextOutboundDelay, nextTypingDuration, classifyTelegramError, dayKeyInTimezone } from "./safety.js";
 import { buildOutboundSystemPrompt, buildFirstMessageUserPrompt } from "./prompts.js";
 import { extractJson } from "./ai.js";
+import { filterSafeAttachments } from "./telegram.js";
 
 export async function runOutboundTick({ db, now = Date.now(), askClaude, telegram, rng = Math.random, force = false, campaignFilter = null }) {
   const result = { sent: [], skipped: [], errors: [] };
@@ -53,6 +54,7 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
     }
 
     let aiText;
+    let aiAttachments = [];
     try {
       const ai = await askClaude({
         systemPrompt: buildOutboundSystemPrompt(campaign),
@@ -61,6 +63,7 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
       });
       const parsed = JSON.parse(extractJson(ai.text));
       aiText = parsed.text;
+      aiAttachments = filterSafeAttachments(parsed.attachments);
       if (!aiText) throw new Error("AI вернул пустой text");
     } catch (e) {
       logEvent(db, { type: "error", campaign_id: campaign.id, lead_id: lead.id, payload: { stage: "ai", message: e.message } });
@@ -80,6 +83,19 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
         conversation_id: conv.id, role: "outbound", body: aiText,
         status: "sent", tg_message_id: tgMsgId, sent_at: sentAt,
       });
+      // Отправляем приложения (если AI указал и они валидны)
+      for (const att of aiAttachments) {
+        try {
+          const attMsgId = await telegram.sendFile({ peer, filePath: att, typingMs: 0 });
+          addMessage(db, {
+            conversation_id: conv.id, role: "outbound", body: `[файл: ${att}]`,
+            status: "sent", tg_message_id: attMsgId, sent_at: Date.now(),
+          });
+          logEvent(db, { type: "sent_file", campaign_id: campaign.id, lead_id: lead.id, payload: { path: att } });
+        } catch (err) {
+          logEvent(db, { type: "error", campaign_id: campaign.id, lead_id: lead.id, payload: { stage: "send-file", path: att, message: err.message } });
+        }
+      }
       setLeadStatus(db, lead.id, "first_sent");
       logEvent(db, { type: "sent", campaign_id: campaign.id, lead_id: lead.id, payload: { message_id: messageId } });
       result.sent.push({ leadId: lead.id, messageId });

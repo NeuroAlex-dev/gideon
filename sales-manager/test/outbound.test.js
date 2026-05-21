@@ -27,7 +27,7 @@ function fakeTelegram({ failWith = null } = {}) {
 
 test("outbound: пишет первое сообщение и переводит лида в first_sent", async () => {
   const { db, cid } = setup();
-  addLeads(db, cid, [{ tg_user_id: 11, tg_username: "vasya", first_name: "Вася" }]);
+  addLeads(db, cid, [{ tg_user_id: 11, tg_username: "vasya", first_name: "Вася", next_action_at: 0 }]);
   const res = await runOutboundTick({
     db,
     now: new Date("2026-05-21T10:00:00Z").getTime(),
@@ -60,8 +60,8 @@ test("outbound: вне рабочих часов — ничего не отпр�
 test("outbound: FLOOD_WAIT логируется как событие и останавливает тик", async () => {
   const { db, cid } = setup();
   addLeads(db, cid, [
-    { tg_user_id: 11, tg_username: "v1" },
-    { tg_user_id: 12, tg_username: "v2" },
+    { tg_user_id: 11, tg_username: "v1", next_action_at: 0 },
+    { tg_user_id: 12, tg_username: "v2", next_action_at: 0 },
   ]);
   const res = await runOutboundTick({
     db,
@@ -78,7 +78,7 @@ test("outbound: FLOOD_WAIT логируется как событие и ост�
 
 test("outbound: лид с tg_user_id в blocklist пропускается", async () => {
   const { db, cid } = setup();
-  addLeads(db, cid, [{ tg_user_id: 11, tg_username: "vasya" }]);
+  addLeads(db, cid, [{ tg_user_id: 11, tg_username: "vasya", next_action_at: 0 }]);
   db.prepare("INSERT INTO leads_blocked (tg_user_id, reason, blocked_at) VALUES (?, ?, ?)").run(11, "prev campaign", Date.now());
   const res = await runOutboundTick({
     db,

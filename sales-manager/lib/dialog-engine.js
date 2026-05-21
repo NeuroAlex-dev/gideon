@@ -26,6 +26,7 @@ export async function decideInboundAction({ campaign, lead, conversation, histor
 
   const decision = {
     text: parsed.text,
+    attachments: Array.isArray(parsed.attachments) ? parsed.attachments : [],
     newStage: parsed.new_stage,
     intent: parsed.intent,
     reason: parsed.reason || "",

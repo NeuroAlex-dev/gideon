@@ -83,6 +83,16 @@ export function createTelegramAdapter({ sessionLoader = defaultSessionLoader, cl
     return res.id;
   }
 
+  async function sendFile({ peer, filePath, caption = "", typingMs = 0 }) {
+    if (!connected) throw new Error("telegram: connect() сначала");
+    if (typingMs > 0) {
+      try { await client.invoke(new Api.messages.SetTyping({ peer, action: new Api.SendMessageUploadDocumentAction({ progress: 0 }) })); } catch {}
+      await sleep(typingMs);
+    }
+    const res = await client.sendFile(peer, { file: filePath, caption: caption || undefined });
+    return res.id;
+  }
+
   function onNewMessage(handler) {
     if (!connected) throw new Error("telegram: connect() сначала");
     client.addEventHandler(handler, new NewMessage({}));
@@ -100,7 +110,29 @@ export function createTelegramAdapter({ sessionLoader = defaultSessionLoader, cl
 
   function rawClient() { return client; }
 
-  return { connect, disconnect, sendMessage, onNewMessage, getUserBio, rawClient };
+  return { connect, disconnect, sendMessage, sendFile, onNewMessage, getUserBio, rawClient };
+}
+
+// Безопасность: путь к файлу должен лежать внутри data/materials/ — нельзя AI отправлять системные файлы.
+const MATERIALS_ROOT = path.resolve("./data/materials");
+export function isAttachmentSafe(p) {
+  if (!p || typeof p !== "string") return false;
+  try {
+    const resolved = path.resolve(p);
+    if (!resolved.toLowerCase().startsWith(MATERIALS_ROOT.toLowerCase())) return false;
+    if (!fs.existsSync(resolved)) return false;
+    const stat = fs.statSync(resolved);
+    if (!stat.isFile()) return false;
+    if (stat.size > 50 * 1024 * 1024) return false; // 50 MB лимит
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function filterSafeAttachments(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter(isAttachmentSafe);
 }
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
