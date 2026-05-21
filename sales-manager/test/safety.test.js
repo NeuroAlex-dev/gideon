@@ -11,11 +11,11 @@ test("isWithinWorkingHours: 10-21 Europe/Moscow", () => {
 });
 
 test("canSendNow проверяет дневной лимит, часовой, окно ожидания", () => {
-  const campaign = { daily_message_limit: 15, working_hours_start: 10, working_hours_end: 21, timezone: "Europe/Moscow" };
+  const campaign = { daily_message_limit: 20, working_hours_start: 10, working_hours_end: 21, timezone: "Europe/Moscow" };
   const now = new Date("2026-05-21T10:00:00Z").getTime();
   let result = canSendNow({ now, campaign, sentTodayCount: 5, sentLastHourCount: 1, lastSentAt: now - 10 * 60_000 });
   assert.equal(result.ok, true);
-  result = canSendNow({ now, campaign, sentTodayCount: 15, sentLastHourCount: 1, lastSentAt: now - 10 * 60_000 });
+  result = canSendNow({ now, campaign, sentTodayCount: 20, sentLastHourCount: 1, lastSentAt: now - 10 * 60_000 });
   assert.equal(result.ok, false);
   assert.match(result.reason, /дневной лимит/i);
   result = canSendNow({ now, campaign, sentTodayCount: 5, sentLastHourCount: 3, lastSentAt: now - 10 * 60_000 });

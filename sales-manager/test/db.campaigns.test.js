@@ -11,7 +11,7 @@ test("createCampaign + getCampaign round-trip", () => {
   const c = getCampaign(db, id);
   assert.equal(c.name, "Test");
   assert.equal(c.status, "draft");
-  assert.equal(c.daily_message_limit, 15);
+  assert.equal(c.daily_message_limit, 20);
 });
 
 test("listCampaigns возвращает все, кроме архивных по умолчанию", () => {

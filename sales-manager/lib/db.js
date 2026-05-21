@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
   goal_ikr TEXT,
   tone TEXT,
   stop_phrases TEXT,
-  daily_message_limit INTEGER NOT NULL DEFAULT 15,
+  daily_message_limit INTEGER NOT NULL DEFAULT 20,
   working_hours_start INTEGER NOT NULL DEFAULT 10,
   working_hours_end INTEGER NOT NULL DEFAULT 21,
   timezone TEXT NOT NULL DEFAULT 'Europe/Moscow',
