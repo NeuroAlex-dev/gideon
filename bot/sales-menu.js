@@ -51,7 +51,12 @@ function renderMaterials(items) {
     if (it.kind === "link") return `- Ссылка: ${it.url}${it.description ? ` — ${it.description}` : ""}`;
     const label = KIND_LABEL[it.kind] || "Файл";
     const name = it.filename ? `«${it.filename}» ` : "";
-    return `- ${label} ${name}(${it.path})${it.caption ? `: ${it.caption}` : ""}`;
+    let line = `- ${label} ${name}(${it.path})${it.caption ? `: ${it.caption}` : ""}`;
+    if (it.extracted_text) {
+      // Содержимое файла внутри блока, чтобы AI отличал от ссылок/описаний
+      line += `\n  Содержимое:\n  """\n${it.extracted_text.split("\n").map((l) => "  " + l).join("\n")}\n  """`;
+    }
+    return line;
   }).filter(Boolean).join("\n");
 }
 
@@ -491,8 +496,22 @@ export function registerSalesHandlers(bot, isOwner) {
       const dest = path.join(dir, `${Date.now()}_${info.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`);
       await downloadToFile(url, dest);
       if (!w.materials) w.materials = [];
-      w.materials.push({ kind: info.kind, filename: info.filename, path: dest, caption, mime: info.mime });
-      await ctx.reply(`📎 Сохранён (${info.kind}): ${esc(info.filename)} (всего: ${w.materials.length}). Шли ещё или «готово».`,
+      const item = { kind: info.kind, filename: info.filename, path: dest, caption, mime: info.mime };
+      // Извлекаем текст для PDF/DOCX/TXT/MD/HTML — AI будет видеть содержимое
+      try {
+        const extractRes = await api("POST", "/extract", { path: dest });
+        if (extractRes?.text) {
+          item.extracted_text = extractRes.text;
+          item.extracted_length = extractRes.length;
+          item.extracted_truncated = extractRes.truncated;
+        }
+      } catch {}
+      w.materials.push(item);
+      let extractedNote = "";
+      if (item.extracted_text) {
+        extractedNote = `\n📖 Содержимое распознано (${item.extracted_length} симв.${item.extracted_truncated ? ", обрезано до 8000" : ""}) — AI будет использовать.`;
+      }
+      await ctx.reply(`📎 Сохранён (${info.kind}): ${esc(info.filename)} (всего: ${w.materials.length}).${extractedNote}\nШли ещё или «готово».`,
         { reply_markup: new InlineKeyboard().text("✅ Готово", w.mode === "brief" ? "sm:brief:materials-done" : "sm:materials-done") });
     } catch (e) {
       await ctx.reply(`⚠️ Не смог сохранить файл: ${esc(e.message)}`);

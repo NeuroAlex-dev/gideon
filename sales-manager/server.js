@@ -5,12 +5,22 @@ import {
   addLeads, listLeads, campaignStats, getDraft, resolveDraft,
   getOrCreateConversation, listMessages, getLead, listEvents, logEvent,
 } from "./lib/db.js";
+import { extractText } from "./lib/file-extractor.js";
+import { isAttachmentSafe } from "./lib/telegram.js";
 
 export function createServer({ db, password, secret }) {
   const app = express();
   app.use(express.json({ limit: "5mb" }));
 
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+  app.post("/api/extract", authMiddleware({ secret, password }), async (req, res) => {
+    const filePath = req.body?.path;
+    if (!filePath) return res.status(400).json({ error: "path required" });
+    if (!isAttachmentSafe(filePath)) return res.status(400).json({ error: "path вне data/materials/ или файл не найден" });
+    const result = await extractText(filePath);
+    res.json(result);
+  });
 
   app.post("/api/auth", (req, res) => {
     if (req.body?.password !== password) return res.status(401).json({ error: "bad password" });
