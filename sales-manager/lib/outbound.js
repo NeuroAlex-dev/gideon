@@ -29,15 +29,18 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
       continue;
     }
 
+    // Учитываем только ПЕРВЫЕ сообщения (создание новых диалогов), а не ответы AI в уже идущих
     const lastSent = db.prepare(`
       SELECT MAX(m.sent_at) as last FROM messages m
       JOIN conversations c ON c.id = m.conversation_id
       WHERE c.campaign_id = ? AND m.role = 'outbound' AND m.status = 'sent'
+        AND m.id = (SELECT MIN(id) FROM messages WHERE conversation_id = m.conversation_id)
     `).get(campaign.id).last;
     const sentLastHour = db.prepare(`
       SELECT COUNT(*) as n FROM messages m
       JOIN conversations c ON c.id = m.conversation_id
       WHERE c.campaign_id = ? AND m.role = 'outbound' AND m.status = 'sent' AND m.sent_at >= ?
+        AND m.id = (SELECT MIN(id) FROM messages WHERE conversation_id = m.conversation_id)
     `).get(campaign.id, now - 3600_000).n;
 
     const check = force ? { ok: true } : canSendNow({
