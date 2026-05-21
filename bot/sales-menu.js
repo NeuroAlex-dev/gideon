@@ -131,25 +131,38 @@ const FIELD_LABELS = {
 };
 function shortLabel(key) { return FIELD_LABELS[key] || key; }
 
+function clip(s, n) {
+  if (!s) return "—";
+  const v = String(s);
+  if (v.length <= n) return esc(v);
+  return esc(v.slice(0, n)) + `… <i>(всего ${v.length} симв.)</i>`;
+}
+
 function formatCampaignSummary(c, stats) {
   const lines = [
     `<b>#${c.id} ${esc(c.name)}</b>`,
     `Статус: ${esc(c.status)} · Режим: ${esc(c.mode || "—")}`,
     "",
-    `<b>Оффер:</b> ${esc(c.offer_text || "—")}`,
+    `<b>Оффер:</b> ${clip(c.offer_text, 400)}`,
     `<b>Ссылка:</b> ${esc(c.offer_url || "—")}`,
-    `<b>ЦА:</b> ${esc(c.target_audience || "—")}`,
-    `<b>ИКР:</b> ${esc(c.goal_ikr || "—")}`,
+    `<b>ЦА:</b> ${clip(c.target_audience, 300)}`,
+    `<b>ИКР:</b> ${clip(c.goal_ikr, 300)}`,
   ];
-  if (c.conversation_context) lines.push(`<b>Контекст:</b> ${esc(c.conversation_context)}`);
-  if (c.first_message_template) lines.push(`<b>Шаблон 1-го:</b> ${esc(c.first_message_template)}`);
-  if (c.supporting_materials) lines.push(`<b>Материалы:</b> ${esc(c.supporting_materials).slice(0, 200)}`);
-  if (c.tone) lines.push(`<b>Тон:</b> ${esc(c.tone)}`);
-  if (c.stop_phrases) lines.push(`<b>Стоп:</b> ${esc(c.stop_phrases)}`);
+  if (c.conversation_context) lines.push(`<b>Контекст:</b> ${clip(c.conversation_context, 400)}`);
+  if (c.first_message_template) lines.push(`<b>Шаблон 1-го:</b> ${clip(c.first_message_template, 400)}`);
+  if (c.supporting_materials) {
+    const blocks = c.supporting_materials.split("\n").filter((l) => l.startsWith("- ")).length;
+    lines.push(`<b>Материалы:</b> ${blocks} блок(ов), всего ${c.supporting_materials.length} симв. — открой ✏️ Редактировать → Материалы`);
+  }
+  if (c.tone) lines.push(`<b>Тон:</b> ${clip(c.tone, 200)}`);
+  if (c.stop_phrases) lines.push(`<b>Стоп:</b> ${clip(c.stop_phrases, 200)}`);
   if (stats) {
     lines.push("", `<b>Лидов:</b> ${stats.leads_total} · Отправлено: ${stats.messages_outbound} · Ответили: ${stats.messages_inbound}`);
   }
-  return lines.join("\n");
+  let text = lines.join("\n");
+  // Финальная защита — лимит Telegram 4096
+  if (text.length > 3800) text = text.slice(0, 3800) + "\n\n…[обрезано]";
+  return text;
 }
 
 export function registerSalesHandlers(bot, isOwner) {
