@@ -12,11 +12,14 @@ export function createWorker({ db, telegram, askClaude, notifyAlexander = null, 
     telegram.onNewMessage(async (event) => {
       const m = event.message;
       if (!m?.message) return;
+      // Игнорируем исходящие от своего же аккаунта (наш AI их же шлёт)
+      if (m.out) return;
       try {
         const sender = await m.getSender();
         const tgUserId = sender?.id ? Number(sender.id) : null;
         const tgUsername = sender?.username || null;
         const tgMessageId = m.id;
+        console.log(`[worker] new TG message from id=${tgUserId} @${tgUsername || "—"}: "${m.message.slice(0, 60)}"`);
         await processor.onInbound({ tgUserId, tgUsername, text: m.message, tgMessageId });
       } catch (err) {
         console.error("inbound handler error:", err);
@@ -27,6 +30,39 @@ export function createWorker({ db, telegram, askClaude, notifyAlexander = null, 
     lastForceEventId = latest?.id || 0;
     timer = setInterval(() => { tick().catch((err) => console.error("tick error:", err)); }, tickIntervalMs);
     forceTimer = setInterval(() => { checkForceTriggers().catch((err) => console.error("force-tick error:", err)); }, forceCheckIntervalMs);
+
+    // Recovery: на старте обработать inbound-ы которые остались без ответа (после крэша/рестарта)
+    recoverPendingInbound().catch((err) => console.error("recover error:", err));
+  }
+
+  async function recoverPendingInbound() {
+    const orphans = db.prepare(`
+      SELECT m.id, m.conversation_id, m.body, m.received_at, c.lead_id, c.campaign_id, l.tg_user_id, l.tg_username
+      FROM messages m
+      JOIN conversations c ON c.id = m.conversation_id
+      JOIN leads l ON l.id = c.lead_id
+      JOIN campaigns camp ON camp.id = c.campaign_id
+      WHERE m.role = 'inbound'
+        AND camp.status = 'running'
+        AND l.status NOT IN ('unsubscribed','blocked','human_takeover')
+        AND NOT EXISTS (
+          SELECT 1 FROM messages m2
+          WHERE m2.conversation_id = m.conversation_id
+            AND m2.id > m.id
+            AND m2.role IN ('outbound','human_takeover')
+        )
+        AND m.received_at > ?
+      ORDER BY m.id ASC
+    `).all(Date.now() - 24 * 3600_000);
+    if (!orphans.length) return;
+    console.log(`[worker] recovery: ${orphans.length} unanswered inbound message(s), processing...`);
+    for (const o of orphans) {
+      try {
+        await processor.onInbound({ tgUserId: o.tg_user_id, tgUsername: o.tg_username, text: o.body, tgMessageId: null, skipPersist: true });
+      } catch (err) {
+        console.error("[worker] recovery error for message", o.id, err);
+      }
+    }
   }
 
   async function checkForceTriggers() {

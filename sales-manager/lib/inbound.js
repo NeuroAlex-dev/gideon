@@ -8,16 +8,22 @@ import { nextTypingDuration } from "./safety.js";
 export function createInboundProcessor({ db, askClaude, telegram, notifyAlexander = null, rng = Math.random, batchWindowMs = 60_000 }) {
   const buffers = new Map();
 
-  async function onInbound({ tgUserId, tgUsername, text, tgMessageId }) {
+  async function onInbound({ tgUserId, tgUsername, text, tgMessageId, skipPersist = false }) {
     const found = findActiveLead({ db, tgUserId, tgUsername });
-    if (!found) return;
+    if (!found) {
+      console.log(`[inbound] ignored: tgUserId=${tgUserId} username=@${tgUsername || "—"} text="${(text || "").slice(0, 50)}"`);
+      return;
+    }
+    console.log(`[inbound] match: lead ${found.lead.id} (@${found.lead.tg_username}) → campaign ${found.campaign.id}${skipPersist ? " [recovery]" : ""}`);
 
     const { lead, campaign } = found;
     const conv = getOrCreateConversation(db, lead.id, campaign.id);
-    addMessage(db, {
-      conversation_id: conv.id, role: "inbound", body: text,
-      status: "received", tg_message_id: tgMessageId, received_at: Date.now(),
-    });
+    if (!skipPersist) {
+      addMessage(db, {
+        conversation_id: conv.id, role: "inbound", body: text,
+        status: "received", tg_message_id: tgMessageId, received_at: Date.now(),
+      });
+    }
 
     const peer = tgUsername || tgUserId;
     let buf = buffers.get(lead.id);
@@ -99,12 +105,25 @@ export function createInboundProcessor({ db, askClaude, telegram, notifyAlexande
 
 function findActiveLead({ db, tgUserId, tgUsername }) {
   const runningCampaigns = listCampaigns(db).filter((c) => c.status === "running");
+  const sqlById = "SELECT * FROM leads WHERE campaign_id = ? AND tg_user_id = ? AND status NOT IN ('unsubscribed','blocked','human_takeover') LIMIT 1";
+  const sqlByUsername = "SELECT * FROM leads WHERE campaign_id = ? AND tg_username = ? AND status NOT IN ('unsubscribed','blocked','human_takeover') LIMIT 1";
   for (const campaign of runningCampaigns) {
-    const sql = tgUserId
-      ? "SELECT * FROM leads WHERE campaign_id = ? AND tg_user_id = ? AND status NOT IN ('unsubscribed','blocked','human_takeover') LIMIT 1"
-      : "SELECT * FROM leads WHERE campaign_id = ? AND tg_username = ? AND status NOT IN ('unsubscribed','blocked','human_takeover') LIMIT 1";
-    const lead = tgUserId ? db.prepare(sql).get(campaign.id, tgUserId) : db.prepare(sql).get(campaign.id, tgUsername);
-    if (lead) return { lead, campaign };
+    // Сначала по tg_user_id если есть — самый надёжный
+    if (tgUserId) {
+      const byId = db.prepare(sqlById).get(campaign.id, tgUserId);
+      if (byId) return { lead: byId, campaign };
+    }
+    // Fallback на username — лид мог быть добавлен только по @username (без tg_user_id)
+    if (tgUsername) {
+      const byName = db.prepare(sqlByUsername).get(campaign.id, tgUsername);
+      if (byName) {
+        // При первом совпадении по username — обновим tg_user_id, чтобы дальше работать по id
+        if (tgUserId && !byName.tg_user_id) {
+          db.prepare("UPDATE leads SET tg_user_id = ? WHERE id = ?").run(tgUserId, byName.id);
+        }
+        return { lead: byName, campaign };
+      }
+    }
   }
   return null;
 }
