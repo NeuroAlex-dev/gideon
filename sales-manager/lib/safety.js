@@ -1,6 +1,6 @@
 const MIN_OUTBOUND_DELAY_MS = 2 * 60_000;
 const MAX_OUTBOUND_DELAY_MS = 20 * 60_000;
-const HOURLY_FIRST_MESSAGE_LIMIT = 3;
+const HOURLY_FIRST_MESSAGE_LIMIT = 5;
 
 export function hourInTimezone(ts, timezone) {
   const fmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: timezone });
