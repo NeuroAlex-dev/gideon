@@ -37,6 +37,16 @@ export async function decideInboundAction({ campaign, lead, conversation, histor
     }
   }
 
+  // Surrender-guard: если лид кидает возражение, AI должен отрабатывать, а не отступать.
+  // Если в ответе AI есть капитуляционные паттерны («когда будете готовы напишите» и т.п.) — retry с playbook возражений.
+  if (parsed.text && isObjection(inboundText) && isSurrender(parsed.text)) {
+    const surrenderHint = `\n\n🥊 ПЕРЕДЕЛАЙ: лид кинул возражение — это НЕ повод сдаваться или отпускать его («когда будете готовы — напишите», «дам время подумать» — ЗАПРЕЩЕНО). Отработай возражение по существу (см. правило 10 в системном промпте — playbook возражений) и снова мягко позови в складчину. Не отступай. Сдаваться можно только если лид явно отказался ≥2 раз подряд без аргументов.`;
+    res = await askClaude({ systemPrompt: system + surrenderHint, history: aiHistory, userMessage: inboundText });
+    try {
+      parsed = JSON.parse(extractJson(res.text));
+    } catch {}
+  }
+
   if (parsed.intent === "unsubscribe") return { action: "mark_unsubscribed", reason: parsed.reason || "" };
   if (parsed.intent === "handoff") return { action: "handoff", reason: parsed.reason || "" };
 
@@ -94,6 +104,43 @@ const ABSTRACT_TAIL_PATTERNS = [
 
 function matchesAbstractTail(text) {
   return ABSTRACT_TAIL_PATTERNS.some((re) => re.test(text));
+}
+
+// Капитуляция: AI «отпускает» лида вместо отработки возражения
+const SURRENDER_PATTERNS = [
+  /когда\s+(будете|будешь|будут|будут готовы)\s+(готов|написать)/i,
+  /д[аё]м\s+вам?\s+время/i,
+  /не\s+настаива/i,
+  /как\s+решите\s*[—-]?\s+(дайте|напиш)/i,
+  /как\s+будете\s+готов/i,
+  /не\s+отвлекаю/i,
+  /успехов\s+вам/i,
+  /всё\s+понятно[,\.\s]+не\s+(отвлекаю|настаи)/i,
+  /не\s+буду\s+(настаива|отвлекать)/i,
+  /пишите[,\.\s]+когда/i,
+  /удачи\s+вам\s+в/i,
+];
+
+export function isSurrender(text) {
+  if (!text) return false;
+  return SURRENDER_PATTERNS.some((re) => re.test(text));
+}
+
+// Распознаём входящие возражения, чтобы заставить AI отрабатывать
+const OBJECTION_PATTERNS = [
+  /подумаю|надо\s+подумать|посоветуюсь|надо\s+посовет/i,
+  /\bдорого\b|нет\s+(денег|финансов)|накладно|не\s+бюджет/i,
+  /нет\s+времени|не\s+до\s+этого|занят/i,
+  /не\s+уверен|сомневаюсь|не\s+знаю/i,
+  /пот[оо]м|позже|не\s+сейчас/i,
+  /у\s+меня\s+(уже\s+)?(всё|все)\s+(работает|есть|хватает)/i,
+  /клиентов\s+(хватает|достаточно|и\s+так)/i,
+  /мне\s+не\s+(нужно|интересно)\s+это/i,
+];
+
+export function isObjection(text) {
+  if (!text) return false;
+  return OBJECTION_PATTERNS.some((re) => re.test(text));
 }
 
 export function violatesClosingRule(text, campaign) {
