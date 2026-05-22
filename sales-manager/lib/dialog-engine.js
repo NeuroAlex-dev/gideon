@@ -85,16 +85,25 @@ function shouldEscalateToDraft({ inboundText, stage, intent }) {
 const CTA_SIGNAL_RE = /склад|присоедин|участ|зайдёшь|зайдешь|зайти|вступ|подключ|готов(ы|)\s+(к нам|в группу|записаться)|интересно\?|тема\?/i;
 
 // Запрещённые формулировки финала (абстрактные вопросы вместо CTA)
-const ABSTRACT_TAIL_RE = /(что|чем)\s+(?:больше|вам|тебе|из этого)\s+(?:зашло|откликн|откликает|понравил|интересн|зацепил|ближе)|что\s+скажете\?$|как\s+вам\?$|что\s+думае(те|шь)\?$|что\s+ближе\?$/i;
+const ABSTRACT_TAIL_PATTERNS = [
+  /(что|чем)[\s\S]{0,80}(зашло|откликн|понравил|интересн|зацепил|ближе)/i,
+  /как\s+(вам|тебе)\??/i,
+  /что\s+думае(те|шь)/i,
+  /что\s+скажете\??/i,
+];
+
+function matchesAbstractTail(text) {
+  return ABSTRACT_TAIL_PATTERNS.some((re) => re.test(text));
+}
 
 export function violatesClosingRule(text, campaign) {
   if (!text) return false;
   const t = text.trim();
   // Если в тексте уже упомянуты ключевые элементы складчины — норм
   if (CTA_SIGNAL_RE.test(t)) return false;
-  // Если последние 200 символов содержат абстрактный «отвлечённый» вопрос без CTA — нарушение
+  // Если последние 250 символов содержат абстрактный «отвлечённый» вопрос без CTA — нарушение
   const tail = t.slice(-250);
-  return ABSTRACT_TAIL_RE.test(tail);
+  return matchesAbstractTail(tail);
 }
 
 // Эвристика: были ли в недавней истории отправлены материалы (ссылка, attachment, длинный pitch)
