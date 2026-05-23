@@ -1,11 +1,12 @@
 import { runOutboundTick, processApprovedDrafts } from "./lib/outbound.js";
 import { createInboundProcessor } from "./lib/inbound.js";
-import { sendForceFollowup } from "./lib/followup.js";
+import { sendForceFollowup, autoFollowupSweep } from "./lib/followup.js";
 
-export function createWorker({ db, telegram, askClaude, notifyAlexander = null, tickIntervalMs = 60_000, batchWindowMs = 25_000, forceCheckIntervalMs = 3_000, missedFetchIntervalMs = 5 * 60_000 }) {
+export function createWorker({ db, telegram, askClaude, notifyAlexander = null, tickIntervalMs = 60_000, batchWindowMs = 25_000, forceCheckIntervalMs = 3_000, missedFetchIntervalMs = 5 * 60_000, autoFollowupIntervalMs = 15 * 60_000 }) {
   let timer = null;
   let forceTimer = null;
   let missedTimer = null;
+  let followupTimer = null;
   let lastForceEventId = 0;
   const processor = createInboundProcessor({ db, askClaude, telegram, notifyAlexander, batchWindowMs });
 
@@ -34,6 +35,8 @@ export function createWorker({ db, telegram, askClaude, notifyAlexander = null, 
     forceTimer = setInterval(() => { checkForceTriggers().catch((err) => console.error("force-tick error:", err)); }, forceCheckIntervalMs);
     // Периодический fetch-missed: защита от пропусков NewMessage event при gramjs reconnect-loop без рестарта процесса
     missedTimer = setInterval(() => { fetchMissedFromTelegram().catch((err) => console.error("periodic fetch-missed error:", err)); }, missedFetchIntervalMs);
+    // Auto-followup: каждые 15 минут проверяем «молчунов» (AI отправил материалы, не сказал про складчину, прошло ≥15 мин)
+    followupTimer = setInterval(() => { autoFollowupSweep({ db, askClaude, telegram }).catch((err) => console.error("auto-followup error:", err)); }, autoFollowupIntervalMs);
 
     // Recovery: на старте обработать inbound-ы которые остались без ответа (после крэша/рестарта)
     recoverPendingInbound().catch((err) => console.error("recover error:", err));
@@ -156,9 +159,11 @@ export function createWorker({ db, telegram, askClaude, notifyAlexander = null, 
     if (timer) clearInterval(timer);
     if (forceTimer) clearInterval(forceTimer);
     if (missedTimer) clearInterval(missedTimer);
+    if (followupTimer) clearInterval(followupTimer);
     timer = null;
     forceTimer = null;
     missedTimer = null;
+    followupTimer = null;
     await telegram.disconnect();
   }
 
