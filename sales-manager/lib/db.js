@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
   first_message_template TEXT,
   conversation_context TEXT,
   supporting_materials TEXT,
+  session_id TEXT,
   daily_message_limit INTEGER NOT NULL DEFAULT 20,
   working_hours_start INTEGER NOT NULL DEFAULT 9,
   working_hours_end INTEGER NOT NULL DEFAULT 22,
@@ -109,6 +110,7 @@ function migrate(db) {
     ["first_message_template", "TEXT"],
     ["conversation_context", "TEXT"],
     ["supporting_materials", "TEXT"],
+    ["session_id", "TEXT"],
   ];
   for (const [name, type] of additions) {
     if (!cols.includes(name)) {
@@ -119,10 +121,9 @@ function migrate(db) {
 
 export function createCampaign(db, fields) {
   const now = Date.now();
-  // Явно проставляем working_hours/daily_limit чтобы новые кампании в старых БД (где DEFAULT в schema ещё 10/21) получали актуальные значения
   const stmt = db.prepare(`
-    INSERT INTO campaigns (name, offer_text, offer_url, target_audience, goal_ikr, tone, stop_phrases, first_message_template, conversation_context, supporting_materials, daily_message_limit, working_hours_start, working_hours_end, created_at)
-    VALUES (@name, @offer_text, @offer_url, @target_audience, @goal_ikr, @tone, @stop_phrases, @first_message_template, @conversation_context, @supporting_materials, @daily_message_limit, @working_hours_start, @working_hours_end, @created_at)
+    INSERT INTO campaigns (name, offer_text, offer_url, target_audience, goal_ikr, tone, stop_phrases, first_message_template, conversation_context, supporting_materials, session_id, daily_message_limit, working_hours_start, working_hours_end, created_at)
+    VALUES (@name, @offer_text, @offer_url, @target_audience, @goal_ikr, @tone, @stop_phrases, @first_message_template, @conversation_context, @supporting_materials, @session_id, @daily_message_limit, @working_hours_start, @working_hours_end, @created_at)
   `);
   const res = stmt.run({
     name: fields.name,
@@ -135,6 +136,7 @@ export function createCampaign(db, fields) {
     first_message_template: fields.first_message_template ?? null,
     conversation_context: fields.conversation_context ?? null,
     supporting_materials: fields.supporting_materials ?? null,
+    session_id: fields.session_id ?? null,
     daily_message_limit: fields.daily_message_limit ?? 20,
     working_hours_start: fields.working_hours_start ?? 9,
     working_hours_end: fields.working_hours_end ?? 22,
@@ -157,8 +159,8 @@ export function listCampaigns(db, { includeArchived = false } = {}) {
 const ALLOWED_UPDATE = new Set([
   "name", "mode", "offer_text", "offer_url", "target_audience", "goal_ikr",
   "tone", "stop_phrases", "first_message_template", "conversation_context",
-  "supporting_materials", "daily_message_limit", "working_hours_start",
-  "working_hours_end", "timezone",
+  "supporting_materials", "session_id", "daily_message_limit",
+  "working_hours_start", "working_hours_end", "timezone",
 ]);
 
 export function updateCampaign(db, id, patch) {
