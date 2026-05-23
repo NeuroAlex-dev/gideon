@@ -8,12 +8,17 @@ import {
 } from "./lib/db.js";
 import { extractText } from "./lib/file-extractor.js";
 import { isAttachmentSafe } from "./lib/telegram.js";
+import { listAccounts } from "./lib/sessions-manager.js";
 
 export function createServer({ db, password, secret }) {
   const app = express();
   app.use(express.json({ limit: "5mb" }));
 
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+  app.get("/api/accounts", authMiddleware({ secret, password }), (_req, res) => {
+    res.json(listAccounts());
+  });
 
   app.post("/api/extract", authMiddleware({ secret, password }), async (req, res) => {
     const filePath = req.body?.path;
@@ -117,8 +122,9 @@ export function createServer({ db, password, secret }) {
     if (c.status !== "running") return res.status(409).json({ error: `кампания не в статусе running (сейчас ${c.status})` });
     // Снимаем next_action_at чтобы лиды стали "доступны сейчас"
     db.prepare("UPDATE leads SET next_action_at = 0 WHERE campaign_id = ? AND status = 'queued'").run(id);
-    logEvent(db, { type: "force_send_request", campaign_id: id });
-    res.json({ ok: true, message: "worker подхватит в течение 3 секунд" });
+    const all = req.query.all === "1" || req.body?.all === true;
+    logEvent(db, { type: "force_send_request", campaign_id: id, payload: { processAll: all } });
+    res.json({ ok: true, message: "worker подхватит в течение 3 секунд", processAll: all });
   });
 
   app.post("/api/drafts/:id/approve", (req, res) => {

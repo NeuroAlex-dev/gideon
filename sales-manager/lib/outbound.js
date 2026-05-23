@@ -8,25 +8,46 @@ import { buildOutboundSystemPrompt, buildFirstMessageUserPrompt } from "./prompt
 import { extractJson } from "./ai.js";
 import { filterSafeAttachments } from "./telegram.js";
 
-export async function runOutboundTick({ db, now = Date.now(), askClaude, telegram, rng = Math.random, force = false, campaignFilter = null }) {
+export async function runOutboundTick({ db, now = Date.now(), askClaude, telegram, getTelegramFor, rng = Math.random, force = false, campaignFilter = null, processAll = false }) {
+  // Backward compat: если передан один telegram — заворачиваем
+  if (!getTelegramFor && telegram) getTelegramFor = () => telegram;
   const result = { sent: [], skipped: [], errors: [] };
   let runningCampaigns = listCampaigns(db).filter((c) => c.status === "running");
   if (campaignFilter) runningCampaigns = runningCampaigns.filter((c) => c.id === campaignFilter);
 
   const dayStart = startOfDayMs(now, "Europe/Moscow");
   const sentTodayGlobal = countOutboundFirstMessagesSince(db, dayStart);
+  // В force+processAll режиме обрабатываем всех queued лидов подряд (для bulk-операций типа "догнать оставшихся")
+  const shouldProcessAll = force && processAll;
 
   for (const campaign of runningCampaigns) {
-    // В force-режиме сбрасываем next_action_at чтобы лид был "сейчас или раньше"
-    const queryNow = force ? Date.now() + 60_000 : now;
-    const lead = nextLeadToContact(db, campaign.id, queryNow);
-    if (!lead) { continue; }
+    // В force-режиме сбрасываем next_action_at чтобы лиды были "сейчас или раньше"
+    if (force) {
+      db.prepare("UPDATE leads SET next_action_at = 0 WHERE campaign_id = ? AND status = 'queued'").run(campaign.id);
+    }
+    let processedInCampaign = 0;
+    while (true) {
+      const queryNow = force ? Date.now() + 60_000 : now;
+      const lead = nextLeadToContact(db, campaign.id, queryNow);
+      if (!lead) { break; }
+      const campaignTelegram = getTelegramFor(campaign.session_id);
+      const sendResult = await processSingleLead({ db, campaign, lead, now: Date.now(), askClaude, telegram: campaignTelegram, rng, force, sentTodayGlobal: sentTodayGlobal + result.sent.length, runningCampaigns, result });
+      processedInCampaign++;
+      if (sendResult === "stop") break; // флуд-сигнал или другая критическая ошибка
+      if (!shouldProcessAll) break; // обычный тик — только один лид за вызов
+    }
+    if (processedInCampaign > 0) console.log(`[outbound] campaign ${campaign.id}: processed ${processedInCampaign} lead(s)`);
+  }
+  return result;
+}
+
+async function processSingleLead({ db, campaign, lead, now, askClaude, telegram, rng, force, sentTodayGlobal, runningCampaigns, result }) {
 
     if (lead.tg_user_id && isLeadBlocked(db, lead.tg_user_id)) {
       setLeadStatus(db, lead.id, "blocked");
       logEvent(db, { type: "skip_blocked", campaign_id: campaign.id, lead_id: lead.id });
       result.skipped.push({ leadId: lead.id, reason: "blocklist" });
-      continue;
+      return "continue";
     }
 
     // Учитываем только ПЕРВЫЕ сообщения (создание новых диалогов), а не ответы AI в уже идущих
@@ -53,7 +74,7 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
       console.log(`[outbound] skip lead ${lead.id} (campaign ${campaign.id}): ${check.reason}`);
       result.skipped.push({ leadId: lead.id, reason: check.reason });
       setLeadStatus(db, lead.id, "queued", now + nextOutboundDelay(rng));
-      continue;
+      return "stop";
     }
 
     // Подтягиваем реальный first_name/bio из TG если их ещё нет в БД
@@ -95,7 +116,7 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
       logEvent(db, { type: "error", campaign_id: campaign.id, lead_id: lead.id, payload: { stage: "ai", message: e.message } });
       result.errors.push({ leadId: lead.id, error: e.message });
       setLeadStatus(db, lead.id, "queued", now + nextOutboundDelay(rng));
-      continue;
+      return "continue";
     }
 
     const conv = getOrCreateConversation(db, lead.id, campaign.id);
@@ -125,25 +146,26 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
       setLeadStatus(db, lead.id, "first_sent");
       logEvent(db, { type: "sent", campaign_id: campaign.id, lead_id: lead.id, payload: { message_id: messageId } });
       result.sent.push({ leadId: lead.id, messageId });
-      return result;
+      return "ok";
     } catch (e) {
       const cls = classifyTelegramError(e);
       logEvent(db, { type: "ban_signal", campaign_id: campaign.id, lead_id: lead.id, payload: { ...cls, message: e.message } });
       result.errors.push({ leadId: lead.id, error: e.message, classified: cls });
       if (cls.kind === "ban" || cls.kind === "deactivated" || cls.kind === "privacy") {
         setLeadStatus(db, lead.id, "blocked");
+        return "continue";
       } else if (cls.kind === "flood_wait" || cls.kind === "flood") {
         for (const c of runningCampaigns) setCampaignStatus(db, c.id, "paused");
-        return result;
+        return "stop";
       } else {
         setLeadStatus(db, lead.id, "queued", now + nextOutboundDelay(rng));
+        return "continue";
       }
     }
-  }
-  return result;
 }
 
-export async function processApprovedDrafts({ db, telegram, rng = Math.random }) {
+export async function processApprovedDrafts({ db, telegram, getTelegramFor, rng = Math.random }) {
+  if (!getTelegramFor && telegram) getTelegramFor = () => telegram;
   const rows = db.prepare(`
     SELECT d.id as draft_id, d.status as draft_status, m.id as message_id, m.body, m.conversation_id, c.lead_id, c.campaign_id
     FROM drafts d
@@ -154,10 +176,12 @@ export async function processApprovedDrafts({ db, telegram, rng = Math.random })
 
   for (const r of rows) {
     const lead = getLead(db, r.lead_id);
+    const camp = db.prepare("SELECT session_id FROM campaigns WHERE id = ?").get(r.campaign_id);
+    const tg = getTelegramFor(camp?.session_id);
     const peer = lead.tg_username || lead.tg_user_id;
     const typingMs = nextTypingDuration(rng);
     try {
-      const tgMsgId = await telegram.sendMessage({ peer, text: r.body, typingMs });
+      const tgMsgId = await tg.sendMessage({ peer, text: r.body, typingMs });
       const sentAt = Date.now();
       updateMessageStatus(db, r.message_id, "sent", { sent_at: sentAt, tg_message_id: tgMsgId });
       setLeadStatus(db, lead.id, "in_dialog");

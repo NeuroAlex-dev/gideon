@@ -5,6 +5,7 @@ import { createTelegramAdapter } from "../lib/telegram.js";
 import { askClaude } from "../lib/ai.js";
 import { createBotNotifier } from "../lib/bot-notifier.js";
 import { createWorker } from "../worker.js";
+import { listAccounts, getActiveAccountId } from "../lib/sessions-manager.js";
 
 // GramJS периодически бросает unhandledRejection/uncaughtException при reconnect.
 // Любая ошибка где упоминается telegram/gramjs/socket/timeout — глушим.
@@ -34,12 +35,38 @@ process.on("uncaughtException", (err) => {
 });
 
 const db = openDb(process.env.SM_DB_PATH || "./data/sales-manager.db");
-const telegram = createTelegramAdapter();
+
+// Telegram pool: один адаптер на sessionId
+const telegramPool = new Map();
+function getTelegramFor(sessionId) {
+  const key = sessionId || getActiveAccountId() || "default";
+  if (!telegramPool.has(key)) {
+    const adapter = createTelegramAdapter({ sessionId });
+    telegramPool.set(key, adapter);
+  }
+  return telegramPool.get(key);
+}
+
 const notifyAlexander = createBotNotifier({
   botToken: process.env.TG_BOT_TOKEN,
   chatId: process.env.OWNER_CHAT_ID,
 });
-const worker = createWorker({ db, telegram, askClaude, notifyAlexander });
+
+// Список сессий которые используются хотя бы одной running кампанией (+ active как fallback)
+const runningSessionIds = new Set(
+  db.prepare("SELECT DISTINCT session_id FROM campaigns WHERE status = 'running'").all().map((r) => r.session_id),
+);
+runningSessionIds.delete(null); // null = use active
+const activeId = getActiveAccountId();
+if (activeId) runningSessionIds.add(activeId); // активная сессия всегда подключается (для кампаний без явного session_id)
+
+console.log(`[worker] available accounts:`, listAccounts().map((a) => `${a.id}${a.isActive ? "*" : ""}`).join(", "));
+console.log(`[worker] will connect to sessions:`, [...runningSessionIds].join(", "));
+
+// Прелоадим все нужные адаптеры
+for (const sid of runningSessionIds) getTelegramFor(sid);
+
+const worker = createWorker({ db, getTelegramFor, telegramPool, askClaude, notifyAlexander });
 await worker.start();
 console.log("sales-manager worker started");
 process.on("SIGINT", async () => { await worker.stop(); process.exit(0); });

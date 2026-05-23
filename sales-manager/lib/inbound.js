@@ -6,13 +6,14 @@ import { decideInboundAction } from "./dialog-engine.js";
 import { nextTypingDuration } from "./safety.js";
 import { filterSafeAttachments } from "./telegram.js";
 
-export function createInboundProcessor({ db, askClaude, telegram, notifyAlexander = null, rng = Math.random, batchWindowMs = 60_000 }) {
+export function createInboundProcessor({ db, askClaude, telegram, getTelegramFor, notifyAlexander = null, rng = Math.random, batchWindowMs = 60_000 }) {
+  if (!getTelegramFor && telegram) getTelegramFor = () => telegram;
   const buffers = new Map();
 
-  async function onInbound({ tgUserId, tgUsername, text, tgMessageId, skipPersist = false }) {
-    const found = findActiveLead({ db, tgUserId, tgUsername });
+  async function onInbound({ tgUserId, tgUsername, text, tgMessageId, skipPersist = false, sessionId = null }) {
+    const found = findActiveLead({ db, tgUserId, tgUsername, sessionId });
     if (!found) {
-      console.log(`[inbound] ignored: tgUserId=${tgUserId} username=@${tgUsername || "—"} text="${(text || "").slice(0, 50)}"`);
+      console.log(`[inbound] ignored: tgUserId=${tgUserId} username=@${tgUsername || "—"} session=${sessionId || "any"} text="${(text || "").slice(0, 50)}"`);
       return;
     }
     console.log(`[inbound] match: lead ${found.lead.id} (@${found.lead.tg_username}) → campaign ${found.campaign.id}${skipPersist ? " [recovery]" : ""}`);
@@ -86,8 +87,9 @@ export function createInboundProcessor({ db, askClaude, telegram, notifyAlexande
 
     if (dec.action === "send_now") {
       const typingMs = nextTypingDuration(rng);
+      const tg = getTelegramFor(campaign.session_id);
       try {
-        const tgMsgId = await telegram.sendMessage({ peer, text: dec.text, typingMs });
+        const tgMsgId = await tg.sendMessage({ peer, text: dec.text, typingMs });
         const sentAt = Date.now();
         const messageId = addMessage(db, {
           conversation_id: conv.id, role: "outbound", body: dec.text, status: "sent",
@@ -97,7 +99,7 @@ export function createInboundProcessor({ db, askClaude, telegram, notifyAlexande
         const safeAttachments = filterSafeAttachments(dec.attachments);
         for (const att of safeAttachments) {
           try {
-            const attMsgId = await telegram.sendFile({ peer, filePath: att, typingMs: 0 });
+            const attMsgId = await tg.sendFile({ peer, filePath: att, typingMs: 0 });
             addMessage(db, {
               conversation_id: conv.id, role: "outbound", body: `[файл: ${att}]`,
               status: "sent", tg_message_id: attMsgId, sent_at: Date.now(),
@@ -118,8 +120,14 @@ export function createInboundProcessor({ db, askClaude, telegram, notifyAlexande
   return { onInbound, _processBatchForTest: processBatch };
 }
 
-function findActiveLead({ db, tgUserId, tgUsername }) {
-  const runningCampaigns = listCampaigns(db).filter((c) => c.status === "running");
+function findActiveLead({ db, tgUserId, tgUsername, sessionId = null }) {
+  // Если знаем sessionId (откуда пришло сообщение) — ищем только в кампаниях с этим session_id
+  // sessionId=null означает default/active → считаем что подойдёт любая кампания
+  let runningCampaigns = listCampaigns(db).filter((c) => c.status === "running");
+  if (sessionId) {
+    // Кампании с явным session_id == ours ИЛИ без session_id (значит используют active)
+    runningCampaigns = runningCampaigns.filter((c) => c.session_id === sessionId || c.session_id === null);
+  }
   const sqlById = "SELECT * FROM leads WHERE campaign_id = ? AND tg_user_id = ? AND status NOT IN ('unsubscribed','blocked','human_takeover') LIMIT 1";
   const sqlByUsername = "SELECT * FROM leads WHERE campaign_id = ? AND tg_username = ? AND status NOT IN ('unsubscribed','blocked','human_takeover') LIMIT 1";
   for (const campaign of runningCampaigns) {

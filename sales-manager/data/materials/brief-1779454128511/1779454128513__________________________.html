@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Секреты AI-лидогенерации: Разбор Системы Юрия Курилова</title>
+    <!-- Подключение Roboto -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* БУКВИЦА BRAND STYLES v3.0 */
+        :root {
+            /* Palette */
+            --dark: #101827;       /* Заголовки */
+            --grey: #6B7280;       /* Текст */
+            --pink: #FA2F6B;       /* Акцент 1 */
+            --blue: #2463EB;       /* Акцент 2 */
+            --sky: #6AC2EA;        /* Доп. акцент */
+            --bg-body: #F9FAFB;    /* Фон */
+            --bg-card: #FFFFFF;    /* Плашки */
+            
+            /* Backgrounds for boxes */
+            --bg-blue-muted: #C9D7F5; 
+            --bg-pink-muted: #F9CCDB;
+            
+            /* Styles */
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background: var(--bg-body); 
+            color: var(--grey); 
+            line-height: 1.65; 
+            padding: 24px 16px; 
+            font-weight: 400;
+        }
+        
+        strong { color: var(--dark); font-weight: 700; }
+        
+        .container { max-width: 760px; margin: 0 auto; }
+
+        /* HEADER */
+        .header { 
+            background: var(--bg-card); 
+            border-radius: var(--radius); 
+            padding: 40px; 
+            margin-bottom: 32px; 
+            box-shadow: var(--shadow); 
+            border-top: 6px solid var(--blue);
+            text-align: center;
+        }
+        .header-pre { color: var(--sky); text-transform: uppercase; font-size: 13px; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px; }
+        .header-title { font-size: 32px; line-height: 1.2; color: var(--dark); font-weight: 700; margin-bottom: 16px; }
+        .header-sub { font-size: 18px; color: var(--grey); font-weight: 400; }
+        
+        .tags { display: flex; justify-content: center; gap: 8px; margin-top: 24px; flex-wrap: wrap; }
+        .tag { background: #EEF4FF; color: var(--blue); padding: 4px 12px; border-radius: 100px; font-size: 13px; font-weight: 500; }
+
+        /* SECTIONS */
+        .section { 
+            background: var(--bg-card); 
+            border-radius: var(--radius); 
+            margin-bottom: 20px; 
+            box-shadow: var(--shadow); 
+            overflow: hidden; 
+            transition: transform 0.2s ease;
+        }
+        .section:hover { transform: translateY(-2px); }
+        
+        .section-header { 
+            padding: 24px; 
+            display: flex; 
+            align-items: center; 
+            cursor: pointer; 
+            border-bottom: 1px solid transparent; /* reserve space */
+        }
+        .section.collapsed .section-header { border-bottom: none; }
+        
+        .section-icon { 
+            width: 44px; height: 44px; 
+            background: #EEF4FF; 
+            color: var(--dark); 
+            border-radius: 12px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 22px; 
+            margin-right: 16px; 
+            flex-shrink: 0; 
+        }
+        
+        .section-title { font-size: 20px; font-weight: 700; color: var(--dark); flex: 1; margin: 0; }
+        .section-toggle { 
+            width: 24px; height: 24px; 
+            display: flex; align-items: center; justify-content: center; 
+            color: var(--grey); 
+            transition: transform 0.3s ease; 
+        }
+        .section.collapsed .section-toggle { transform: rotate(-90deg); }
+
+        .section-content { 
+            padding: 0 24px 32px 24px; 
+            color: var(--grey); 
+            font-size: 16px;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+        .section.collapsed .section-content { max-height: 0 !important; padding-bottom: 0; }
+        
+        /* CONTENT BLOCKS */
+        p { margin-bottom: 16px; }
+        ul, ol { margin-bottom: 24px; padding-left: 24px; }
+        li { margin-bottom: 8px; }
+
+        /* The "Pink" Box - for Warnings, Emphasis, Important */
+        .box-pink { 
+            background: var(--bg-pink-muted); 
+            padding: 24px; 
+            border-radius: 12px; 
+            margin: 24px 0; 
+            border-left: 4px solid var(--pink);
+        }
+        .box-pink h4 { color: var(--dark); margin: 0 0 8px 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        /*.box-pink h4::before { content: '⚡'; color: var(--pink); }
+        
+        /* The "Blue" Box - for Info, Success, Pro-tips */
+        .box-blue { 
+            background: var(--bg-blue-muted); 
+            padding: 24px; 
+            border-radius: 12px; 
+            margin: 24px 0; 
+            border-left: 4px solid var(--blue);
+        }
+        .box-blue h4 { color: var(--dark); margin: 0 0 8px 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        /*.box-blue h4::before { content: '💎'; color: var(--blue); }
+
+        /* Quote */
+        .quote { 
+            font-size: 18px; 
+            font-style: italic; 
+            color: var(--dark); 
+            border-left: 4px solid var(--sky); 
+            padding-left: 20px; 
+            margin: 32px 0; 
+        }
+        .quote-author { font-size: 14px; color: var(--grey); font-style: normal; margin-top: 8px; font-weight: 500; }
+
+        /* Stats Grid */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin: 24px 0; }
+        .stat-card { background: var(--bg-body); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #E5E7EB; }
+        .stat-val { font-size: 28px; font-weight: 700; color: var(--blue); line-height: 1.1; margin-bottom: 4px; }
+        .stat-lbl { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--grey); }
+
+        /* CHECKLIST */
+        .checklist { 
+            background: var(--bg-card); 
+            padding: 32px; 
+            border-radius: var(--radius); 
+            margin-top: 40px; 
+            box-shadow: var(--shadow); 
+            border: 2px solid var(--bg-blue-muted);
+        }
+        .chk-header { flex: 1; }
+        .chk-title { font-size: 24px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+        .chk-desc { font-size: 14px; margin-bottom: 24px; }
+        
+        .chk-group-title { 
+            font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--pink); font-weight: 700; 
+            margin: 24px 0 12px 0; 
+        }
+        
+        .chk-item { 
+            display: flex; gap: 16px; padding: 12px 0; 
+            border-bottom: 1px solid #F3F4F6; cursor: pointer; 
+            transition: all 0.2s; 
+        }
+        .chk-item:hover { opacity: 0.8; }
+        .chk-item:last-child { border-bottom: none; }
+        
+        .checkbox { 
+            width: 22px; height: 22px; 
+            border: 2px solid var(--grey); border-radius: 6px; 
+            flex-shrink: 0; margin-top: 2px; position: relative;
+            transition: all 0.2s;
+        }
+        .chk-item.checked .checkbox { background: var(--blue); border-color: var(--blue); }
+        .chk-item.checked .checkbox::after { 
+            content: ''; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px; 
+            border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); 
+        }
+        .chk-text strong { display: block; font-size: 15px; color: var(--dark); transition: color 0.2s; }
+        .chk-item.checked .chk-text strong { color: var(--grey); text-decoration: line-through; }
+        .chk-text span { font-size: 13px; color: var(--grey); }
+
+        /* Footer */
+        .footer { text-align: center; padding: 40px 0; margin-top: 20px; border-top: 1px solid #E5E7EB; }
+        .footer-logo { font-size: 16px; font-weight: 700; color: var(--blue); text-decoration: none; display: inline-block; margin-bottom: 8px; }
+        .footer-logo:hover { color: var(--pink); }
+        .footer-time { background: var(--bg-body); display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; color: var(--dark); border: 1px solid #E5E7EB; }
+
+        @media (max-width: 600px) {
+            .header { padding: 24px; text-align: left; }
+            .header-title { font-size: 24px; }
+            .section-header { padding: 16px; }
+            .section-icon { width: 36px; height: 36px; font-size: 18px; margin-right: 12px; }
+            .section-content { padding: 0 16px 24px 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-pre">Интерактивный конспект</div>
+            <h1 class="header-title">Секреты AI-лидогенерации: Разбор Системы Юрия Курилова</h1>
+            <div class="header-sub">Как нейросетевые агенты могут находить, квалифицировать и передавать вам готовых клиентов, автоматизируя 90% рутины.</div>
+            <div class="tags">
+                <span class="tag">#AIАгенты</span>
+                <span class="tag">#Лидогенерация</span>
+                <span class="tag">#Автоматизация</span>
+                <span class="tag">#Бизнес</span>
+                <span class="tag">#Нейросети</span>
+            </div>
+        </header>
+
+        <!-- ЦИКЛ СЕКЦИЙ (Повторяй этот блок) -->
+        <section class="section">
+            <div class="section-header" onclick="toggleSection(this)">
+                <div class="section-icon">💡</div>
+                <h2 class="section-title">Что такое AI-лидогенерация и почему это важно?</h2>
+                <div class="section-toggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+            <div class="section-content">
+                <p>Юрий Курилов представляет свою систему AI-лидогенерации, которая позволяет нейросетевым агентам находить потенциальных клиентов (лидов). <strong>Лиды</strong> — это люди, которые проявили интерес к вашей услуге или продукту, но ещё не готовы платить. Их задача — квалифицировать и передать менеджерам для завершения сделки.</p>
+                <div class="box-blue">
+                    <h4>💎 Суть AI-лидогенерации</h4>
+                    <p>Система направлена на <strong>снайперскую, хирургическую работу</strong>: агенты находят только тех, кто действительно заинтересован, и пишут им <strong>персонализированные сообщения</strong>. Это не спам, а имитация работы сотрудника, который изучил клиента и обратился с релевантным предложением. Агенты ведут первичный диалог, квалифицируют интерес и передают уже «тёплого» клиента человеку.</p>
+                </div>
+                <p>Такой подход позволяет <strong>автоматизировать до 90% рутинной работы</strong> по поиску и первичной обработке клиентов, оставляя человеку лишь финализацию сделки с уже заинтересованными лицами.</p>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header" onclick="toggleSection(this)">
+                <div class="section-icon">📊</div>
+                <h2 class="section-title">Проблема клиентов и традиционные методы</h2>
+                <div class="section-toggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+            <div class="section-content">
+                <p>Проблема <strong>«где брать клиентов»</strong> является вечной для большинства бизнесов и фрилансеров. Все хотят больше клиентов, чтобы иметь возможность повышать цены и увеличивать прибыль.</p>
+                <p>Существующие методы привлечения клиентов имеют свои недостатки:</p>
+                <ul>
+                    <li><strong>Платная реклама:</strong> Быстро, но высокорискованно, окупаемость замедляется.</li>
+                    <li><strong>Органика:</strong> Долго разгоняется (4-6 месяцев до прибыли).</li>
+                    <li><strong>Рекомендации:</strong> Ненадежно, плохо масштабируется.</li>
+                    <li><strong>Партнерки:</strong> Долго и дорого выстраивать.</li>
+                    <li><strong>Холодный поиск (звонки/сообщения):</strong> Высокий стресс, много отказов, сложно масштабировать, требует множества аккаунтов и технических ухищрений для обхода банов.</li>
+                    <li><strong>Фриланс-биржи:</strong> Много отказов для новичков, демотивирует.</li>
+                </ul>
+                <div class="box-pink">
+                    <h4>⚡️ Главная боль</h4>
+                    <p>Все традиционные методы требуют <strong>огромных временных и эмоциональных затрат</strong>, а также плохо масштабируются. Агенты же могут выполнять эту работу <strong>лучше, быстрее и в большем объёме</strong>, принимая на себя все отказы и оставляя человеку лишь общение с заинтересованными лидами.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header" onclick="toggleSection(this)">
+                <div class="section-icon">🤖</div>
+                <h2 class="section-title">Путь AI-агента: От поиска до передачи клиента</h2>
+                <div class="section-toggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+            <div class="section-content">
+                <p>Процесс работы агентов по лидогенерации включает несколько ключевых этапов:</p>
+                <ol>
+                    <li><strong>Определение целевой аудитории:</strong> Чёткое понимание, кого мы ищем (критерии, параметры клиента).</li>
+                    <li><strong>Поиск лидов:</strong> Агенты находят людей в интернете (открытые источники, соцсети, специализированные платформы) или обрабатывают предоставленные базы данных (например, 2GIS).</li>
+                    <li><strong>Сбор информации и квалификация:</strong> Агенты собирают подробную информацию по каждому найденному лиду, чтобы убедиться в его соответствии критериям и потенциальной заинтересованности. Создаются карточки лидов.</li>
+                    <li><strong>Персонализированное сообщение:</strong> Агенты пишут уникальное первое сообщение от имени сотрудника, менеджера или помощника, основываясь на собранной информации. Цель — избежать восприятия как спама.</li>
+                    <li><strong>Прогрев и диалог:</strong> Если лид откликается, агент ведёт с ним небольшой диалог, давая ценность и квалифицируя его интерес.</li>
+                    <li><strong>Передача менеджеру:</strong> Если интерес подтверждён, агент передаёт лида человеку (менеджеру, эксперту) для дальнейшей работы и продажи.</li>
+                </ol>
+                <div class="box-blue">
+                    <h4>💎 Почему это мощно?</h4>
+                    <p>Способность создавать такую систему сама по себе является ценной услугой. Человек, освоивший это, становится тем, кто может приводить клиентов практически в любой бизнес, создавая масштабируемые системы. Это не просто навык, а <strong>система, которая генерирует деньги</strong>.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header" onclick="toggleSection(this)">
+                <div class="section-icon">💻</div>
+                <h2 class="section-title">Пример работы системы Юрия Курилова (Lead Pilot)</h2>
+                <div class="section-toggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+                </div>
+            </div>
+            <div class="section-content">
+                <p>Юрий продемонстрировал свою разрабатываемую систему под названием <strong>Lead Pilot</strong>, которая находится на ранней стадии, но уже показывает потенциал.</p>
+                <p><strong>Этапы работы в Lead Pilot:</strong></p>
+                <ol>
+                    <li><strong>Подготовка:</strong> Общение с внутренним агентом для определения целевой аудитории. Например, "владельцы, руководители образовательных проектов, которые хотят быстрее превращать идеи в рабочие инструменты". Создаются файлы с параметрами клиента и ограничениями.</li>
+                    <li><strong>Поиск лидов:</strong> Агент ищет людей, соответствующих описанию, в интернете. Например, находит 30 потенциальных руководителей онлайн-школ.</li>
+                    <li><strong>Обогащение:</strong> Система ищет дополнительную информацию по каждому лиду, чтобы подтвердить его соответствие. Создаются карточки лидов с личной информацией, контактами, данными о компании.</li>
+                    <li><strong>Сообщения:</strong> Система генерирует персонализированные первые сообщения. Юрий отметил, что пока сообщения "на троечку" и требуют доработки, но уже выглядят достаточно индивидуально, чтобы не восприниматься как спам.</li>
+                </ol>
+                <div class="box-pink">
+                    <h4>⚡️ Нюанс разработки</h4>
+                    <p>Юрий столкнулся с непредвиденными личными обстоятельствами (проблемы с визой дочери), что замедлило процесс доработки. Это подчеркивает, что даже при автоматизации, человеческий фактор и внешние условия могут влиять на скорость реализации проекта.</p>
+                </div>
+                <p><strong>Технические детали:</strong></p>
+                <ul>
+                    <li>Система использует <strong>GPT-кодекс</strong> и <strong>Claude</strong> для взаимодействия с агентами.</li>
+                    <li>Агенты могут писать на почту, в Telegram (предпочтительный канал из-за простоты подключения и высокого отклика), и другие соцсети.</li>
+                    <li>В системе есть возможность подключать как ботов, так и человеческие аккаунты для управления перепиской.</li>
+                    <li>Система постоянно развивается, и Юрий планирует доработать функционал создания и отправки сообщений в отдельном приложении для ускорения процесса.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header" onclick="toggleSection(this)">
+                <div class="section-icon">🌍</div>
+                <h2 class="section-title">Примеры применения AI-лидогенерации для B2B и B2C</h2>
+                <div class="section-toggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+                </div>
+            </div>
+            <div class="section-content">
+                <p>Юрий обсудил, как система может быть адаптирована для разных типов бизнеса:</p>
+                <ul>
+                    <li><strong>B2B (например, рекрутинговые агентства):</strong> Агенты ищут компании, у которых есть внешние признаки сложного IT-найма. После нахождения, система предлагает рекрутинговому агентству 2-3 примера таких компаний, объясняя, почему они подходят и какие вакансии у них открыты. Это позволяет рекрутерам быстро отделить "живые" B2B-поводы от общего списка вакансий.</li>
+                    <li><strong>B2C (например, психолог):</strong> Агенты мониторят тематические форумы, чаты, каналы, где люди обсуждают свои проблемы (например, бессонницу). Как только человек выражает потребность, агент связывается с ним, предлагает полезный материал (отчетик, руководство) по теме проблемы. Если интерес сохраняется, агент квалифицирует запрос и предлагает бесплатную консультацию со специалистом, записывает на неё и уведомляет психолога.</li>
+                </ul>
+                <div class="box-blue">
+                    <h4>💎 Принцип адаптации</h4>
+                    <p>Для каждого бизнеса стратегия корректируется в зависимости от его специфики: что продаётся, как обычно прогреваются клиенты, что предлагается первым. Но общая концепция — <strong>автоматизация поиска, прогрева и квалификации</strong> — остаётся неизменной.</p>
+                </div>
+                <div class="quote">
+                    «Выстроив изначально систему для какого-то одного бизнеса, дальше её адаптировать уже становится гораздо проще.»
+                    <div class="quote-author">— Юрий Курилов</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header" onclick="toggleSection(this)">
+                <div class="section-icon">🧠</div>
+                <h2 class="section-title">Важность понимания AI-агентов и их отличия от нейросетей</h2>
+                <div class="section-toggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+                </div>
+            </div>
+            <div class="section-content">
+                <p>Юрий подчеркивает разницу между простой нейросетью и AI-агентом:</p>
+                <ul>
+                    <li><strong>Нейросеть (например, GPT-модель):</strong> Это технология, которая прогнозирует продолжение текста. Она читает диалог и предполагает, как он должен продолжиться. Чат-боты создают иллюзию общения, но по сути просто генерируют текст.</li>
+                    <li><strong>AI-агент:</strong> Это более продвинутая технология. Агент не просто генерирует текст, он <strong>действует самостоятельно</strong>. У него есть набор инструментов (десятки или даже сотни), которые он может применять:
+                        <ul>
+                            <li>Искать информацию в интернете.</li>
+                            <li>Создавать/изучать изображения.</li>
+                            <li>Создавать/запускать/изучать код.</li>
+                            <li>Работать с текстовыми файлами.</li>
+                            <li>Отправлять/получать команды через терминал или другие интерфейсы (например, MCP-сервер для взаимодействия с Adobe Premiere).</li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="box-blue">
+                    <h4>💎 Будущее за агентами</h4>
+                    <p>Агенты — это будущее. Они становятся всё совершеннее и способны выполнять сложные задачи, которые раньше требовали команд программистов. Юрий, например, с их помощью создал десятки приложений с нуля за считанные дни.</p>
+                </div>
+                <p><strong>Пример:</strong> Агент может смонтировать видео, самостоятельно находя моменты для ускорения или вырезания, пока пользователь занимается другими делами. Это не просто генерация, а целенаправленное действие с использованием инструментов.</p>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header" onclick="toggleSection(this)">
+                <div class="section-icon">💰</div>
+                <h2 class="section-title">Экономическая выгода и масштабирование</h2>
+                <div class="section-toggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+                </div>
+            </div>
+            <div class="section-content">
+                <p>Юрий акцентирует внимание на огромном экономическом потенциале AI-лидогенерации:</p>
+                <ul>
+                    <li><strong>Высокая ценность:</strong> Тот, кто умеет создавать такие системы, становится незаменимым для любого бизнеса, так как решает главную боль – привлечение клиентов.</li>
+                    <li><strong>Масштабируемость:</strong> Систему можно масштабировать, привлекая 10 клиентов по $1000/месяц (или выше, до $5-10k/месяц для крупных чеков) и автоматизируя большую часть работы.</li>
+                    <li><strong>Выбор ниши:</strong> Можно выбирать ниши с высоким чеком, где один клиент приносит много денег, а его поиск сложен (например, B2B с дорогими услугами).</li>
+                    <li><strong>Глобальный рынок:</strong> Неважно, какая страна или язык, главное — наличие бизнеса, которому нужны клиенты, и легальность ведения бизнеса.</li>
+                </ul>
+                <div class="box-pink">
+                    <h4>⚡️ Важно понять</h4>
+                    <p>Деньги не в навыке, а в <strong>системе</strong>. Если вы можете создавать масштабируемую систему, которая приводит клиентов, вы можете зарабатывать очень много, выбирая, с кем работать.</p>
+                </div>
+                <div class="quote">
+                    «Если вы превратились в человека, который может приводить клиентов практически в любой бизнес, и более того, вы стали человеком, который может создавать системы, которые приводят клиента в любой бизнес, это гораздо-гораздо мощнее.»
+                    <div class="quote-author">— Юрий Курилов</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header" onclick="toggleSection(this)">
+                <div class="section-icon">📈</div>
+                <h2 class="section-title">Реалити «Лид-машина»: Создай свою систему с Юрием Куриловым</h2>
+                <div class="section-toggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+                </div>
+            </div>
+            <div class="section-content">
+                <p>Юрий анонсирует реалити-проект <strong>«Лид-машина»</strong>, где он будет в прямом эфире создавать свою систему лидогенерации с нуля для своего бизнеса.</p>
+                <p><strong>Что будет в реалити:</strong></p>
+                <ul>
+                    <li><strong>Процесс создания:</strong> Юрий покажет весь процесс от начала до конца, включая гипотезы, эксперименты, тесты.</li>
+                    <li><strong>Эфиры и записи:</strong> Регулярные эфиры (3-4 недели) с демонстрацией работы, ответами на вопросы. Все записи будут доступны, а также транскрибации для быстрого изучения.</li>
+                    <li><strong>Закрытый чат:</strong> Для обсуждения с другими участниками и Юрием.</li>
+                    <li><strong>Дашборд:</strong> Создание системы для отслеживания найденных клиентов, каналов связи, сообщений, ответов и интереса.</li>
+                    <li><strong>Прогрессивное автоматизация:</strong> От полуавтоматических диалогов до полного автопилота с минимальным контролем.</li>
+                    <li><strong>Исходный код (для тарифа «VIP»):</strong> Возможность получить исходный код системы Юрия для адаптации под свои нужды.</li>
+                </ul>
+                <div class="box-blue">
+                    <h4>💎 Две траектории участия</h4>
+                    <ol>
+                        <li><strong>Для себя:</strong> Научиться создавать систему для привлечения клиентов в свой бизнес (услуги, обучение, B2B-решения).</li>
+                        <li><strong>Для продажи:</strong> Стать специалистом по созданию автоматизированных систем привлечения клиентов для других бизнесов.</li>
+                    </ol>
+                </div>
+                <p><strong>Бонусы для участников:</strong></p>
+                <ul>
+                    <li>Урок по настройке агента на базе китайских моделей (более бюджетный вариант).</li>
+                    <li>Урок по настройке виртуального сервера (для удалённой работы приложения).</li>
+                    <li>Урок по подключению Gemini Pro к своему коду (для более дешёвого использования моделей Google).</li>
+                </ul>
+                <p>Реалити стартует <strong>12 мая</strong>. Это уникальная возможность увидеть создание системы с нуля за ограниченную стоимость, которая будет значительно ниже стоимости будущего обучения.</p>
+            </div>
+        </section>
+
+        <!-- ЧЕК-ЛИСТ -->
+        <div class="checklist">
+            <div class="chk-header">
+                <div class="chk-title">🚀 Чек-лист внедрения AI-лидогенерации</div>
+                <div class="chk-desc">Отмечайте выполненные пункты, прогресс сохранится</div>
+            </div>
+
+            <!-- Группа 1 -->
+            <div class="chk-group-title">Подготовка и планирование</div>
+            <div class="chk-item" onclick="toggleCheck(this)">
+                <div class="checkbox"></div>
+                <div class="chk-text">
+                    <strong>Определить целевую аудиторию</strong>
+                    <span>Чётко сформулировать, кого вы ищете: их боли, потребности, характеристики.</span>
+                </div>
+            </div>
+            <div class="chk-item" onclick="toggleCheck(this)">
+                <div class="checkbox"></div>
+                <div class="chk-text">
+                    <strong>Выбрать платформу для AI-агентов</strong>
+                    <span>Начать с GPT-кодекс или Cloud Code, возможно, с бюджетных китайских моделей через AllLama.</span>
+                </div>
+            </div>
+            <div class="chk-item" onclick="toggleCheck(this)">
+                <div class="checkbox"></div>
+                <div class="chk-text">
+                    <strong>Разработать стратегию поиска лидов</strong>
+                    <span>Определить источники данных: открытые источники в интернете, соцсети, специализированные базы, 2GIS, форумы, чаты.</span>
+                </div>
+            </div>
+            
+            <!-- Группа 2 -->
+            <div class="chk-group-title">Создание и запуск AI-агентов</div>
+            <div class="chk-item" onclick="toggleCheck(this)">
+                <div class="checkbox"></div>
+                <div class="chk-text">
+                    <strong>Настроить агентов на поиск и обогащение данных</strong>
+                    <span>Обучить AI-агентов собирать информацию и квалифицировать лидов, создавая их карточки.</span>
+                </div>
+            </div>
+            <div class="chk-item" onclick="toggleCheck(this)">
+                <div class="checkbox"></div>
+                <div class="chk-text">
+                    <strong>Разработать шаблоны персонализированных сообщений</strong>
+                    <span>Создать эффективные и неспамные тексты для первого контакта, учитывая специфику каждого лида.</span>
+                </div>
+            </div>
+            <div class="chk-item" onclick="toggleCheck(this)">
+                <div class="checkbox"></div>
+                <div class="chk-text">
+                    <strong>Настроить диалог и квалификацию лидов</strong>
+                    <span>Обучить агентов вести первичный прогревающий диалог и определять реальный интерес клиента.</span>
+                </div>
+            </div>
+            <div class="chk-item" onclick="toggleCheck(this)">
+                <div class="checkbox"></div>
+                <div class="chk-text">
+                    <strong>Интегрировать систему передачи лидов</strong>
+                    <span>Обеспечить бесшовную передачу квалифицированных лидов вашим менеджерам или вам лично.</span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 24px; height: 6px; background: #F3F4F6; border-radius: 3px; overflow: hidden;">
+                <div id="progress" style="width: 0%; height: 100%; background: var(--blue); transition: width 0.3s;"></div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <div style="margin-bottom: 16px;">
+                <span class="footer-time">⏳ Сэкономлено времени на изучение: ~70 мин</span>
+            </div>
+            <div>
+                <a href="https://t.me/BukvitsaAI_bot?start=7014051408" target="_blank" class="footer-logo">Создано в Буквица</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // SMART LOGIC
+        function toggleSection(header) {
+            const section = header.closest('.section');
+            const content = section.querySelector('.section-content');
+            section.classList.toggle('collapsed');
+            
+            if (!section.classList.contains('collapsed')) {
+                content.style.maxHeight = content.scrollHeight + "px";
+            } else {
+                content.style.maxHeight = null;
+            }
+        }
+
+        function toggleCheck(item) {
+            item.classList.toggle('checked');
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const total = document.querySelectorAll('.chk-item').length;
+            const checked = document.querySelectorAll('.chk-item.checked').length;
+            const pct = total ? (checked / total) * 100 : 0;
+            document.getElementById('progress').style.width = pct + '%';
+        }
+
+        // Init heights
+        window.addEventListener('load', () => {
+            document.querySelectorAll('.section-content').forEach(el => {
+                el.style.maxHeight = el.scrollHeight + "px";
+            });
+        });
+        window.addEventListener('resize', () => {
+             document.querySelectorAll('.section:not(.collapsed) .section-content').forEach(el => {
+                el.style.maxHeight = el.scrollHeight + "px";
+            });
+        });
+    </script>
+</body>
+</html>

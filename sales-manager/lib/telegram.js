@@ -3,27 +3,13 @@ import path from "node:path";
 import { TelegramClient, Api } from "telegram";
 import { StringSession } from "telegram/sessions/index.js";
 import { NewMessage } from "telegram/events/index.js";
+import { getSessionString } from "./sessions-manager.js";
 
-const PARSER_DATA_DIR = path.resolve("../parser/data");
-const LEGACY_SESSION_PATH = path.resolve("../parser/data/session.txt");
-const SESSIONS_META_PATH = path.resolve("../parser/data/sessions/_meta.json");
 const PARSER_ENV_PATH = path.resolve("../parser/.env");
 
-function defaultSessionLoader() {
-  if (fs.existsSync(SESSIONS_META_PATH)) {
-    const meta = JSON.parse(fs.readFileSync(SESSIONS_META_PATH, "utf8"));
-    const activeId = meta.activeId;
-    if (!activeId) throw new Error(`sessions: в ${SESSIONS_META_PATH} нет activeId`);
-    const sessionFile = path.join(PARSER_DATA_DIR, "sessions", `${activeId}.txt`);
-    if (!fs.existsSync(sessionFile)) {
-      throw new Error(`sessions: активная сессия ${activeId} (${sessionFile}) не найдена`);
-    }
-    return fs.readFileSync(sessionFile, "utf8").trim();
-  }
-  if (fs.existsSync(LEGACY_SESSION_PATH)) {
-    return fs.readFileSync(LEGACY_SESSION_PATH, "utf8").trim();
-  }
-  throw new Error(`sessions: ни ${SESSIONS_META_PATH}, ни ${LEGACY_SESSION_PATH} не найдены — сначала залогинься в парсере`);
+function defaultSessionLoader(sessionId = null) {
+  // sessionId=null → активная сессия (для backward compat)
+  return getSessionString(sessionId);
 }
 
 function readParserEnv() {
@@ -53,13 +39,13 @@ function defaultClientFactory(sessionString) {
   });
 }
 
-export function createTelegramAdapter({ sessionLoader = defaultSessionLoader, clientFactory = defaultClientFactory } = {}) {
+export function createTelegramAdapter({ sessionId = null, sessionLoader = defaultSessionLoader, clientFactory = defaultClientFactory } = {}) {
   let client = null;
   let connected = false;
 
   async function connect() {
     if (connected) return;
-    const session = sessionLoader();
+    const session = sessionLoader(sessionId);
     client = clientFactory(session);
     await client.connect();
     connected = true;
@@ -146,7 +132,7 @@ export function createTelegramAdapter({ sessionLoader = defaultSessionLoader, cl
 
   function rawClient() { return client; }
 
-  return { connect, disconnect, sendMessage, sendFile, onNewMessage, getUserBio, getUserProfile, getRecentMessages, rawClient };
+  return { sessionId, connect, disconnect, sendMessage, sendFile, onNewMessage, getUserBio, getUserProfile, getRecentMessages, rawClient };
 }
 
 // Безопасность: путь к файлу должен лежать внутри data/materials/ — нельзя AI отправлять системные файлы.

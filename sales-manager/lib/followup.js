@@ -11,7 +11,8 @@ const CLOSING_RE = /склад|присоедин|участи|вступ|под
  * отправил материалы, но не упомянул складчину, прошло достаточно времени и
  * мы ещё не делали force-followup в последние 24 часа. Для каждого триггерит sendForceFollowup.
  */
-export async function autoFollowupSweep({ db, askClaude, telegram, minSilenceMs = 15 * 60_000, cooldownMs = 24 * 3600_000 }) {
+export async function autoFollowupSweep({ db, askClaude, telegram, getTelegramFor, minSilenceMs = 15 * 60_000, cooldownMs = 24 * 3600_000 }) {
+  if (!getTelegramFor && telegram) getTelegramFor = () => telegram;
   const now = Date.now();
   const sentRecentMap = new Map();
   // мапа последних force-followup по лиду за окно cooldown
@@ -52,7 +53,7 @@ export async function autoFollowupSweep({ db, askClaude, telegram, minSilenceMs 
       }
       results.candidates.push({ leadId: c.lead_id, username: c.tg_username });
       try {
-        const r = await sendForceFollowup({ db, askClaude, telegram, leadId: c.lead_id });
+        const r = await sendForceFollowup({ db, askClaude, getTelegramFor, leadId: c.lead_id });
         results.triggered.push({ leadId: c.lead_id, username: c.tg_username, messageId: r.messageId });
         console.log(`[auto-followup] sent to lead ${c.lead_id} @${c.tg_username}: ${(r.text || "").slice(0, 80)}`);
       } catch (err) {
@@ -69,7 +70,8 @@ export async function autoFollowupSweep({ db, askClaude, telegram, minSilenceMs 
  * не дожидаясь ответа от лида. Используется когда AI ранее отправил материалы,
  * но забыл закрыть в продажу.
  */
-export async function sendForceFollowup({ db, askClaude, telegram, leadId }) {
+export async function sendForceFollowup({ db, askClaude, telegram, getTelegramFor, leadId }) {
+  if (!getTelegramFor && telegram) getTelegramFor = () => telegram;
   const lead = getLead(db, leadId);
   if (!lead) throw new Error(`lead ${leadId} not found`);
   const campaign = getCampaign(db, lead.campaign_id);
@@ -107,8 +109,9 @@ export async function sendForceFollowup({ db, askClaude, telegram, leadId }) {
 
   const peer = lead.tg_username || lead.tg_user_id;
   const typingMs = nextTypingDuration();
+  const tg = getTelegramFor(campaign.session_id);
   try {
-    const tgMsgId = await telegram.sendMessage({ peer, text: parsed.text, typingMs });
+    const tgMsgId = await tg.sendMessage({ peer, text: parsed.text, typingMs });
     const sentAt = Date.now();
     const messageId = addMessage(db, {
       conversation_id: conv.id, role: "outbound", body: parsed.text, status: "sent",

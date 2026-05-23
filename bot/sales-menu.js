@@ -141,7 +141,7 @@ function clip(s, n) {
 function formatCampaignSummary(c, stats) {
   const lines = [
     `<b>#${c.id} ${esc(c.name)}</b>`,
-    `Статус: ${esc(c.status)} · Режим: ${esc(c.mode || "—")}`,
+    `Статус: ${esc(c.status)} · Режим: ${esc(c.mode || "—")} · Аккаунт: ${esc(c.session_id || "active")}`,
     "",
     `<b>Оффер:</b> ${clip(c.offer_text, 400)}`,
     `<b>Ссылка:</b> ${esc(c.offer_url || "—")}`,
@@ -218,7 +218,8 @@ export function registerSalesHandlers(bot, isOwner) {
       const c = await api("GET", `/campaigns/${id}`);
       const stats = await api("GET", `/campaigns/${id}/stats`).catch(() => null);
       const kb = new InlineKeyboard()
-        .text("✏️ Редактировать", `sm:editmenu:${id}`).row()
+        .text("✏️ Редактировать", `sm:editmenu:${id}`)
+        .text("👤 Аккаунт", `sm:changeacc:${id}`).row()
         .text(c.status === "running" ? "⏸ Пауза" : "▶️ Запустить", c.status === "running" ? `sm:pause:${id}` : `sm:start:${id}`)
         .text("📨 Сейчас", `sm:sendnow:${id}`).row()
         .text("📥 Лиды", `sm:leads:${id}`)
@@ -343,6 +344,33 @@ export function registerSalesHandlers(bot, isOwner) {
     }
   });
 
+  bot.callbackQuery(/^sm:changeacc:(\d+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const id = ctx.match[1];
+    try {
+      const accounts = await api("GET", "/accounts");
+      if (!accounts.length) {
+        await ctx.answerCallbackQuery();
+        await ctx.reply("⚠️ Не нашёл ни одного TG-аккаунта в парсере. Залогинься в парсере сначала.");
+        return;
+      }
+      const c = await api("GET", `/campaigns/${id}`);
+      const kb = new InlineKeyboard();
+      for (const a of accounts) {
+        const current = c.session_id === a.id ? "✅ " : "";
+        const star = a.isActive ? "⭐ " : "";
+        const label = `${current}${star}${a.label}${a.username ? " (@" + a.username + ")" : ""}`;
+        kb.text(label, `sm:setacc:${id}:${a.id}`).row();
+      }
+      kb.text("⬅️ К кампании", `sm:manage:${id}`);
+      await ctx.answerCallbackQuery();
+      await ctx.reply(`<b>Аккаунт для кампании «${esc(c.name)}»</b>\n\nСейчас: ${esc(c.session_id || "active")}\n✅ — текущий, ⭐ — активный в парсере`, { parse_mode: "HTML", reply_markup: kb });
+    } catch (e) {
+      await ctx.answerCallbackQuery({ text: "Ошибка" });
+      await ctx.reply(`⚠️ ${esc(e.message)}`);
+    }
+  });
+
   bot.callbackQuery(/^sm:archive-list$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     try {
@@ -420,10 +448,38 @@ export function registerSalesHandlers(bot, isOwner) {
     try {
       await api("PUT", `/campaigns/${id}`, { mode });
       await ctx.answerCallbackQuery();
+      // После выбора режима → выбор аккаунта
+      const accounts = await api("GET", "/accounts").catch(() => []);
+      if (accounts.length > 1) {
+        const kb = new InlineKeyboard();
+        for (const a of accounts) {
+          const label = `${a.isActive ? "⭐ " : ""}${a.label}${a.username ? " (@" + a.username + ")" : ""}`;
+          kb.text(label, `sm:setacc:${id}:${a.id}`).row();
+        }
+        await ctx.reply(`<b>С какого аккаунта будем писать?</b>\n\n⭐ — активный в парсере по умолчанию.`, { parse_mode: "HTML", reply_markup: kb });
+      } else {
+        // 1 аккаунт или нет — пропускаем шаг
+        const kb = new InlineKeyboard()
+          .text("📥 Загрузить лидов", `sm:leads:${id}`).row()
+          .text("🚀 Запустить", `sm:start:${id}`);
+        await ctx.reply(`Режим: ${esc(mode)}. Что дальше?`, { reply_markup: kb });
+      }
+    } catch (e) {
+      await ctx.answerCallbackQuery({ text: "Ошибка" });
+      await ctx.reply(`⚠️ ${esc(e.message)}`);
+    }
+  });
+
+  bot.callbackQuery(/^sm:setacc:(\d+):(.+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const [, id, sessionId] = ctx.match;
+    try {
+      await api("PUT", `/campaigns/${id}`, { session_id: sessionId });
+      await ctx.answerCallbackQuery({ text: "Аккаунт выбран" });
       const kb = new InlineKeyboard()
         .text("📥 Загрузить лидов", `sm:leads:${id}`).row()
         .text("🚀 Запустить", `sm:start:${id}`);
-      await ctx.reply(`Режим: ${esc(mode)}. Что дальше?`, { reply_markup: kb });
+      await ctx.reply(`✅ Аккаунт <code>${esc(sessionId)}</code> привязан к кампании. Что дальше?`, { parse_mode: "HTML", reply_markup: kb });
     } catch (e) {
       await ctx.answerCallbackQuery({ text: "Ошибка" });
       await ctx.reply(`⚠️ ${esc(e.message)}`);
