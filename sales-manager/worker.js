@@ -1,9 +1,10 @@
 import { runOutboundTick, processApprovedDrafts } from "./lib/outbound.js";
 import { createInboundProcessor } from "./lib/inbound.js";
 
-export function createWorker({ db, telegram, askClaude, notifyAlexander = null, tickIntervalMs = 60_000, batchWindowMs = 25_000, forceCheckIntervalMs = 3_000 }) {
+export function createWorker({ db, telegram, askClaude, notifyAlexander = null, tickIntervalMs = 60_000, batchWindowMs = 25_000, forceCheckIntervalMs = 3_000, missedFetchIntervalMs = 5 * 60_000 }) {
   let timer = null;
   let forceTimer = null;
+  let missedTimer = null;
   let lastForceEventId = 0;
   const processor = createInboundProcessor({ db, askClaude, telegram, notifyAlexander, batchWindowMs });
 
@@ -30,6 +31,8 @@ export function createWorker({ db, telegram, askClaude, notifyAlexander = null, 
     lastForceEventId = latest?.id || 0;
     timer = setInterval(() => { tick().catch((err) => console.error("tick error:", err)); }, tickIntervalMs);
     forceTimer = setInterval(() => { checkForceTriggers().catch((err) => console.error("force-tick error:", err)); }, forceCheckIntervalMs);
+    // Периодический fetch-missed: защита от пропусков NewMessage event при gramjs reconnect-loop без рестарта процесса
+    missedTimer = setInterval(() => { fetchMissedFromTelegram().catch((err) => console.error("periodic fetch-missed error:", err)); }, missedFetchIntervalMs);
 
     // Recovery: на старте обработать inbound-ы которые остались без ответа (после крэша/рестарта)
     recoverPendingInbound().catch((err) => console.error("recover error:", err));
@@ -142,8 +145,10 @@ export function createWorker({ db, telegram, askClaude, notifyAlexander = null, 
   async function stop() {
     if (timer) clearInterval(timer);
     if (forceTimer) clearInterval(forceTimer);
+    if (missedTimer) clearInterval(missedTimer);
     timer = null;
     forceTimer = null;
+    missedTimer = null;
     await telegram.disconnect();
   }
 
