@@ -370,10 +370,12 @@ function _callClaudeInner(prompt, sessionId, { onText } = {}) {
 
     if (sessionId) args.push("--resume", sessionId);
 
-    const child = spawn("claude", args, {
+    const claudePath = process.env.CLAUDE_CLI_PATH || process.env.CLAUDE_CODE_EXECPATH || "claude";
+    const child = spawn(claudePath, args, {
       cwd: WORKSPACE,
       env: { ...process.env, HOME: AGENT_HOME },
       timeout: 600000, // 10 min
+      windowsHide: true,
     });
     child.stdin.end();
 
