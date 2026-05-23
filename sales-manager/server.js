@@ -100,6 +100,16 @@ export function createServer({ db, password, secret }) {
     res.json(campaignStats(db, Number(req.params.id)));
   });
 
+  app.post("/api/conversations/:lead_id/force-followup", (req, res) => {
+    const leadId = Number(req.params.lead_id);
+    const lead = getLead(db, leadId);
+    if (!lead) return res.status(404).json({ error: "lead not found" });
+    const conv = db.prepare("SELECT * FROM conversations WHERE lead_id = ?").get(leadId);
+    if (!conv) return res.status(404).json({ error: "no conversation" });
+    logEvent(db, { type: "force_followup_request", campaign_id: conv.campaign_id, lead_id: leadId });
+    res.json({ ok: true, message: "worker подхватит в течение 3 секунд" });
+  });
+
   app.post("/api/campaigns/:id/send-now", (req, res) => {
     const id = Number(req.params.id);
     const c = getCampaign(db, id);

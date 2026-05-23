@@ -1,5 +1,6 @@
 import { runOutboundTick, processApprovedDrafts } from "./lib/outbound.js";
 import { createInboundProcessor } from "./lib/inbound.js";
+import { sendForceFollowup } from "./lib/followup.js";
 
 export function createWorker({ db, telegram, askClaude, notifyAlexander = null, tickIntervalMs = 60_000, batchWindowMs = 25_000, forceCheckIntervalMs = 3_000, missedFetchIntervalMs = 5 * 60_000 }) {
   let timer = null;
@@ -112,15 +113,24 @@ export function createWorker({ db, telegram, askClaude, notifyAlexander = null, 
   }
 
   async function checkForceTriggers() {
-    const rows = db.prepare("SELECT id, campaign_id FROM events WHERE type = 'force_send_request' AND id > ? ORDER BY id ASC").all(lastForceEventId);
+    const rows = db.prepare("SELECT id, type, campaign_id, lead_id FROM events WHERE type IN ('force_send_request','force_followup_request') AND id > ? ORDER BY id ASC").all(lastForceEventId);
     if (!rows.length) return;
     for (const row of rows) {
       lastForceEventId = row.id;
-      console.log(`[worker] force-send request for campaign ${row.campaign_id}`);
-      try {
-        await runOutboundTick({ db, askClaude, telegram, force: true, campaignFilter: row.campaign_id });
-      } catch (err) {
-        console.error(`[worker] force-send failed for campaign ${row.campaign_id}:`, err);
+      if (row.type === "force_send_request") {
+        console.log(`[worker] force-send request for campaign ${row.campaign_id}`);
+        try {
+          await runOutboundTick({ db, askClaude, telegram, force: true, campaignFilter: row.campaign_id });
+        } catch (err) {
+          console.error(`[worker] force-send failed for campaign ${row.campaign_id}:`, err);
+        }
+      } else if (row.type === "force_followup_request") {
+        console.log(`[worker] force-followup for lead ${row.lead_id}`);
+        try {
+          await sendForceFollowup({ db, askClaude, telegram, leadId: row.lead_id });
+        } catch (err) {
+          console.error(`[worker] force-followup failed for lead ${row.lead_id}:`, err);
+        }
       }
     }
   }
