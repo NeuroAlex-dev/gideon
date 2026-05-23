@@ -16,7 +16,6 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
   if (campaignFilter) runningCampaigns = runningCampaigns.filter((c) => c.id === campaignFilter);
 
   const dayStart = startOfDayMs(now, "Europe/Moscow");
-  const sentTodayGlobal = countOutboundFirstMessagesSince(db, dayStart);
   // В force+processAll режиме обрабатываем всех queued лидов подряд (для bulk-операций типа "догнать оставшихся")
   const shouldProcessAll = force && processAll;
 
@@ -25,13 +24,15 @@ export async function runOutboundTick({ db, now = Date.now(), askClaude, telegra
     if (force) {
       db.prepare("UPDATE leads SET next_action_at = 0 WHERE campaign_id = ? AND status = 'queued'").run(campaign.id);
     }
+    // Per-account daily count — считаем только сообщения от того же аккаунта
+    const sentTodayForAccount = countOutboundFirstMessagesSince(db, dayStart, campaign.session_id);
     let processedInCampaign = 0;
     while (true) {
       const queryNow = force ? Date.now() + 60_000 : now;
       const lead = nextLeadToContact(db, campaign.id, queryNow);
       if (!lead) { break; }
       const campaignTelegram = getTelegramFor(campaign.session_id);
-      const sendResult = await processSingleLead({ db, campaign, lead, now: Date.now(), askClaude, telegram: campaignTelegram, rng, force, sentTodayGlobal: sentTodayGlobal + result.sent.length, runningCampaigns, result });
+      const sendResult = await processSingleLead({ db, campaign, lead, now: Date.now(), askClaude, telegram: campaignTelegram, rng, force, sentTodayGlobal: sentTodayForAccount + result.sent.length, runningCampaigns, result });
       processedInCampaign++;
       if (sendResult === "stop") break; // флуд-сигнал или другая критическая ошибка
       if (!shouldProcessAll) break; // обычный тик — только один лид за вызов
@@ -71,7 +72,7 @@ async function processSingleLead({ db, campaign, lead, now, askClaude, telegram,
       lastSentAt: lastSent,
     });
     if (!check.ok) {
-      console.log(`[outbound] skip lead ${lead.id} (campaign ${campaign.id}): ${check.reason}`);
+      console.log(`[outbound] skip lead ${lead.id} (campaign ${campaign.id}): ${check.reason} (force=${force})`);
       result.skipped.push({ leadId: lead.id, reason: check.reason });
       setLeadStatus(db, lead.id, "queued", now + nextOutboundDelay(rng));
       return "stop";

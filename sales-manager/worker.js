@@ -2,7 +2,7 @@ import { runOutboundTick, processApprovedDrafts } from "./lib/outbound.js";
 import { createInboundProcessor } from "./lib/inbound.js";
 import { sendForceFollowup, autoFollowupSweep } from "./lib/followup.js";
 
-export function createWorker({ db, telegram, getTelegramFor, telegramPool, askClaude, notifyAlexander = null, tickIntervalMs = 60_000, batchWindowMs = 25_000, forceCheckIntervalMs = 3_000, missedFetchIntervalMs = 5 * 60_000, autoFollowupIntervalMs = 15 * 60_000 }) {
+export function createWorker({ db, telegram, getTelegramFor, telegramPool, ensureConnected, registerInboundFactory, askClaude, notifyAlexander = null, tickIntervalMs = 60_000, batchWindowMs = 25_000, forceCheckIntervalMs = 3_000, missedFetchIntervalMs = 5 * 60_000, autoFollowupIntervalMs = 15 * 60_000 }) {
   // Backward compat: если передан старый telegram (один) — оборачиваем в getTelegramFor
   if (!getTelegramFor && telegram) {
     getTelegramFor = () => telegram;
@@ -10,6 +10,8 @@ export function createWorker({ db, telegram, getTelegramFor, telegramPool, askCl
   }
   if (!getTelegramFor) throw new Error("worker: нужен либо telegram, либо getTelegramFor");
   if (!telegramPool) telegramPool = new Map();
+  if (!ensureConnected) ensureConnected = async (sid) => getTelegramFor(sid);
+  if (!registerInboundFactory) registerInboundFactory = () => {};
   let timer = null;
   let forceTimer = null;
   let missedTimer = null;
@@ -17,32 +19,44 @@ export function createWorker({ db, telegram, getTelegramFor, telegramPool, askCl
   let lastForceEventId = 0;
   const processor = createInboundProcessor({ db, askClaude, getTelegramFor, notifyAlexander, batchWindowMs });
 
+  // Общая фабрика inbound handler — вызывается при подключении любого адаптера (включая lazy)
+  const inboundHandler = async (event, sessionKey) => {
+    const m = event.message;
+    if (!m?.message) return;
+    if (m.out) return;
+    try {
+      const sender = await m.getSender();
+      const tgUserId = sender?.id ? Number(sender.id) : null;
+      const tgUsername = sender?.username || null;
+      const tgMessageId = m.id;
+      console.log(`[worker:${sessionKey}] new TG message from id=${tgUserId} @${tgUsername || "—"}: "${m.message.slice(0, 60)}"`);
+      await processor.onInbound({ tgUserId, tgUsername, text: m.message, tgMessageId, sessionId: sessionKey });
+    } catch (err) {
+      console.error(`[worker:${sessionKey}] inbound handler error:`, err);
+    }
+  };
+  registerInboundFactory(inboundHandler);
+
   async function start() {
-    // Подключаем все адаптеры из пула + вешаем NewMessage handler на каждый
-    for (const [sessionKey, adapter] of telegramPool) {
+    // Подключаем все адаптеры из пула (если есть, lazy подключение будет on-demand)
+    for (const [sessionKey] of telegramPool) {
       try {
-        await adapter.connect();
-        adapter.onNewMessage(async (event) => {
-          const m = event.message;
-          if (!m?.message) return;
-          if (m.out) return; // игнорируем исходящие от своего же аккаунта
-          try {
-            const sender = await m.getSender();
-            const tgUserId = sender?.id ? Number(sender.id) : null;
-            const tgUsername = sender?.username || null;
-            const tgMessageId = m.id;
-            console.log(`[worker:${sessionKey}] new TG message from id=${tgUserId} @${tgUsername || "—"}: "${m.message.slice(0, 60)}"`);
-            // sessionId передаём в processor — фильтр кампаний по аккаунту
-            await processor.onInbound({ tgUserId, tgUsername, text: m.message, tgMessageId, sessionId: sessionKey });
-          } catch (err) {
-            console.error(`[worker:${sessionKey}] inbound handler error:`, err);
-          }
-        });
+        await ensureConnected(sessionKey === "default" ? null : sessionKey);
         console.log(`[worker] connected adapter for session ${sessionKey}`);
       } catch (err) {
         console.error(`[worker] failed to connect adapter ${sessionKey}:`, err.message);
       }
     }
+    // Periodic: подхватывать новые session_id из running кампаний (созданные пока worker уже работал)
+    setInterval(async () => {
+      const sids = db.prepare("SELECT DISTINCT session_id FROM campaigns WHERE status = 'running' AND session_id IS NOT NULL").all().map((r) => r.session_id);
+      for (const sid of sids) {
+        if (!telegramPool.has(sid)) {
+          console.log(`[worker] new session detected: ${sid}, connecting…`);
+          try { await ensureConnected(sid); } catch (e) { console.warn(`[worker] connect ${sid} failed:`, e.message); }
+        }
+      }
+    }, 30_000);
     // Изначально пропускаем все существующие force-события — реагируем только на новые
     const latest = db.prepare("SELECT MAX(id) as id FROM events WHERE type = 'force_send_request'").get();
     lastForceEventId = latest?.id || 0;
@@ -138,7 +152,10 @@ export function createWorker({ db, telegram, getTelegramFor, telegramPool, askCl
         try { const p = db.prepare("SELECT payload_json FROM events WHERE id = ?").get(row.id); if (p?.payload_json) processAll = !!JSON.parse(p.payload_json).processAll; } catch {}
         console.log(`[worker] force-send request for campaign ${row.campaign_id} (processAll=${processAll})`);
         try {
-          await runOutboundTick({ db, askClaude, getTelegramFor, force: true, campaignFilter: row.campaign_id, processAll });
+          const r = await runOutboundTick({ db, askClaude, getTelegramFor, force: true, campaignFilter: row.campaign_id, processAll });
+          console.log(`[worker] force-send done campaign ${row.campaign_id}: sent=${r.sent.length}, skipped=${r.skipped.length}, errors=${r.errors.length}`);
+          if (r.errors.length) console.log(`[worker] errors:`, JSON.stringify(r.errors.slice(0, 3)));
+          if (r.skipped.length) console.log(`[worker] skipped:`, JSON.stringify(r.skipped.slice(0, 3)));
         } catch (err) {
           console.error(`[worker] force-send failed for campaign ${row.campaign_id}:`, err);
         }

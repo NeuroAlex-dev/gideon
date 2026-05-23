@@ -363,10 +363,31 @@ export function campaignStats(db, campaignId) {
   };
 }
 
-export function countOutboundFirstMessagesSince(db, sinceTs) {
-  return db.prepare(`
-    SELECT COUNT(*) as n FROM messages m
-    WHERE m.role = 'outbound' AND m.status = 'sent' AND m.sent_at >= ?
-      AND m.id = (SELECT MIN(id) FROM messages WHERE conversation_id = m.conversation_id)
-  `).get(sinceTs).n;
+export function countOutboundFirstMessagesSince(db, sinceTs, sessionId = undefined) {
+  // Если передан sessionId — считаем только сообщения от кампаний с этим аккаунтом.
+  // sessionId=null — кампании БЕЗ явного аккаунта (= active). sessionId=undefined — все.
+  if (sessionId === undefined) {
+    return db.prepare(`
+      SELECT COUNT(*) as n FROM messages m
+      WHERE m.role = 'outbound' AND m.status = 'sent' AND m.sent_at >= ?
+        AND m.id = (SELECT MIN(id) FROM messages WHERE conversation_id = m.conversation_id)
+    `).get(sinceTs).n;
+  }
+  // Per-account
+  const sql = sessionId === null
+    ? `SELECT COUNT(*) as n FROM messages m
+       JOIN conversations c ON c.id = m.conversation_id
+       JOIN campaigns camp ON camp.id = c.campaign_id
+       WHERE m.role = 'outbound' AND m.status = 'sent' AND m.sent_at >= ?
+         AND camp.session_id IS NULL
+         AND m.id = (SELECT MIN(id) FROM messages WHERE conversation_id = m.conversation_id)`
+    : `SELECT COUNT(*) as n FROM messages m
+       JOIN conversations c ON c.id = m.conversation_id
+       JOIN campaigns camp ON camp.id = c.campaign_id
+       WHERE m.role = 'outbound' AND m.status = 'sent' AND m.sent_at >= ?
+         AND camp.session_id = ?
+         AND m.id = (SELECT MIN(id) FROM messages WHERE conversation_id = m.conversation_id)`;
+  return sessionId === null
+    ? db.prepare(sql).get(sinceTs).n
+    : db.prepare(sql).get(sinceTs, sessionId).n;
 }

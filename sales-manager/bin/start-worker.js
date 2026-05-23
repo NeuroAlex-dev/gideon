@@ -36,15 +36,44 @@ process.on("uncaughtException", (err) => {
 
 const db = openDb(process.env.SM_DB_PATH || "./data/sales-manager.db");
 
-// Telegram pool: один адаптер на sessionId
+// Telegram pool: один адаптер на sessionId. Адаптеры подключаются лениво при первом использовании.
 const telegramPool = new Map();
+const inboundHandlers = new Map(); // sessionId → handler-функция (вешается после connect)
+
 function getTelegramFor(sessionId) {
   const key = sessionId || getActiveAccountId() || "default";
   if (!telegramPool.has(key)) {
+    console.log(`[worker] lazy-create adapter for session ${key}`);
     const adapter = createTelegramAdapter({ sessionId });
     telegramPool.set(key, adapter);
   }
   return telegramPool.get(key);
+}
+
+async function ensureConnected(sessionId) {
+  const adapter = getTelegramFor(sessionId);
+  const key = adapter.sessionId || sessionId || getActiveAccountId() || "default";
+  try {
+    await adapter.connect();
+    if (!inboundHandlers.has(key)) {
+      const handler = inboundHandlers.get("__factory__");
+      if (handler) {
+        adapter.onNewMessage((event) => handler(event, key));
+        inboundHandlers.set(key, true);
+      }
+    }
+  } catch (e) {
+    console.warn(`[worker] connect failed for ${key}: ${e.message}`);
+  }
+  return adapter;
+}
+
+// Делаем getTelegramFor «умной» оберткой: при каждом вызове гарантируем connect
+function getTelegramForEnsured(sessionId) {
+  const adapter = getTelegramFor(sessionId);
+  // fire-and-forget: следующий вызов sendMessage всё равно проверит connected
+  ensureConnected(sessionId).catch(() => {});
+  return adapter;
 }
 
 const notifyAlexander = createBotNotifier({
@@ -63,10 +92,10 @@ if (activeId) runningSessionIds.add(activeId); // активная сессия 
 console.log(`[worker] available accounts:`, listAccounts().map((a) => `${a.id}${a.isActive ? "*" : ""}`).join(", "));
 console.log(`[worker] will connect to sessions:`, [...runningSessionIds].join(", "));
 
-// Прелоадим все нужные адаптеры
+// Прелоадим все нужные адаптеры (connect будет в worker.start)
 for (const sid of runningSessionIds) getTelegramFor(sid);
 
-const worker = createWorker({ db, getTelegramFor, telegramPool, askClaude, notifyAlexander });
+const worker = createWorker({ db, getTelegramFor: getTelegramForEnsured, telegramPool, ensureConnected, registerInboundFactory: (h) => inboundHandlers.set("__factory__", h), askClaude, notifyAlexander });
 await worker.start();
 console.log("sales-manager worker started");
 process.on("SIGINT", async () => { await worker.stop(); process.exit(0); });
