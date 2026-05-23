@@ -81,6 +81,16 @@ function loadSmEnv() {
 }
 const smEnv = loadSmEnv();
 const SM_API_BASE = process.env.SM_API_BASE || smEnv.SM_API_BASE || `http://127.0.0.1:${smEnv.SM_PORT || 3001}/api`;
+const PARSER_URL = process.env.PARSER_URL || "http://localhost:3000";
+
+async function parserFetch(p, options = {}) {
+  const res = await fetch(`${PARSER_URL}${p}`, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+  });
+  const body = await res.json().catch(() => ({}));
+  return { status: res.status, body };
+}
 const SM_PASSWORD = process.env.SM_PASSWORD || smEnv.SM_PASSWORD || "change-me";
 const SM_SECRET = process.env.SM_SECRET || smEnv.SM_SECRET || "change-me-secret";
 const AUTH_TOKEN = crypto.createHmac("sha256", SM_SECRET).update(SM_PASSWORD).digest("hex");
@@ -179,6 +189,7 @@ export function registerSalesHandlers(bot, isOwner) {
     const kb = new InlineKeyboard()
       .text("➕ Новая кампания", "sm:new").row()
       .text("📋 Мои кампании", "sm:list").row()
+      .text("👥 Аккаунты", "sm:accounts").row()
       .text("📁 Архив", "sm:archive-list").row()
       .text("📊 Статус", "sm:status");
     await ctx.reply("Sales Manager — что делаем?", { reply_markup: kb });
@@ -369,6 +380,97 @@ export function registerSalesHandlers(bot, isOwner) {
       await ctx.answerCallbackQuery({ text: "Ошибка" });
       await ctx.reply(`⚠️ ${esc(e.message)}`);
     }
+  });
+
+  // ── 👥 Управление аккаунтами (через парсер API) ───────────────────────────
+  bot.callbackQuery(/^sm:accounts$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    try {
+      const { status, body } = await parserFetch("/api/sessions");
+      if (status !== 200) {
+        await ctx.answerCallbackQuery({ text: "Ошибка парсера" });
+        await ctx.reply(`⚠️ Парсер вернул ${status}: ${esc(JSON.stringify(body).slice(0, 200))}`);
+        return;
+      }
+      await ctx.answerCallbackQuery();
+      const sessions = body.sessions || [];
+      const activeId = body.activeId;
+      if (!sessions.length) {
+        const kb = new InlineKeyboard().text("➕ Добавить аккаунт", "sm:acc-add").row().text("🏠 Главное", "sm:menu");
+        await ctx.reply("👥 <b>Аккаунты</b>\n\nПока нет ни одного. Добавь первый:", { parse_mode: "HTML", reply_markup: kb });
+        return;
+      }
+      await ctx.reply(`👥 <b>Аккаунты</b> (${sessions.length}):\n⭐ — активный по умолчанию`, { parse_mode: "HTML" });
+      for (const s of sessions) {
+        const star = s.id === activeId ? "⭐ " : "";
+        const text = `${star}<b>${esc(s.label)}</b>\n` +
+          (s.username ? `@${esc(s.username)}\n` : "") +
+          (s.phone ? `📱 ${esc(s.phone)}\n` : "") +
+          `<code>${esc(s.id)}</code>`;
+        const kb = new InlineKeyboard();
+        if (s.id !== activeId) kb.text("⭐ Сделать активным", `sm:acc-activate:${s.id}`).row();
+        kb.text("❌ Удалить", `sm:acc-del:${s.id}`);
+        await ctx.reply(text, { parse_mode: "HTML", reply_markup: kb });
+      }
+      const kbAdd = new InlineKeyboard().text("➕ Добавить аккаунт", "sm:acc-add").row().text("🏠 Главное", "sm:menu");
+      await ctx.reply("Действия:", { reply_markup: kbAdd });
+    } catch (e) {
+      await ctx.answerCallbackQuery({ text: "Ошибка" });
+      await ctx.reply(`⚠️ ${esc(e.message)}`);
+    }
+  });
+
+  bot.callbackQuery(/^sm:acc-activate:(.+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const id = ctx.match[1];
+    try {
+      const { status, body } = await parserFetch("/api/sessions/activate", { method: "POST", body: JSON.stringify({ id }) });
+      if (status !== 200) {
+        await ctx.answerCallbackQuery({ text: "Ошибка" });
+        await ctx.reply(`⚠️ ${esc(JSON.stringify(body).slice(0, 200))}`);
+        return;
+      }
+      await ctx.answerCallbackQuery({ text: "Активирован" });
+      await ctx.reply(`⭐ Аккаунт <code>${esc(id)}</code> теперь активный по умолчанию.`, { parse_mode: "HTML" });
+    } catch (e) {
+      await ctx.answerCallbackQuery({ text: "Ошибка" });
+    }
+  });
+
+  bot.callbackQuery(/^sm:acc-del:(.+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const id = ctx.match[1];
+    const kb = new InlineKeyboard()
+      .text("⚠️ Да, удалить", `sm:acc-del-confirm:${id}`)
+      .text("❌ Отмена", "sm:accounts");
+    await ctx.answerCallbackQuery();
+    await ctx.reply(`Удалить аккаунт <code>${esc(id)}</code>?\n\n⚠️ Сессия Telegram отвяжется. Если кампании были привязаны к этому аккаунту — они перестанут работать.`, { parse_mode: "HTML", reply_markup: kb });
+  });
+
+  bot.callbackQuery(/^sm:acc-del-confirm:(.+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const id = ctx.match[1];
+    try {
+      const { status, body } = await parserFetch(`/api/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (status !== 200) {
+        await ctx.answerCallbackQuery({ text: "Ошибка" });
+        await ctx.reply(`⚠️ ${esc(JSON.stringify(body).slice(0, 200))}`);
+        return;
+      }
+      await ctx.answerCallbackQuery({ text: "Удалён" });
+      const kb = new InlineKeyboard().text("👥 К списку", "sm:accounts").text("🏠 Главное", "sm:menu");
+      await ctx.reply(`✅ Аккаунт удалён.${body.newActiveId ? `\nНовый активный: <code>${esc(body.newActiveId)}</code>` : ""}`, { parse_mode: "HTML", reply_markup: kb });
+    } catch (e) {
+      await ctx.answerCallbackQuery({ text: "Ошибка" });
+      await ctx.reply(`⚠️ ${esc(e.message)}`);
+    }
+  });
+
+  bot.callbackQuery(/^sm:acc-add$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    wizards.set(ctx.chat.id, { mode: "add_account", step: "phone" });
+    await ctx.answerCallbackQuery();
+    await ctx.reply("📱 <b>Добавление TG-аккаунта</b>\n\nПришли номер телефона в международном формате (например: <code>+79991234567</code>):", { parse_mode: "HTML" });
   });
 
   bot.callbackQuery(/^sm:archive-list$/, async (ctx) => {
@@ -807,6 +909,70 @@ export function registerSalesHandlers(bot, isOwner) {
     if (!isOwner(ctx)) return next();
     const w = wizards.get(ctx.chat.id);
     if (!w) return next();
+
+    if (w.mode === "add_account") {
+      const val = ctx.message.text.trim();
+      try {
+        if (w.step === "phone") {
+          if (!/^\+?\d{10,15}$/.test(val.replace(/\s/g, ""))) {
+            await ctx.reply("⚠️ Похоже на не-номер. Пришли в формате +79991234567:");
+            return;
+          }
+          const phone = val.replace(/\s/g, "");
+          const { status, body } = await parserFetch("/api/sessions/add/send-code", { method: "POST", body: JSON.stringify({ phone, label: phone }) });
+          if (status !== 200) {
+            wizards.delete(ctx.chat.id);
+            await ctx.reply(`⚠️ Не смог отправить код: ${esc(body.error || body.message || JSON.stringify(body))}`);
+            return;
+          }
+          w.phone = phone;
+          w.tempId = body.tempId;
+          w.phoneCodeHash = body.phoneCodeHash;
+          w.step = "code";
+          await ctx.reply(`📩 Код отправлен в Telegram на номер <code>${esc(phone)}</code>.\n\nПришли его (обычно 5 цифр).\n\n⚠️ Telegram блокирует копи-пасту кодов из самой переписки — введи руками или впиши с пробелами: <code>1 2 3 4 5</code>.`, { parse_mode: "HTML" });
+          return;
+        }
+        if (w.step === "code") {
+          const code = val.replace(/\s/g, "");
+          const { status, body } = await parserFetch("/api/sessions/add/sign-in", {
+            method: "POST",
+            body: JSON.stringify({ tempId: w.tempId, phone: w.phone, phoneCodeHash: w.phoneCodeHash, code, activate: false }),
+          });
+          if (status === 200) {
+            wizards.delete(ctx.chat.id);
+            const kb = new InlineKeyboard().text("👥 К списку аккаунтов", "sm:accounts");
+            await ctx.reply(`✅ Аккаунт добавлен!\n\nID: <code>${esc(body.id || "—")}</code>\nLabel: ${esc(body.label || w.phone)}`, { parse_mode: "HTML", reply_markup: kb });
+            return;
+          }
+          if (body.error === "password_needed" || /password/i.test(body.message || "") || /2fa/i.test(body.error || "")) {
+            w.step = "password";
+            await ctx.reply("🔐 Включена двухфакторка. Пришли свой Telegram-пароль (cloud password):");
+            return;
+          }
+          wizards.delete(ctx.chat.id);
+          await ctx.reply(`⚠️ Ошибка sign-in: ${esc(body.error || body.message || JSON.stringify(body))}`);
+          return;
+        }
+        if (w.step === "password") {
+          const { status, body } = await parserFetch("/api/sessions/add/sign-in", {
+            method: "POST",
+            body: JSON.stringify({ tempId: w.tempId, phone: w.phone, phoneCodeHash: w.phoneCodeHash, code: w.lastCode || "", password: val, activate: false }),
+          });
+          wizards.delete(ctx.chat.id);
+          if (status === 200) {
+            const kb = new InlineKeyboard().text("👥 К списку аккаунтов", "sm:accounts");
+            await ctx.reply(`✅ Аккаунт добавлен!\nID: <code>${esc(body.id || "—")}</code>`, { parse_mode: "HTML", reply_markup: kb });
+          } else {
+            await ctx.reply(`⚠️ Ошибка 2FA: ${esc(body.error || body.message || JSON.stringify(body))}`);
+          }
+          return;
+        }
+      } catch (e) {
+        wizards.delete(ctx.chat.id);
+        await ctx.reply(`⚠️ ${esc(e.message)}`);
+      }
+      return;
+    }
 
     if (w.mode === "manual_leads") {
       wizards.delete(ctx.chat.id);
