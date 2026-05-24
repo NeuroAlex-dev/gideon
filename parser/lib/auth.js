@@ -16,12 +16,38 @@ export async function sendCodeOnClient(client, phone) {
       phoneNumber: phone,
       apiId: client.apiId,
       apiHash: client.apiHash,
-      settings: new Api.CodeSettings({}),
+      settings: new Api.CodeSettings({
+        allowFlashcall: true,
+        currentNumber: false,
+        allowAppHash: true,
+        allowMissedCall: true,
+        allowFirebase: false,
+      }),
     })
   );
   return {
     phoneCodeHash: result.phoneCodeHash,
     timeout: result.timeout ?? 60,
+    type: result.type?.className || null,
+    nextType: result.nextType?.className || null,
+  };
+}
+
+export async function resendCodeOnClient(client, { phone, phoneCodeHash }) {
+  if (!client.connected) {
+    await client.connect();
+  }
+  const result = await client.invoke(
+    new Api.auth.ResendCode({
+      phoneNumber: phone,
+      phoneCodeHash: phoneCodeHash,
+    })
+  );
+  return {
+    phoneCodeHash: result.phoneCodeHash,
+    timeout: result.timeout ?? 60,
+    type: result.type?.className || null,
+    nextType: result.nextType?.className || null,
   };
 }
 

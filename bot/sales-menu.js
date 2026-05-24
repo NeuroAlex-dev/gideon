@@ -466,28 +466,44 @@ export function registerSalesHandlers(bot, isOwner) {
     }
   });
 
+  function describeCodeChannel(type) {
+    const map = {
+      auth_SentCodeTypeApp: "push в Telegram-приложение (на устройство где аккаунт залогинен)",
+      auth_SentCodeTypeSms: "SMS на телефон",
+      auth_SentCodeTypeCall: "голосовой звонок с кодом",
+      auth_SentCodeTypeFlashCall: "флешcall (звонок-сброс, код = последние цифры номера)",
+      auth_SentCodeTypeMissedCall: "пропущенный звонок (код = цифры номера)",
+      auth_SentCodeTypeFragmentSms: "SMS через Fragment.com",
+      auth_SentCodeTypeEmailCode: "email",
+    };
+    return map[type] || type || "неизвестно";
+  }
+
   bot.callbackQuery(/^sm:acc-resend$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     const w = wizards.get(ctx.chat.id);
-    if (!w || w.mode !== "add_account" || !w.phone) {
+    if (!w || w.mode !== "add_account" || !w.tempId) {
       await ctx.answerCallbackQuery({ text: "Нет активного запроса" });
       return;
     }
     try {
-      const { status, body } = await parserFetch("/api/sessions/add/send-code", {
+      // Используем auth.ResendCode — Telegram-метод именно для случая "первый не дошёл, отправь по другому каналу"
+      const { status, body } = await parserFetch("/api/sessions/add/resend-code", {
         method: "POST",
-        body: JSON.stringify({ phone: w.phone, label: w.phone }),
+        body: JSON.stringify({ tempId: w.tempId }),
       });
       if (status !== 200) {
         await ctx.answerCallbackQuery({ text: "Ошибка" });
-        await ctx.reply(`⚠️ Не смог повторить запрос: ${esc(body.error || body.message || JSON.stringify(body))}`);
+        await ctx.reply(`⚠️ Не смог повторить: ${esc(body.error || body.message || JSON.stringify(body))}\n\nЕсли «temp_session_expired» — начни заново через ➕ Добавить аккаунт.`);
         return;
       }
-      w.tempId = body.tempId;
       w.phoneCodeHash = body.phoneCodeHash;
       const timeout = body.timeout || 60;
+      const channel = describeCodeChannel(body.type);
+      const next = body.nextType ? `\nСледующий канал (если этот не пройдёт): ${describeCodeChannel(body.nextType)}` : "";
+      const kb = new InlineKeyboard().text("🔄 Запросить ещё раз", "sm:acc-resend");
       await ctx.answerCallbackQuery({ text: "Повторил" });
-      await ctx.reply(`🔄 Запрос повторно отправлен. Таймаут ${timeout}с.\n\nTelegram часто меняет канал при повторе — на этот раз код может прийти через <b>SMS</b> (если первый раз был push, и наоборот).`, { parse_mode: "HTML" });
+      await ctx.reply(`🔄 Telegram пошлёт код по каналу: <b>${esc(channel)}</b>${next}\nТаймаут: ${timeout}с\n\nПришли код когда получишь.`, { parse_mode: "HTML", reply_markup: kb });
     } catch (e) {
       await ctx.answerCallbackQuery({ text: "Ошибка" });
       await ctx.reply(`⚠️ ${esc(e.message)}`);
@@ -958,16 +974,16 @@ export function registerSalesHandlers(bot, isOwner) {
           w.phoneCodeHash = body.phoneCodeHash;
           w.step = "code";
           const timeout = body.timeout || 60;
-          const kb = new InlineKeyboard().text("🔄 Запросить код заново", "sm:acc-resend");
+          const channel = describeCodeChannel(body.type);
+          const next = body.nextType ? `\nСледующий канал (если этот не пройдёт): ${describeCodeChannel(body.nextType)}` : "";
+          const kb = new InlineKeyboard().text("🔄 Запросить через другой канал", "sm:acc-resend");
           await ctx.reply(
-            `📩 Запрос на код отправлен. Номер: <code>${esc(phone)}</code>\n` +
-            `Таймаут Telegram: ${timeout}с\n\n` +
-            `<b>Где искать код:</b>\n` +
-            `1️⃣ В <b>Telegram-приложении</b> на устройстве, где этот аккаунт уже залогинен (открой переписку с «Telegram», 777000). Код будет 5-значным.\n` +
-            `2️⃣ Если этот аккаунт нигде не залогинен — придёт SMS (но обычно занимает несколько минут).\n\n` +
+            `📩 Telegram пошлёт код на номер <code>${esc(phone)}</code>\n` +
+            `<b>Канал: ${esc(channel)}</b>${esc(next)}\n` +
+            `Таймаут: ${timeout}с\n\n` +
             `Пришли код в чат когда получишь.\n\n` +
-            `⚠️ Если введёшь код прямо в TG (копи-паста) — Telegram сбросит его как небезопасный. Перепиши руками или с пробелами: <code>1 2 3 4 5</code>.\n\n` +
-            `Если код не пришёл за ${timeout}с — жми «🔄 Запросить код заново».`,
+            `⚠️ Если введёшь код прямо копи-пастой из TG — Telegram сбросит как «небезопасный». Перепиши руками или с пробелами: <code>1 2 3 4 5</code>.\n\n` +
+            `Если код не пришёл за ${timeout}с — жми «🔄 Запросить через другой канал» (Telegram переключится на следующий).`,
             { parse_mode: "HTML", reply_markup: kb },
           );
           return;

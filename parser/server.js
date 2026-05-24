@@ -13,7 +13,7 @@ import {
   disconnectClient,
   getClient,
 } from "./lib/telegram.js";
-import { sendCode, signIn, sendCodeOnClient, signInOnClient, logout } from "./lib/auth.js";
+import { sendCode, signIn, sendCodeOnClient, resendCodeOnClient, signInOnClient, logout } from "./lib/auth.js";
 import { verifyPassword, hashPassword } from "./lib/password.js";
 import { issueSession, verifyToken } from "./lib/web-session.js";
 import { createSessionsManager } from "./lib/sessions-manager.js";
@@ -401,10 +401,26 @@ export function createApp() {
         phoneCodeHash: result.phoneCodeHash,
         expiresAt: Date.now() + TEMP_TTL_MS,
       });
-      res.json({ tempId, phoneCodeHash: result.phoneCodeHash, timeout: result.timeout });
+      res.json({ tempId, phoneCodeHash: result.phoneCodeHash, timeout: result.timeout, type: result.type, nextType: result.nextType });
     } catch (e) {
       console.error("[sessions/add/send-code]", e);
       res.status(500).json({ error: "send_code_failed", message: String(e?.message || e) });
+    }
+  });
+
+  app.post("/api/sessions/add/resend-code", requireSession, async (req, res) => {
+    const { tempId } = req.body || {};
+    if (!tempId) return res.status(400).json({ error: "tempId_required" });
+    const entry = tempClients.get(tempId);
+    if (!entry) return res.status(404).json({ error: "temp_session_expired", hint: "Запроси код заново через send-code" });
+    try {
+      const result = await resendCodeOnClient(entry.client, { phone: entry.phone, phoneCodeHash: entry.phoneCodeHash });
+      // обновляем phoneCodeHash на новый
+      entry.phoneCodeHash = result.phoneCodeHash;
+      res.json({ tempId, phoneCodeHash: result.phoneCodeHash, timeout: result.timeout, type: result.type, nextType: result.nextType });
+    } catch (e) {
+      console.error("[sessions/add/resend-code]", e);
+      res.status(500).json({ error: "resend_code_failed", message: String(e?.message || e) });
     }
   });
 
