@@ -391,6 +391,7 @@ export function createApp() {
     }
     try {
       pruneTempClients();
+      console.log(`[sessions/add/send-code] starting for phone=${phone} (label=${label || "—"}), API_ID=${process.env.API_ID?.slice(0,3)}…`);
       const client = createTempClient({ apiId: process.env.API_ID, apiHash: process.env.API_HASH });
       const result = await sendCodeOnClient(client, phone);
       const tempId = "tmp_" + randomBytes(8).toString("hex");
@@ -401,10 +402,12 @@ export function createApp() {
         phoneCodeHash: result.phoneCodeHash,
         expiresAt: Date.now() + TEMP_TTL_MS,
       });
-      res.json({ tempId, phoneCodeHash: result.phoneCodeHash, timeout: result.timeout, type: result.type, nextType: result.nextType });
+      console.log(`[sessions/add/send-code] ok tempId=${tempId} type=${result.type} className=${result.className}`);
+      res.json({ tempId, phoneCodeHash: result.phoneCodeHash, timeout: result.timeout, type: result.type, nextType: result.nextType, className: result.className });
     } catch (e) {
-      console.error("[sessions/add/send-code]", e);
-      res.status(500).json({ error: "send_code_failed", message: String(e?.message || e) });
+      console.error(`[sessions/add/send-code] FAIL phone=${phone}: errorMessage=${e?.errorMessage} code=${e?.code} message=${e?.message}`);
+      console.error(e?.stack || e);
+      res.status(500).json({ error: "send_code_failed", message: String(e?.message || e), errorMessage: e?.errorMessage || null });
     }
   });
 

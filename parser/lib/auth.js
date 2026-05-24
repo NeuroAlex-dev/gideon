@@ -9,12 +9,15 @@ export async function sendCode(phone) {
 
 export async function sendCodeOnClient(client, phone) {
   if (!client.connected) {
+    console.log(`[auth] sendCode: connecting fresh temp client for ${phone}…`);
     await client.connect();
+    console.log(`[auth] sendCode: connected, DC=${client.session?.dcId ?? "?"}`);
   }
   // CodeSettings ПУСТОЙ — это критично: Telegram сам выберет канал,
   // и при наличии активных сессий аккаунта приоритет ВСЕГДА у push в Telegram-приложение
   // (через сервисный чат @Telegram / 777000). Если добавить allowFlashcall/allowMissedCall —
   // Telegram может выбрать flash-звонок ВМЕСТО push, и пользователь не получит код в TG.
+  console.log(`[auth] sendCode: invoking auth.SendCode for ${phone}, apiId=${client.apiId}, apiHash.len=${client.apiHash?.length}`);
   const result = await client.invoke(
     new Api.auth.SendCode({
       phoneNumber: phone,
@@ -23,11 +26,16 @@ export async function sendCodeOnClient(client, phone) {
       settings: new Api.CodeSettings({}),
     })
   );
+  console.log(`[auth] sendCode: raw result class=${result?.className} type=${result?.type?.className} nextType=${result?.nextType?.className} timeout=${result?.timeout} hashLen=${result?.phoneCodeHash?.length} typeLength=${result?.type?.length}`);
+  if (result?.className === "auth.SentCodeSuccess") {
+    console.warn(`[auth] sendCode: Telegram returned SentCodeSuccess — number already auto-authorized, no code will arrive. authorization.user.id=${result?.authorization?.user?.id}`);
+  }
   return {
     phoneCodeHash: result.phoneCodeHash,
     timeout: result.timeout ?? 60,
     type: result.type?.className || null,
     nextType: result.nextType?.className || null,
+    className: result.className || null,
   };
 }
 

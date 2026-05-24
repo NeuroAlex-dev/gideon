@@ -479,37 +479,6 @@ export function registerSalesHandlers(bot, isOwner) {
     return map[type] || type || "неизвестно";
   }
 
-  bot.callbackQuery(/^sm:acc-resend$/, async (ctx) => {
-    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
-    const w = wizards.get(ctx.chat.id);
-    if (!w || w.mode !== "add_account" || !w.tempId) {
-      await ctx.answerCallbackQuery({ text: "Нет активного запроса" });
-      return;
-    }
-    try {
-      // Используем auth.ResendCode — Telegram-метод именно для случая "первый не дошёл, отправь по другому каналу"
-      const { status, body } = await parserFetch("/api/sessions/add/resend-code", {
-        method: "POST",
-        body: JSON.stringify({ tempId: w.tempId }),
-      });
-      if (status !== 200) {
-        await ctx.answerCallbackQuery({ text: "Ошибка" });
-        await ctx.reply(`⚠️ Не смог повторить: ${esc(body.error || body.message || JSON.stringify(body))}\n\nЕсли «temp_session_expired» — начни заново через ➕ Добавить аккаунт.`);
-        return;
-      }
-      w.phoneCodeHash = body.phoneCodeHash;
-      const timeout = body.timeout || 60;
-      const channel = describeCodeChannel(body.type);
-      const next = body.nextType ? `\nСледующий канал (если этот не пройдёт): ${describeCodeChannel(body.nextType)}` : "";
-      const kb = new InlineKeyboard().text("🔄 Запросить ещё раз", "sm:acc-resend");
-      await ctx.answerCallbackQuery({ text: "Повторил" });
-      await ctx.reply(`🔄 Telegram пошлёт код по каналу: <b>${esc(channel)}</b>${next}\nТаймаут: ${timeout}с\n\nПришли код когда получишь.`, { parse_mode: "HTML", reply_markup: kb });
-    } catch (e) {
-      await ctx.answerCallbackQuery({ text: "Ошибка" });
-      await ctx.reply(`⚠️ ${esc(e.message)}`);
-    }
-  });
-
   bot.callbackQuery(/^sm:acc-add$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     wizards.set(ctx.chat.id, { mode: "add_account", step: "phone" });
@@ -969,22 +938,35 @@ export function registerSalesHandlers(bot, isOwner) {
             await ctx.reply(`⚠️ Не смог отправить код: ${esc(body.error || body.message || JSON.stringify(body))}`);
             return;
           }
+          if (body.className === "auth.SentCodeSuccess") {
+            wizards.delete(ctx.chat.id);
+            await ctx.reply(
+              `⚠️ Telegram вернул <b>SentCodeSuccess</b> — это значит, что аккаунт авторизовался сразу, без кода. Код в TG не придёт.\n\n` +
+              `Это происходит когда temp-клиент по какому-то признаку был распознан как уже-доверенный (редкий случай). Сейчас signin будет невозможен — нужно сначала доработать обработку этого класса. Скажи мне «доработай SentCodeSuccess» и я добавлю сохранение готовой авторизации.`,
+              { parse_mode: "HTML" },
+            );
+            return;
+          }
+          if (!body.phoneCodeHash) {
+            wizards.delete(ctx.chat.id);
+            await ctx.reply(
+              `⚠️ Telegram не вернул phoneCodeHash. Сырой ответ:\n<pre>${esc(JSON.stringify(body, null, 2))}</pre>\n\nПокажи мне этот ответ — буду разбираться.`,
+              { parse_mode: "HTML" },
+            );
+            return;
+          }
           w.phone = phone;
           w.tempId = body.tempId;
           w.phoneCodeHash = body.phoneCodeHash;
           w.step = "code";
-          const timeout = body.timeout || 60;
           const channel = describeCodeChannel(body.type);
-          const next = body.nextType ? `\nСледующий канал (если этот не пройдёт): ${describeCodeChannel(body.nextType)}` : "";
-          const kb = new InlineKeyboard().text("🔄 Запросить через другой канал", "sm:acc-resend");
           await ctx.reply(
-            `📩 Telegram пошлёт код на номер <code>${esc(phone)}</code>\n` +
-            `<b>Канал: ${esc(channel)}</b>${esc(next)}\n` +
-            `Таймаут: ${timeout}с\n\n` +
-            `Пришли код в чат когда получишь.\n\n` +
-            `⚠️ Если введёшь код прямо копи-пастой из TG — Telegram сбросит как «небезопасный». Перепиши руками или с пробелами: <code>1 2 3 4 5</code>.\n\n` +
-            `Если код не пришёл за ${timeout}с — жми «🔄 Запросить через другой канал» (Telegram переключится на следующий).`,
-            { parse_mode: "HTML", reply_markup: kb },
+            `📩 Запросил код для <code>${esc(phone)}</code>.\n` +
+            `Канал по решению Telegram: <b>${esc(channel)}</b>\n\n` +
+            `Открой Telegram-приложение, где этот номер уже залогинен, и проверь чат с <b>Telegram (777000)</b> — код придёт туда.\n\n` +
+            `Пришли код в этот чат когда получишь.\n\n` +
+            `⚠️ Если введёшь код копи-пастой — Telegram пометит «небезопасный». Перепиши руками или с пробелами: <code>1 2 3 4 5</code>.`,
+            { parse_mode: "HTML" },
           );
           return;
         }
