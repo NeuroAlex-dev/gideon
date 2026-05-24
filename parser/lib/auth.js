@@ -11,18 +11,16 @@ export async function sendCodeOnClient(client, phone) {
   if (!client.connected) {
     await client.connect();
   }
+  // CodeSettings ПУСТОЙ — это критично: Telegram сам выберет канал,
+  // и при наличии активных сессий аккаунта приоритет ВСЕГДА у push в Telegram-приложение
+  // (через сервисный чат @Telegram / 777000). Если добавить allowFlashcall/allowMissedCall —
+  // Telegram может выбрать flash-звонок ВМЕСТО push, и пользователь не получит код в TG.
   const result = await client.invoke(
     new Api.auth.SendCode({
       phoneNumber: phone,
       apiId: client.apiId,
       apiHash: client.apiHash,
-      settings: new Api.CodeSettings({
-        allowFlashcall: true,
-        currentNumber: false,
-        allowAppHash: true,
-        allowMissedCall: true,
-        allowFirebase: false,
-      }),
+      settings: new Api.CodeSettings({}),
     })
   );
   return {
