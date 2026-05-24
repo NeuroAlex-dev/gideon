@@ -466,6 +466,34 @@ export function registerSalesHandlers(bot, isOwner) {
     }
   });
 
+  bot.callbackQuery(/^sm:acc-resend$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const w = wizards.get(ctx.chat.id);
+    if (!w || w.mode !== "add_account" || !w.phone) {
+      await ctx.answerCallbackQuery({ text: "Нет активного запроса" });
+      return;
+    }
+    try {
+      const { status, body } = await parserFetch("/api/sessions/add/send-code", {
+        method: "POST",
+        body: JSON.stringify({ phone: w.phone, label: w.phone }),
+      });
+      if (status !== 200) {
+        await ctx.answerCallbackQuery({ text: "Ошибка" });
+        await ctx.reply(`⚠️ Не смог повторить запрос: ${esc(body.error || body.message || JSON.stringify(body))}`);
+        return;
+      }
+      w.tempId = body.tempId;
+      w.phoneCodeHash = body.phoneCodeHash;
+      const timeout = body.timeout || 60;
+      await ctx.answerCallbackQuery({ text: "Повторил" });
+      await ctx.reply(`🔄 Запрос повторно отправлен. Таймаут ${timeout}с.\n\nTelegram часто меняет канал при повторе — на этот раз код может прийти через <b>SMS</b> (если первый раз был push, и наоборот).`, { parse_mode: "HTML" });
+    } catch (e) {
+      await ctx.answerCallbackQuery({ text: "Ошибка" });
+      await ctx.reply(`⚠️ ${esc(e.message)}`);
+    }
+  });
+
   bot.callbackQuery(/^sm:acc-add$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     wizards.set(ctx.chat.id, { mode: "add_account", step: "phone" });
@@ -929,7 +957,19 @@ export function registerSalesHandlers(bot, isOwner) {
           w.tempId = body.tempId;
           w.phoneCodeHash = body.phoneCodeHash;
           w.step = "code";
-          await ctx.reply(`📩 Код отправлен в Telegram на номер <code>${esc(phone)}</code>.\n\nПришли его (обычно 5 цифр).\n\n⚠️ Telegram блокирует копи-пасту кодов из самой переписки — введи руками или впиши с пробелами: <code>1 2 3 4 5</code>.`, { parse_mode: "HTML" });
+          const timeout = body.timeout || 60;
+          const kb = new InlineKeyboard().text("🔄 Запросить код заново", "sm:acc-resend");
+          await ctx.reply(
+            `📩 Запрос на код отправлен. Номер: <code>${esc(phone)}</code>\n` +
+            `Таймаут Telegram: ${timeout}с\n\n` +
+            `<b>Где искать код:</b>\n` +
+            `1️⃣ В <b>Telegram-приложении</b> на устройстве, где этот аккаунт уже залогинен (открой переписку с «Telegram», 777000). Код будет 5-значным.\n` +
+            `2️⃣ Если этот аккаунт нигде не залогинен — придёт SMS (но обычно занимает несколько минут).\n\n` +
+            `Пришли код в чат когда получишь.\n\n` +
+            `⚠️ Если введёшь код прямо в TG (копи-паста) — Telegram сбросит его как небезопасный. Перепиши руками или с пробелами: <code>1 2 3 4 5</code>.\n\n` +
+            `Если код не пришёл за ${timeout}с — жми «🔄 Запросить код заново».`,
+            { parse_mode: "HTML", reply_markup: kb },
+          );
           return;
         }
         if (w.step === "code") {
