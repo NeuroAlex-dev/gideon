@@ -102,7 +102,11 @@ function rewritePageHtml(html) {
     'header a[href="/"].cta-primary,' +
     'header a[href="/login"].cta-primary,' +
     'form:has(svg.lucide-log-out),' +
-    'button:has(svg.lucide-log-out){display:none!important;}' +
+    'button:has(svg.lucide-log-out),' +
+    // The RSC payload still ships a Footer component; React hydrates it from a
+    // 726d7e3d1e83c101.js chunk and inserts a <footer> back into the DOM even though
+    // build.js strips the server-rendered one. Hide and remove any reinjected footer.
+    'footer{display:none!important;}' +
     // Server HTML always emits <header class="header-dark">; React swaps the class
     // to .header-light on hydration. Without this override, light theme flashes a
     // dark header before hydration completes. Force the light background whenever
@@ -117,6 +121,7 @@ function rewritePageHtml(html) {
           'var host=svg.closest("form,button,a");' +
           'if(host)host.remove();' +
         '});' +
+        'document.querySelectorAll("footer").forEach(function(f){f.remove();});' +
       '}' +
       'if(document.readyState!=="loading")clean();' +
       'document.addEventListener("DOMContentLoaded",clean);' +
