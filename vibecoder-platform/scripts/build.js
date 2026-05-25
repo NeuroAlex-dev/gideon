@@ -77,6 +77,11 @@ function rewritePageHtml(html) {
   //     The form already had its server action stripped, so it's a no-op button — drop it.
   out = out.replace(/<form\b[^>]*>[\s\S]*?lucide-log-out[\s\S]*?<\/form>/g, '');
 
+  // 3c) Remove the site-wide <footer> (copyright + social links + "Meta признана…").
+  //     This footer is from the original course site; it doesn't make sense on the
+  //     standalone mirror. The author's hero bio elsewhere on the page stays intact.
+  out = out.replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, '');
+
   // 4) Next.js inlines an RSC payload as a serialized JS string containing escaped
   //    JSON. The header "Войти" button shows up there as \"/login\". Replace it with
   //    a self-link so the hydrated client doesn't navigate to a 404.
