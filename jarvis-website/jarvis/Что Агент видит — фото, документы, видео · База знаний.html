@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Что Агент видит — фото, документы, видео · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/bot">Бот в Telegram</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Что Агент видит — фото, документы, видео</span>
+  </nav>
+        <h1>Что Агент видит — фото, документы, видео</h1>
+        <div class="page-meta">7 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Не печатайте то, что можно сфотографировать. Не пересылайте то, на что можно дать ссылку.</aside>
+        <p>Большинство пользователей открывают чат с Агентом и <strong>только пишут текст</strong>. И при этом теряют половину силы. Агент умеет смотреть фото, читать документы, разбирать видео, и даже сам вытаскивает содержимое из Google-таблиц по ссылке. Эта статья — про то, что бросать в чат, чтобы экономить часы рутины.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Главный смысл</div><div class="callout__body"><p>В чат с Агентом можно бросать <strong>что угодно</strong>:</p>
+<ul>
+<li>📷 <strong>Фото</strong> — Агент видит и читает что на нём (рукописные заметки, чеки, скрины, схемы).</li>
+<li>📄 <strong>Документы</strong> — PDF, Word, Excel, презентации, текстовые файлы.</li>
+<li>🎥 <strong>Видео</strong> — Агент анализирует ключевые кадры.</li>
+<li>🔗 <strong>Google Docs / Sheets ссылки</strong> — содержимое <strong>автоматически</strong> вытаскивается из ссылки в текстовом сообщении.</li>
+</ul>
+<p>И <strong>карусель</strong> (несколько фото подряд) — Агент берёт как <strong>одну задачу</strong>, а не описывает каждое отдельно.</p></div></aside>
+<h2>Фото — Агент умеет «видеть»</h2>
+<p>Внутри Claude есть Vision — это умение читать содержимое изображений. Бросаете в чат фото — Агент его видит как живой человек, и может с ним работать.</p>
+<p><strong>Что бросают чаще всего:</strong></p>
+<ul>
+<li><strong>Рукописные заметки</strong> на бумаге — Агент расшифрует и оформит в нормальный список или таблицу.</li>
+</ul>
+<ul>
+<li><strong>Чеки и квитанции</strong> — для учёта расходов. «Распознай эти 5 чеков и сделай таблицу».</li>
+</ul>
+<ul>
+<li><strong>Скриншоты экрана</strong> — переписки, сайтов, ошибок в коде, дашбордов. «Что не так на этой ошибке?»</li>
+</ul>
+<ul>
+<li><strong>Схемы, диаграммы, фото доски</strong> — например, после встречи сфоткали маркерную доску. Агент превратит в текстовый план.</li>
+</ul>
+<ul>
+<li><strong>Фото товара, продукта, упаковки</strong> — «Опиши этот продукт для лендинга».</li>
+</ul>
+<ul>
+<li><strong>Меню, расписания, объявления</strong> — расшифровать в структурированный текст.</li>
+</ul>
+<p>Фото можно отправить с <strong>подписью</strong> — это инструкция Агенту. Без подписи Агент по умолчанию ответит на «Что на этом изображении?». Подпись лучше — Вы говорите конкретно что Вам нужно:</p>
+<div class="prompt-block"><pre class="prompt-block__body">Это фото моего рабочего стола. Распознай все стикеры с задачами и сделай из них список с приоритетами.</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div>
+<h2>Документы — почти любой формат</h2>
+<p>Бросаете в чат файл (через скрепку → Файл) — Агент его прочитает и поработает с содержимым.</p>
+<p><strong>Что Агент умеет читать:</strong></p>
+<ul>
+<li><strong>PDF</strong> — договоры, отчёты, инструкции, книги.</li>
+<li><strong>Word (.docx)</strong> — текстовые документы.</li>
+<li><strong>Excel (.xlsx)</strong> — таблицы (если структура простая, для сложных лучше Google Sheets).</li>
+<li><strong>Текстовые форматы</strong> — <code>.txt</code>, <code>.md</code>, <code>.csv</code>, <code>.json</code>, <code>.html</code>, исходный код.</li>
+<li><strong>Презентации (.pptx)</strong> — частично, читает текст слайдов.</li>
+</ul>
+<p><strong>Примеры использования:</strong></p>
+<div class="prompt-block"><pre class="prompt-block__body">Вот PDF договора с подрядчиком. Найди все пункты про штрафы и сроки — выпиши списком с цитатами.</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div>
+<div class="prompt-block"><pre class="prompt-block__body">Это отчёт продаж за квартал. Сделай краткое резюме: главные тренды, что выросло, что просело.</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div>
+<div class="prompt-block"><pre class="prompt-block__body">Это код Python-скрипта. Найди что в нём может работать медленно и предложи как ускорить.</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div>
+<p>Без подписи стандартный запрос: «Проанализируй файл: {имя_файла}».</p>
+<h2>Видео — анализ кадров</h2>
+<p>Бросаете в чат видеофайл (<code>.mp4</code>) — Агент анализирует <strong>ключевые кадры</strong>. Это не «смотрит как фильм», но он понимает что происходит, видит текст на экране, людей, объекты.</p>
+<p><strong>Что бросают чаще:</strong></p>
+<ul>
+<li><strong>Скринкасты экрана</strong> — записали как делаете действие, спрашиваете «что я делал не так на этой минуте?».</li>
+</ul>
+<ul>
+<li><strong>Короткие демонстрации</strong> — видео продукта, рабочего процесса, физической установки. Агент опишет что увидел.</li>
+</ul>
+<ul>
+<li><strong>Записи с камеры</strong> — например, пришёл подрядчик показал работу — отправили видео — попросили оценить.</li>
+</ul>
+<aside class="callout callout--tip"><div class="callout__title">Видео с YouTube — научите Агента самого</div><div class="callout__body"><p>По умолчанию Агент <strong>не скачивает</strong> видео из YouTube, Vimeo и других площадок. Простая ссылка не сработает.</p>
+<p>Но Агент умеет <strong>сам себя расширять</strong>. Просто скажите ему:</p>
+<div class="prompt-block"><pre class="prompt-block__body">Я хочу чтобы ты умел сам скачивать видео из YouTube по ссылке. Что для этого нужно — написать скрипт, поставить какую-то библиотеку, добавить ключ?</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div></div></aside>
+<p>Агент проанализирует сам, скажет «нужно поставить <code>yt-dlp</code>, я могу сделать это сам — разрешишь?», и после Вашего «да» поставит всё что нужно. Дальше Вы шлёте ссылку на YouTube — и он её обрабатывает.</p>
+<p><strong>Это работает с любым «не умеет»</strong> — об этом подробнее в конце статьи.</p>
+<p>:::</p>
+<h2>Карусель = одна задача</h2>
+<p>Это очень важная фишка, которую большинство пропускает.</p>
+<p>Когда Вы отправляете <strong>несколько фото подряд</strong> (например, 8 фотографий комнаты, или серию скриншотов), Агент <strong>собирает их в один запрос</strong> в течение <strong>2,5 секунд</strong>. Это значит:</p>
+<ul>
+<li>Карусель из 8 фото = <strong>один</strong> запрос к Claude (а не 8 разных).</li>
+<li>Агент видит весь набор сразу и анализирует как <strong>единое целое</strong>.</li>
+<li>Расход в 8 раз меньше чем по одному.</li>
+</ul>
+<p><strong>По умолчанию подпись</strong> для карусели: «Галерея из N изображений. Проанализируй как единый набор, а не описывай каждое по отдельности». Можно дать свою:</p>
+<div class="prompt-block"><pre class="prompt-block__body">Это 8 фото моей квартиры — кухня, спальня, гостиная, санузел. Опиши общий стиль и предложи 3 идеи как улучшить ремонт.</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div>
+<p>То же работает для <strong>смеси типов</strong>: можно прислать пачку из 3 фото + 1 PDF + 1 видео — Агент возьмёт всё вместе. Подпись по умолчанию: «Проанализируй медиа (3 фото + 1 видео + 1 документ) как единый набор».</p>
+<blockquote><p>💬 <strong>Лайфхак:</strong> если хотите чтобы Агент посмотрел на каждое фото <strong>отдельно</strong> — отправляйте по одному, с паузой больше 2,5 секунд. Тогда каждый запустит свою задачу.</p></blockquote>
+<h2>Google Docs и Google Sheets — по ссылке, без скачивания</h2>
+<p>Это, пожалуй, самая удобная фишка о которой мало кто знает.</p>
+<p>Если в <strong>текстовом сообщении</strong> Вы пришлёте ссылку на:</p>
+<ul>
+<li><code>docs.google.com/document/d/...</code> — Google Docs</li>
+<li><code>docs.google.com/spreadsheets/d/...</code> — Google Sheets</li>
+</ul>
+<p>— Агент <strong>автоматически</strong> скачивает содержимое и работает с ним. Не нужно копировать-вставлять текст вручную.</p>
+<div class="prompt-block"><pre class="prompt-block__body">Сделай мне краткую сводку этого документа в 3 пункта:
+https://docs.google.com/document/d/1abc.../edit</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div>
+<div class="prompt-block"><pre class="prompt-block__body">В этой таблице цифры продаж за квартал. Найди топ-5 худших клиентов и предложи что с ними делать:
+https://docs.google.com/spreadsheets/d/1xyz.../edit</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div>
+<p><strong>Что важно знать:</strong></p>
+<ul>
+<li>Документ должен быть <strong>доступен по ссылке</strong> (Anyone with the link). Если он закрытый — Агент не сможет открыть.</li>
+</ul>
+<ul>
+<li>За одно сообщение Агент берёт <strong>до 3 ссылок</strong> (если больше — лишние игнорирует).</li>
+</ul>
+<ul>
+<li>Длинные документы обрезаются до <strong>30 000 символов</strong> (~8-10 страниц текста). Для больших документов лучше скачать как PDF и прислать как файл.</li>
+</ul>
+<h2>Лайфхаки</h2>
+<h3>Не печатайте то, что можно сфотографировать</h3>
+<p>Список покупок написан от руки на бумаге → не печатайте, <strong>сфоткайте</strong>. Адресная книга в старом блокноте → <strong>сфоткайте по страницам</strong>, Агент превратит в нормальный список контактов.</p>
+<h3>Не пересылайте то, на что есть ссылка</h3>
+<p>Сделали в Google Docs план встречи и хотите чтобы Агент сделал summary → <strong>пришлите ссылку</strong>, а не копируйте текст. Так и быстрее, и чище.</p>
+<h3>Подпись — это половина результата</h3>
+<p>Без подписи Агент задаст себе самый общий вопрос «Что на этом изображении?». <strong>С подписью</strong> Вы получаете конкретный результат:</p>
+<p>❌ Просто фото меню ресторана → «Это меню ресторана с разными блюдами».</p>
+<p>✅ Меню + подпись «Выбери 3 блюда без глютена и посчитай суммарную цену» → конкретный ответ с цифрами.</p>
+<h3>Карусель экономит лимит</h3>
+<p>Если у Вас 5-10 однотипных фото для одной задачи — <strong>отправьте подряд</strong> в течение 2,5 секунд. Агент возьмёт как один запрос. Если поодиночке с паузами — это 5-10 разных запросов, и расход растёт.</p>
+<h2>Что Агент по умолчанию не умеет — и как его научить</h2>
+<p>У Агента из коробки есть стандартный набор: фото, документы, видео, голос, Google Docs/Sheets. Но <strong>есть вещи, которые он не делает сразу</strong>:</p>
+<ul>
+<li><strong>Аудиофайлы (.mp3, .wav, .m4a) как документы</strong> — для звука по умолчанию только голосовые через Telegram.</li>
+</ul>
+<ul>
+<li><strong>Очень большие файлы</strong> — Telegram даёт максимум 50 МБ на файл боту. Тяжелее — нужно разбить или конвертировать.</li>
+</ul>
+<ul>
+<li><strong>Защищённые PDF с паролем</strong> — без пароля не откроет.</li>
+</ul>
+<ul>
+<li><strong>Закрытые Google Docs</strong> — нужен публичный доступ к ссылке (Anyone with the link).</li>
+</ul>
+<ul>
+<li><strong>Прямые ссылки на YouTube, Vimeo, TikTok</strong> — по умолчанию не скачивает.</li>
+</ul>
+<ul>
+<li><strong>Ссылки на закрытые сервисы</strong> (Notion-страницы без публичного доступа, файлы в Dropbox с паролем, и т.д.).</li>
+</ul>
+<aside class="callout callout--insight"><div class="callout__title">Ключевая мысль про «не умеет»</div><div class="callout__body"><p><strong>Почти любое «не умеет» можно превратить в «умеет», просто спросив Агента.</strong></p>
+<p>Агент работает на сервере <strong>под Вашим контролем</strong>. У него есть права ставить программы, писать скрипты, добавлять обработчики. Когда чего-то не хватает — <strong>скажите ему</strong>:</p>
+<div class="prompt-block"><pre class="prompt-block__body">Я хочу чтобы ты умел расшифровывать mp3-файлы. Что для этого нужно?</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div></div></aside>
+<div class="prompt-block"><pre class="prompt-block__body">Хочу присылать тебе ссылки на TikTok, чтобы ты их разбирал. Сделай это возможным.</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div>
+<div class="prompt-block"><pre class="prompt-block__body">Я работаю с большими PDF (200+ страниц). Научись их разбивать сам и анализировать по частям.</pre><button class="copy-btn" type="button" data-copy-source="prompt">Скопировать</button></div>
+<p>Агент проанализирует, скажет что нужно (поставить библиотеку, написать скрипт, добавить ключ к API), и после Вашего «да» — <strong>сделает сам</strong>. Это и есть главное отличие Агента от чат-бота: он <strong>расширяется под Ваши задачи</strong>, а не работает «как есть».</p>
+<p>:::</p>
+<h2>Мой Вам совет</h2>
+<p>Привычка №1: <strong>«Можно ли это просто сфоткать?»</strong> Прежде чем печатать длинное описание чего-то существующего — проверьте, не лежит ли это перед Вами на столе, на экране, в листке бумаги. Сфоткать → отправить → попросить нужное действие — это 5 секунд против 5 минут текста.</p>
+<p>Привычка №2: <strong>ссылки вместо копипаста</strong>. Если документ или таблица в Google — отправляйте ссылку, а не текст. <strong>Меньше ручного копирования = больше работы Агентом.</strong></p>
+<p>Привычка №3 — самая важная: <strong>«Не умеешь? Научись.»</strong> Каждый раз, когда Агент говорит «не могу обработать этот формат / эту ссылку / этот сервис» — <strong>не ищите обходной путь</strong>. Скажите Агенту: «А что нужно, чтобы научиться? Сделай это». В половине случаев он за 2-3 минуты ставит нужный инструмент сам, и дальше работает с этим типом данных навсегда.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/bot/commands">Команды бота — короткий справочник</a></li><li class="article-siblings__item"><a href="/docs/bot/settings-menu">Меню /settings — карта по вкладкам</a></li><li class="article-siblings__item"><a href="/docs/bot/voice-deepgram">Голос — Deepgram, Whisper и трюки</a></li><li class="article-siblings__item article-siblings__item--current"><span>Что Агент видит — фото, документы, видео</span></li><li class="article-siblings__item"><a href="/docs/bot/sessions-reset">Сессии и /reset — когда «забывать» разговор</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

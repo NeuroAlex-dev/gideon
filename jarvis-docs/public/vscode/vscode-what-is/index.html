@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Что такое VS Code Tunnel и зачем он нужен · База знаний</title>
+    <meta name="description" content="Окно в офис Агента - видите его рабочий стол из любого браузера." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp">MCP</a>
+          <a href="/vscode" class="is-active">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/vscode">VS Code</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Что такое VS Code Tunnel и зачем он нужен</span>
+  </nav>
+        <h1>Что такое VS Code Tunnel и зачем он нужен</h1>
+        <div class="page-meta">3 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Окно в офис Агента - видите его рабочий стол из любого браузера.</aside>
+<p>Telegram - главный способ общения с Агентом. Но иногда хочется заглянуть &quot;за кулисы&quot;: посмотреть файлы на сервере, отредактировать код, проверить что Агент написал. Для этого есть VS Code Tunnel.</p>
+<h2>Что это</h2>
+<p>VS Code - это редактор кода, который работает прямо в браузере. Tunnel (туннель) - безопасное соединение с сервером Вашего Агента. Вместе они дают Вам доступ к файлам Агента через браузер, как если бы Вы сидели за его компьютером.</p>
+<aside class="callout callout--insight"><div class="callout__title">Простым языком</div><div class="callout__body"><p>Telegram - это как переписка с сотрудником. VS Code Tunnel - это как зайти к нему в кабинет и посмотреть на его монитор.</p></div></aside>
+<h2>Зачем это нужно</h2>
+<p><strong>Посмотреть результаты работы.</strong> Агент сделал лендинг, написал код или создал таблицу - Вы открываете VS Code и видите все файлы, можете их скачать или отредактировать.</p>
+<p><strong>Быстро поправить текст.</strong> Вместо &quot;поменяй в файле X слово Y на Z&quot; - открываете файл, правите сами, сохраняете. Иногда это быстрее, чем объяснять.</p>
+<p><strong>Работать с кодом.</strong> Если Вы разбираетесь в коде - можете писать код параллельно с Агентом. Он видит Ваши изменения, Вы видите его.</p>
+<p><strong>Проверить память и настройки.</strong> Открыть <code>MEMORY.md</code>, <code>SOUL.md</code>, <code>GOALS.md</code> и посмотреть, что там записано. Или поправить прямо руками.</p>
+<h2>Нужен ли VS Code всем?</h2>
+<p>Нет. Если Вам достаточно общения через Telegram - VS Code можно не трогать. Всё, что умеет VS Code, Агент умеет делать сам по Вашей просьбе.</p>
+<p>VS Code полезен, если:</p>
+<ul>
+<li>Вы хотите видеть файлы глазами</li>
+<li>Вы пишете код сами</li>
+<li>Вы хотите тонко настроить Агента (SOUL.md, скиллы)</li>
+<li>Вам нравится иметь полный контроль</li>
+</ul>
+<h2>Как выглядит</h2>
+<p>Вы открываете <code>vscode.dev</code> в браузере, подключаетесь к серверу Агента - и видите дерево файлов, терминал, редактор. Всё как в обычном редакторе кода, но файлы - на сервере Агента.</p>
+<p>Подробная инструкция по подключению: <a href="/article/vscode/vscode-connect/">Как подключиться к VS Code Tunnel</a>.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item article-siblings__item--current"><span>Что такое VS Code Tunnel и зачем он нужен</span></li><li class="article-siblings__item"><a href="/vscode/vscode-two-interfaces">Два интерфейса - Telegram и VS Code одновременно</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

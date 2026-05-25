@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Что такое MCP и зачем он Агенту · База знаний</title>
+    <meta name="description" content="MCP - это универсальная розетка. Агент втыкает штепсель - и получает доступ к новому сервису, без программирования." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp" class="is-active">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/mcp">MCP</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Что такое MCP и зачем он Агенту</span>
+  </nav>
+        <h1>Что такое MCP и зачем он Агенту</h1>
+        <div class="page-meta">4 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">MCP - это универсальная розетка. Агент втыкает штепсель - и получает доступ к новому сервису, без программирования.</aside>
+<p>Ваш Агент умеет работать с файлами, искать в интернете, писать код. Но иногда нужно больше: открыть макет в дизайн-редакторе, вытянуть данные из сайта, запустить автоматизацию. Для этого существует MCP -протокол, который позволяет Агенту подключаться к внешним инструментам.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Универсальная розетка</div><div class="callout__body"><p>MCP (Model Context Protocol) -это стандартный разъём между Агентом и внешними сервисами. Один протокол, одна точка подключения, десятки возможностей. Вам не нужно разбираться в API каждого сервиса -достаточно «воткнуть штепсель» в конфигурацию.</p></div></aside>
+<h2>Как это работает</h2>
+<p>Без MCP Агент может искать в интернете и работать с файлами на сервере. Этого достаточно для многих задач, но не для всех.</p>
+<p>С MCP Агент получает <strong>прямой доступ к внешним сервисам</strong>: календарь, почта, таблицы, дизайн-редактор. Он видит возможности сервиса и сам вызывает нужные действия, без Вашей помощи.</p>
+<pre class="tree-diagram">
+🤖 Агент (Claude Code CLI)
+│
+├── 📁 Файлы на сервере     (встроено)
+├── 🌐 Интернет и curl       (встроено)
+│
+└── 🔌 MCP-серверы           (~/.claude.json)
+       ├── pencil            дизайн-редактор
+       ├── supadata          данные с сайтов
+       └── ...               любой MCP-сервер
+</pre>
+<h2>Что уже подключено из коробки</h2>
+<p>При установке Агента через <code>@jarchitect_bot</code> автоматически ставится один MCP-сервер:</p>
+<p><strong>Pencil</strong> -инструмент для работы с дизайн-макетами (файлы <code>.pen</code>). Агент может открывать макеты, читать их содержимое, вносить правки, делать скриншоты и экспортировать элементы. Всё это -прямо из Telegram, без открытия отдельной программы.</p>
+<p>Pencil работает локально на Вашем сервере, не отправляет данные наружу.</p>
+<h2>Два типа подключений</h2>
+<p>MCP-серверы подключаются двумя способами:</p>
+<table>
+<thead><tr><th>Тип</th><th>Как работает</th><th>Пример</th></tr></thead>
+<tbody>
+<tr><td>Локальный</td><td>Программа запускается прямо на Вашем сервере</td><td>Pencil</td></tr>
+<tr><td>Облачный</td><td>Агент обращается к сервису в интернете</td><td>Supadata, Google Calendar</td></tr>
+</tbody></table>
+<p><strong>Локальный</strong> - данные не уходят с Вашего сервера. Безопаснее.</p>
+<p><strong>Облачный</strong> - данные передаются по сети. Подходит для работы с внешними сервисами (почта, календарь, таблицы).</p>
+<h2>Где хранится конфигурация</h2>
+<p>Все подключённые MCP-серверы записаны в одном файле:</p>
+<div class="copy-block"><span class="copy-block__label">Путь к конфигурации</span><code class="copy-block__value">~/.claude.json</code><button class="copy-btn" type="button" data-copy-source="copy">Скопировать</button></div>
+<p>Внутри -секция <code>mcpServers</code>. Claude Code CLI читает этот файл при каждом запуске и подключается ко всем перечисленным серверам. Добавили новый сервер в файл -при следующем сообщении Агент уже его видит.</p>
+<h2>Чем MCP отличается от API-ключей</h2>
+<p>В <code>/settings</code> Вы добавляете ключи к сервисам (Deepgram, GitHub, Vercel). Агент использует их вручную - сам формирует запросы к каждому сервису.</p>
+<p>MCP работает проще: Агент подключается к сервису и видит список готовых действий. Дальше вызывает нужное - сервис сам разбирается с деталями.</p>
+<blockquote><p>💬 <strong>Аналогия:</strong> API-ключ -это как номер телефона. Вы сами звоните и говорите что нужно. MCP -это как секретарь: Вы говорите задачу, а он сам знает кому звонить и что говорить.</p></blockquote>
+<h2>Мой Вам совет</h2>
+<p>Pencil уже подключён -попробуйте прямо сейчас. Отправьте Агенту <code>.pen</code>-файл или попросите «покажи мой макет». Если работает -значит MCP у Вас настроен правильно.</p>
+<p>Дальше, если захотите подключить ещё один сервис -читайте статью «Как подключить MCP-сервер». Там подробная инструкция с примерами для каждого типа.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item article-siblings__item--current"><span>Что такое MCP и зачем он Агенту</span></li><li class="article-siblings__item"><a href="/mcp/mcp-setup">Как подключить MCP-сервер -пошаговая инструкция</a></li><li class="article-siblings__item"><a href="/mcp/mcp-examples">5 примеров - что можно сделать с MCP</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

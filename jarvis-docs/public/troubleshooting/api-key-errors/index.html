@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Ошибки 401, 403, 404, 429 - что делать · База знаний</title>
+    <meta name="description" content="Замок показывает код ошибки - подбираем правильный ключ." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting" class="is-active">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/troubleshooting">Подводные камни</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Ошибки 401, 403, 404, 429 - что делать</span>
+  </nav>
+        <h1>Ошибки 401, 403, 404, 429 - что делать</h1>
+        <div class="page-meta">5 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Замок показывает код ошибки - подбираем правильный ключ.</aside>
+<p>Агент выдал ошибку с номером - 401, 403, 404 или 429. Эти коды одинаковые у всех сервисов в интернете: у Claude, у GitHub, у Deepgram, у любого API. Ниже разбираем каждый код простым языком и что с ним делать.</p>
+<h2>Ошибка 401 - &quot;Вас не узнали&quot;</h2>
+<p><strong>Что значит:</strong> Сервис говорит: &quot;Я не знаю, кто Вы. Покажите пропуск заново.&quot;</p>
+<p>Это как прийти в офис, а охранник не пускает - пропуск просрочен или забыли дома.</p>
+<p><strong>Самая частая причина у наших пользователей</strong> - истекла подписка Claude. Агент работает на мозгах Claude, и если подписка не оплачена - Claude отказывает в доступе.</p>
+<p><strong>Что делать:</strong></p>
+<ol>
+<li>Зайдите на <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">claude.ai</a> — проверьте, что подписка активна</li>
+<li>Если подписка активна — отправьте <code>/auth</code> в <code>@jarchitect_bot</code> для обновления токена</li>
+<li>Агент перезапустится и снова заработает</li>
+</ol>
+<aside class="callout callout--warning"><div class="callout__body"><p>Ошибка 401 у Агента = подписка Claude или истёкший токен. Сначала проверьте подписку на claude.ai. Если активна — обновите токен через <code>/auth</code> в <code>@jarchitect_bot</code>. Бота переустанавливать не нужно.</p></div></aside>
+<p><strong>Если Агент работает, но не работает подключённый сервис</strong> (Deepgram, Serper, OpenRouter) - та же логика:</p>
+<ul>
+<li>Зайдите на сайт этого сервиса</li>
+<li>Проверьте баланс и срок действия ключа</li>
+<li>Если баланс нулевой или ключ истёк - пополните / обновите</li>
+</ul>
+<h2>Ошибка 403 - &quot;Вам сюда нельзя&quot;</h2>
+<p><strong>Что значит:</strong> Сервис говорит: &quot;Я знаю кто Вы, но у Вас нет доступа именно к этому.&quot;</p>
+<p>Это как пропуск в здание есть, но конкретный кабинет закрыт - не хватает уровня допуска.</p>
+<p><strong>Когда бывает:</strong></p>
+<ul>
+<li><strong>GitHub:</strong> Вы создали токен с ограниченным доступом (Fine-grained token), а пытаетесь работать с репозиторием, который не добавили в список разрешённых</li>
+<li><strong>Vercel:</strong> Токен привязан к одному проекту, а Вы деплоите другой</li>
+<li><strong>Любой сервис:</strong> Бесплатный тариф не включает нужную функцию</li>
+</ul>
+<p><strong>Что делать:</strong></p>
+<ol>
+<li>Проверьте, есть ли у ключа доступ именно к тому, что Вы просите</li>
+<li>Для GitHub: зайдите в Settings - Developer settings - Fine-grained tokens, добавьте нужный репозиторий</li>
+<li>Для платных сервисов: проверьте, что Ваш тариф покрывает нужную функцию</li>
+</ol>
+<h2>Ошибка 404 - &quot;Такого не существует&quot;</h2>
+<p><strong>Что значит:</strong> Сервис говорит: &quot;Я не нашёл то, что Вы просите.&quot;</p>
+<p>Это как набрать номер телефона, а в ответ: &quot;Абонент не существует.&quot;</p>
+<p><strong>Когда бывает:</strong></p>
+<ul>
+<li>Репозиторий GitHub удалён или переименован</li>
+<li>Опечатка в названии проекта или URL</li>
+<li><strong>Хитрый случай с GitHub:</strong> если у Вас Fine-grained token, GitHub отвечает 404 вместо 403. Не потому что репозиторий не существует, а потому что Ваш токен его &quot;не видит&quot;</li>
+</ul>
+<p><strong>Что делать:</strong></p>
+<ol>
+<li>Проверьте правильность URL или имени ресурса</li>
+<li>Если GitHub - убедитесь, что токен имеет доступ к этому репозиторию</li>
+<li>Попросите Агента: &quot;Проверь доступ к репозиторию X&quot;</li>
+</ol>
+<h2>Ошибка 429 - &quot;Слишком много запросов&quot;</h2>
+<p><strong>Что значит:</strong> Сервис говорит: &quot;Вы слишком часто стучитесь, подождите.&quot;</p>
+<p>Это как звонить в дверь каждую секунду - хозяин перестаёт открывать.</p>
+<p><strong>Когда бывает:</strong></p>
+<ul>
+<li>Вы отправляете Агенту много сообщений подряд, не дожидаясь ответа</li>
+<li>Claude API перегружен (редко, обычно в пиковые часы)</li>
+<li>Сторонний сервис ограничивает бесплатный тариф</li>
+</ul>
+<p><strong>Что делать:</strong></p>
+<ol>
+<li>Подождите 1-2 минуты</li>
+<li>Отправляйте следующее сообщение только после того, как Агент ответил на предыдущее</li>
+<li>Если 429 повторяется часто - возможно, нужен более высокий тариф на сервисе</li>
+</ol>
+<h2>Ошибка 500 / 502 / 503 - &quot;Всё сломалось&quot;</h2>
+<p><strong>Что значит:</strong> Проблема на стороне сервиса, а не у Вас. Сервер упал или перегружен.</p>
+<p><strong>Что делать:</strong> Подождите 5-10 минут и попробуйте снова. Если не проходит - сервис временно недоступен, это не Ваша проблема.</p>
+<p>---</p>
+<h2>Общий принцип: как понять, где проблема</h2>
+<p>Простое правило: если Агент отвечает на обычные вопросы (&quot;привет&quot;, &quot;как дела&quot;) - значит сам Агент работает. Проблема в конкретном сервисе, который Вы подключили.</p>
+<p>| Агент отвечает? | Сервис работает? | Где проблема |</p>
+<p>|:---:|:---:|---|</p>
+<p>| Нет | - | Подписка Claude (claude.ai) или токен (<code>/auth</code> в <code>@jarchitect_bot</code>) |</p>
+<p>| Да | Нет | Ключ стороннего сервиса. Проверьте баланс и срок на сайте сервиса |</p>
+<p>| Да | Да | Ошибка в запросе. Переформулируйте задачу |</p>
+<h2>Как добавить или обновить ключ</h2>
+<ol>
+<li>Откройте <code>/settings</code> в боте</li>
+<li>Нажмите <strong>Переменные окружения</strong></li>
+<li>Удалите старый ключ (если есть)</li>
+<li>Добавьте новый: имя (например, <code>DEEPGRAM_API_KEY</code>) + значение</li>
+</ol>
+<aside class="callout callout--warning"><div class="callout__body"><p>Никогда не отправляйте ключи текстом в чат! Только через <code>/settings</code>. Если случайно отправили - немедленно замените ключ на сайте сервиса.</p></div></aside>
+<h2>Какие ключи для чего нужны</h2>
+<table>
+<thead><tr><th>Ключ</th><th>Для чего</th><th>Где получить</th></tr></thead>
+<tbody>
+<tr><td>Подписка Claude</td><td>Мозг Агента. Без неё - 401 на всё</td><td><a href="https://claude.ai" target="_blank" rel="noopener noreferrer">claude.ai</a></td></tr>
+<tr><td><code>DEEPGRAM_API_KEY</code></td><td>Расшифровка голосовых</td><td>deepgram.com</td></tr>
+<tr><td><code>GITHUB_TOKEN</code></td><td>Работа с кодом и репозиториями</td><td>github.com/settings/tokens</td></tr>
+<tr><td><code>SERPER_API_KEY</code></td><td>Поиск в интернете</td><td>serper.dev</td></tr>
+<tr><td><code>OPENROUTER_API_KEY</code></td><td>Доступ к другим AI-моделям</td><td>openrouter.ai</td></tr>
+<tr><td><code>VERCEL_TOKEN</code></td><td>Деплой сайтов</td><td>vercel.com/account/tokens</td></tr>
+</tbody></table>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/troubleshooting/agent-not-responding">Агент не отвечает или завис</a></li><li class="article-siblings__item article-siblings__item--current"><span>Ошибки 401, 403, 404, 429 - что делать</span></li><li class="article-siblings__item"><a href="/troubleshooting/memory-context">Проблемы с памятью и контекстом</a></li><li class="article-siblings__item"><a href="/troubleshooting/faq">Частые вопросы (FAQ)</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

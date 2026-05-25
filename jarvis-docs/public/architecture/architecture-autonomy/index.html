@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>«Светофор»: что Агент делает сам, что показывает, что спрашивает · База знаний</title>
+    <meta name="description" content="Светофор стоит не только на дорогах. Каждое действие Агента проходит через три цвета — и это не случайность." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture" class="is-active">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/architecture">Архитектура</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>«Светофор»: что Агент делает сам, что показывает, что спрашивает</span>
+  </nav>
+        <h1>«Светофор»: что Агент делает сам, что показывает, что спрашивает</h1>
+        <div class="page-meta">5 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Светофор стоит не только на дорогах. Каждое действие Агента проходит через три цвета — и это не случайность.</aside>
+<p>У Агента нет инициативы делать всё что угодно. Каждое действие попадает в один из трёх уровней — зелёный, жёлтый, красный. Это правила из <code>CLAUDE.md</code>, которые определяют, насколько Агент действует самостоятельно. Система называется «светофор» и прописана дословно.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Обратимость — главный критерий</div><div class="callout__body"><p>Зелёный — то, что легко откатить или вообще не меняет состояние. Красный — то, что нельзя отменить или затрагивает внешние сервисы с деньгами. Жёлтый — посередине: делает, но показывает. Три вопроса: «Это меняет что-то?» → «Это можно откатить?» → «Это стоит денег?»</p></div></aside>
+<h2>🟢 Зелёный — делает сам</h2>
+<p>Агент выполняет без предупреждения:</p>
+<ul>
+<li><strong>Чтение и поиск по файлам</strong> в папке workspace</li>
+<li><strong>Поиск в интернете</strong>, чтение публичных страниц</li>
+<li><strong>Создание заметок</strong> в <code>memory/</code> и <code>knowledge/</code></li>
+</ul>
+<p>Это не меняет Ваши файлы и не затрагивает внешние сервисы. Агент может читать, искать и записывать заметки — и не будет каждый раз спрашивать разрешения.</p>
+<h2>🟡 Жёлтый — делает и показывает</h2>
+<p>Агент выполняет, но сообщает о действии:</p>
+<ul>
+<li><strong>Создание и правка файлов</strong> в проекте</li>
+<li><code>git status</code>, <code>git diff</code>, <code>git add</code>, <code>git commit</code></li>
+<li><strong>Безопасные команды установки</strong>: npm, pip, brew</li>
+</ul>
+<p>Файл создан или изменён — Агент покажет, что именно сделал. Коммит добавлен — напишет об этом. Это действия, которые оставляют след и их можно проверить.</p>
+<h2>🔴 Красный — стоп, спрашивает и ждёт</h2>
+<p>Перед красными операциями Агент показывает план и ждёт «✔ или ✖»:</p>
+<ul>
+<li><strong>Удаление</strong>: <code>rm</code>, <code>rm -rf</code>, удаление папок</li>
+<li><strong>Деструктивный git</strong>: <code>push --force</code>, <code>reset --hard</code>, <code>branch -D</code></li>
+<li><strong>Платные API и оплата</strong>: любые действия, которые стоят денег</li>
+<li><strong>Всё необратимое</strong>: то, что нельзя откатить</li>
+</ul>
+<p>Если Агент что-то не сделал и написал план — значит это была красная операция. Так и должно быть.</p>
+<h2>Заблокированные зоны</h2>
+<p>Три пути на сервере, которые Агент не читает и не меняет ни при каком условии:</p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>~/.agent/.env        — секреты (токены, ключи)
+~/.agent/bot/        — код самого бота (read-only)
+~/.agent/state.json  — конфигурация бота</code></pre></div>
+<p>Это не «жёлтое» и не «красное» — это запрет. Даже если Вы попросите — Агент откажет и объяснит почему.</p>
+<h2>Мой Вам совет</h2>
+<p>Если видите, что Агент постоянно спрашивает разрешение на что-то, что кажется Вам простым — проверьте, не попадает ли это действие в красный список. Скорее всего, Агент видит риск, который не очевиден с первого взгляда.</p>
+<p>И наоборот: если Агент сделал что-то, не спросив — это зелёный или жёлтый уровень. Не значит, что он «своевольничает» — значит, правила разрешают это делать самостоятельно.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/architecture/glossary">Глоссарий</a></li><li class="article-siblings__item"><a href="/architecture/soul-md">Что такое SOUL.md</a></li><li class="article-siblings__item"><a href="/architecture/architecture-dna">9 файлов, из которых сделан Агент</a></li><li class="article-siblings__item"><a href="/architecture/architecture-startup">Что происходит при каждом запуске</a></li><li class="article-siblings__item article-siblings__item--current"><span>«Светофор»: что Агент делает сам, что показывает, что спрашивает</span></li><li class="article-siblings__item"><a href="/architecture/architecture-workspace">Где что живёт на сервере</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

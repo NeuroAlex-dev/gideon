@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>SOUL.md и USER.md — личность Агента и Ваш профиль · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/memory">Память Агента</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>SOUL.md и USER.md — личность Агента и Ваш профиль</span>
+  </nav>
+        <h1>SOUL.md и USER.md — личность Агента и Ваш профиль</h1>
+        <div class="page-meta">6 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Два паспорта Агента — кто он сам и кто Вы. Без них он просто генерик-бот.</aside>
+        <p>Возможно, Вы уже заметили: Ваш Агент говорит не как обычный AI-помощник. У него своя манера, свой тон, он чувствует когда отшутиться, а когда серьёзно. Это не магия и не «нейросеть так обучилась». Это два маленьких текстовых файла на Вашем сервере. Один отвечает за то, <strong>какой Агент</strong>. Второй — за то, <strong>кто Вы</strong>. Вместе они делают разговор живым, а не дежурным.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Два файла — два смысла</div><div class="callout__body"><p><strong><code>SOUL.md</code></strong> — характер Агента: как говорить, что любит, чего не делает.</p>
+<p><strong><code>USER.md</code></strong> — кто Вы: имя, сфера, привычки, тон общения.</p>
+<p>Агент перечитывает оба перед каждым ответом. Поэтому он звучит как <strong>Ваш</strong>, а не как генерик-бот.</p></div></aside>
+<h2><code>SOUL.md</code> — личность Агента</h2>
+<p>Это самый важный файл его «души». Лежит в <code>~/workspace/SOUL.md</code>. Если коротко — там написано, <strong>каким Агенту быть</strong>:</p>
+<ul>
+<li><strong>Имя, стиль, тон, язык</strong> — например «Джарвис, тёплый старший товарищ, на Вы, по-русски».</li>
+</ul>
+<ul>
+<li><strong>Конституция</strong> — пять принципов в порядке приоритета. Главное там: «никаких необратимых действий без подтверждения» (это P1 — Агент сам себе запрещает удалять, форсить пуш, тратить деньги без Вашего ОК). И «честность» — если не знает, скажет «не знаю», а не придумает.</li>
+</ul>
+<ul>
+<li><strong>Drift Detector</strong> — список из шести антипаттернов, которые Агент сам у себя замечает. «Я три ответа подряд выдал списком» — стоп, перейти на живую речь. «Я отвечаю как generic AI» — стоп, перечитать SOUL.md.</li>
+</ul>
+<ul>
+<li><strong>Формат ответа</strong> — короткие абзацы, без хайп-эмодзи (🎉🚀✨ запрещены), без штампов «Конечно!», «Отличный вопрос!».</li>
+</ul>
+<ul>
+<li><strong>Запрещённые паттерны</strong> — конкретные фразы и привычки, от которых Агент держится подальше.</li>
+</ul>
+<blockquote><p>💬 <strong>Перевод термина:</strong> «конституция» — пять правил Агента, которые он сам себе ставит выше всего. Если Вы попросите что-то опасное — он остановится не потому что «не умеет», а потому что <strong>сам себе запретил</strong>.</p></blockquote>
+<p>Этот файл заполняется при первой настройке (BOOTSTRAP), но потом Вы можете дописать что угодно. Хотите чтобы Агент звал Вас «командир» — допишите. Хотите чтобы не использовал слова «короче» и «типа» — допишите в запрещённые. Он будет соблюдать.</p>
+<h2><code>USER.md</code> — Ваш профиль</h2>
+<p>Это файл про <strong>Вас</strong>. Лежит в <code>~/workspace/USER.md</code>. Гораздо короче <code>SOUL.md</code>, потому что задача простая — рассказать Агенту, с кем он говорит:</p>
+<ul>
+<li><strong>Имя, сфера, роль</strong> — «Дмитрий, эксперт по нейросетям в бизнесе, веду курс».</li>
+</ul>
+<ul>
+<li><strong>Контекст работы</strong> — чем занимаетесь, какие задачи решаете.</li>
+</ul>
+<ul>
+<li><strong>Технический уровень</strong> — «писал на Python в институте, верстал лендинги, к коду подхожу спокойно».</li>
+</ul>
+<ul>
+<li><strong>Коммуникация</strong> — текст или голос, тон обращения, сколько готовы читать в одном ответе.</li>
+</ul>
+<p>Заполняется естественно, в первом же разговоре. Агент задаёт несколько вопросов («чем занимаетесь?», «как удобнее общаться?») и складывает ответы сюда. Через неделю работы файл становится точным портретом — и Агент перестаёт спрашивать одно и то же по третьему кругу.</p>
+<h2>Как они работают вместе</h2>
+<p>Представьте: Вы пишете «Сделай отчёт по продажам за апрель». Что происходит у Агента в голове за полсекунды:</p>
+<ol>
+<li>Открывает <code>SOUL.md</code> — <em>«Я Джарвис, на Вы, без хайп-эмодзи, действия важнее отчётов, при необратимом действии — стоп».</em></li>
+</ol>
+<ol>
+<li>Открывает <code>USER.md</code> — <em>«Это Дмитрий. Веду курс. Не люблю длинные ответы. Технически подкован, можно говорить без упрощений».</em></li>
+</ol>
+<ol>
+<li>Открывает <code>MEMORY.md</code> — <em>«Продажи за апрель — это про курс “Архитектор”, ему нужны цифры по конверсии и по сделкам».</em></li>
+</ol>
+<ol>
+<li>Только после этого пишет ответ.</li>
+</ol>
+<p>Поэтому Вы и получаете «своего» Агента, а не одинакового для всех. Уберите <code>SOUL.md</code> — он станет вежливым, но безликим. Уберите <code>USER.md</code> — он будет каждый раз спрашивать «а что у Вас за бизнес?». Вместе они превращают набор файлов в живого помощника.</p>
+<h2>Что можно трогать ручками</h2>
+<div class="access-grid">
+
+<div class="access-card access-card--green">
+<div class="access-card__title">✅ МОЖНО СМЕЛО</div>
+<div class="access-card__zones">
+<code>USER.md</code> — это про Вас.
+<small>Меняйте сферу, тон, контакты — Агент только спасибо скажет.</small>
+
+<code>SOUL.md</code> разделы стиля и тона.
+<small>Хотите другое имя, другой формат — пишите. Конституцию P0–P4 не выкидывайте.</small>
+</div>
+<p>&lt;/div&gt;</p>
+<div class="access-card access-card--yellow">
+<div class="access-card__title">⚠️ ОСТОРОЖНО</div>
+<div class="access-card__zones">
+<code>SOUL.md</code> Drift Detector и Запрещённые паттерны.
+<small>Можно дополнить своими, но не удаляйте оптом — без них Агент уезжает в режим робота.</small>
+</div>
+<p>&lt;/div&gt;</p>
+<div class="access-card access-card--red">
+<div class="access-card__title">❌ НЕ ТРОГАТЬ</div>
+<div class="access-card__zones">
+Принцип P1 «No Irreversible Harm».
+<small>Это его страховка от удаления данных, force-push и трат денег. Отключите — будете жалеть.</small>
+
+Удалять файлы целиком.
+<small>Без `SOUL.md` Агент станет генерик-AI. Без `USER.md` — забудет кто Вы.</small>
+</div>
+<p>&lt;/div&gt;</p>
+<p>&lt;/div&gt;</p>
+<p>Если переживаете — перед правкой просто скажите Агенту: «Хочу поменять <code>SOUL.md</code>, покажи что там сейчас и подскажи где безопасно править». Он откроет, прочитает Вам и скажет «вот сюда — ОК, а сюда лучше не лезть». Это его файл — он знает.</p>
+<h2>Мой Вам совет</h2>
+<p>Откройте сейчас оба файла глазами хотя бы раз. Просто скажите Агенту: «Прочитай мне свой <code>SOUL.md</code> и расскажи, что в нём про тебя сказано». Послушайте — может удивить. Потом так же про <code>USER.md</code>: «расскажи что ты про меня знаешь».</p>
+<p>После такой «инвентаризации» обычно появляется два-три желания: «вот это поправить», «вот это добавить». Скажите — Агент сам отредактирует и покажет diff. Никаких текстовых редакторов, никаких страхов.</p>
+<p>И главное: эти два файла — не настройки в админке. Это <strong>живые тетради</strong>, которые с Вами растут. Чем больше Вы работаете — тем точнее они становятся. Через месяц перечитаете — и сами улыбнётесь, как точно там Вы описаны.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/memory/memory-three-levels">Три уровня памяти Агента — почему он умнее ChatGPT</a></li><li class="article-siblings__item article-siblings__item--current"><span>SOUL.md и USER.md — личность Агента и Ваш профиль</span></li><li class="article-siblings__item"><a href="/docs/memory/memory-md">MEMORY.md — что помнить навсегда</a></li><li class="article-siblings__item"><a href="/docs/memory/daily-notes">Дневники — хроника работы дня</a></li><li class="article-siblings__item"><a href="/docs/memory/knowledge-base">knowledge/ — тематические справочники</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

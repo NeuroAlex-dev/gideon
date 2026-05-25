@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Установка Агента — четыре шага до работающего бота · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/start">Старт</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Установка Агента — четыре шага до работающего бота</span>
+  </nav>
+        <h1>Установка Агента — четыре шага до работающего бота</h1>
+        <div class="page-meta">10 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Это как переезд в новую квартиру — дом построен, мебель завезли, осталось получить ключи и заехать.</aside>
+        <p>Это главная инструкция. Полный путь от пустых рук до момента, когда Ваш Агент поприветствует Вас лично и скажет «Здравствуйте, готов к работе». Шагов четыре, времени — тридцать-сорок минут с чашкой чая. Никакого чёрного окна терминала Вам открывать не придётся.</p>
+<p>Сразу поставлю Вас в общую картину. Установка устроена так: Вы арендуете маленький сервер в интернете, заводите Telegram-бота через <code>@BotFather</code>, проверяете подписку Claude — а дальше Claude Code на Вашем ноутбуке сам заходит на сервер и разворачивает там всё необходимое. В конце Вы открываете сервер через VS Code и разворачиваете Конструктор Агентов одной командой.</p>
+<p>Главная мысль: всю техническую работу делает Claude Code. От Вас — три «билета» (IP сервера + пароль, токен бота, подписка Claude) и нажатия Enter в нужных местах.</p>
+<aside class="callout callout-важно"><span class="callout-icon" aria-hidden="true">!</span><div class="callout-body"><p>На этой странице нет ни одной команды для чёрного окна терминала. Всё, что выглядит как команда — это либо текст для чата с Claude Code (он сам поймёт, что с ним делать), либо команда, которую Claude Code продиктует серверу за Вас. Если в какой-то момент инструкция говорит «откройте терминал» — значит, вы смотрите не на ту страницу.</p></div></aside>
+<h2>Что нужно подготовить ДО старта</h2>
+<ul>
+<li><strong>VS Code и Claude Code на ноутбуке.</strong> Если Вы из выпускников курса — у Вас уже есть. Если пришли с эфира — поставьте сначала VS Code (бесплатно, <a href="https://code.visualstudio.com/" target="_blank" rel="noopener noreferrer">code.visualstudio.com</a>), потом расширение Claude Code (через маркет VS Code, ищите «Claude Code» от Anthropic). Один раз поставили — забыли. Это Ваш единственный «инструмент» в этой установке.</li>
+<li><strong>Подписка Claude — Pro или Max.</strong> Pro подходит, Max — комфортнее по лимитам, но не обязателен. Главное — что подписка есть и работает у Вас на ноутбуке, в обычном чате Claude.</li>
+<li><strong>Telegram под рукой.</strong> Через него заведём бота и в конце заберём промпт у <code>@jarchitect_bot</code>.</li>
+<li><strong>VPS — арендованный сервер.</strong> Минимальный тариф доступен у <a href="https://beget.com/cloud" target="_blank" rel="noopener noreferrer">Beget</a>, <a href="https://timeweb.cloud/" target="_blank" rel="noopener noreferrer">Timeweb</a> или <a href="https://www.digitalocean.com/" target="_blank" rel="noopener noreferrer">Digital Ocean</a>. Принимают российские карты.</li>
+</ul>
+<aside class="callout callout-перевод"><span class="callout-icon" aria-hidden="true">💬</span><div class="callout-body"><p><strong>VS Code</strong> — это бесплатный редактор от Microsoft, в который встраивается Claude Code расширением. Думайте про него как про окно, в котором живёт Claude. Сам по себе VS Code ничего не делает, он просто даёт Claude дом на Вашем ноутбуке.</p>
+<p><strong>Claude Code</strong> — это Ваш умный помощник внутри VS Code. Тот, кому Вы говорите задачи человеческим языком: «зайди на сервер, поставь то-то, перенеси такие-то файлы». Он сам разбирается как и что выполнить. Ему не нужно объяснять что такое SSH или какая команда чем отличается — он сам всё знает.</p></div></aside>
+<h2>Маршрут установки</h2>
+<pre class="tree-diagram">
+🏁 Старт
+   │
+   ├── 1️⃣ Арендуем VPS                   (~5 мин — заходите на сайт хостинга)
+   ├── 2️⃣ Создаём бота в @BotFather      (~3 мин — два вопроса, один токен)
+   ├── 3️⃣ Проверяем подписку Claude       (~1 мин)
+   └── 4️⃣ Запускаем установку через Claude Code (~30 мин, Claude Code делает сам)
+          ├── Часть А. Установка сервера (локальный Claude Code + IP + токен бота)
+          └── Часть Б. Конструктор Агентов (@jarchitect_bot → персональный промпт)
+   │
+   ↓
+🎉 Готово — пишите своему Агенту в Telegram!
+</pre>
+<h2>Шаг 1. Арендуете сервер (~5 минут)</h2>
+<p>Идём на любой хостинг и заводим VPS. Я покажу на примере <a href="https://beget.com/cloud" target="_blank" rel="noopener noreferrer">Beget</a> — самый простой для новичка из России, поддержка на русском, оплата привычная, интерфейс понятный. Если Вам удобнее <a href="https://timeweb.cloud/" target="_blank" rel="noopener noreferrer">Timeweb</a> или <a href="https://www.digitalocean.com/" target="_blank" rel="noopener noreferrer">Digital Ocean</a> — берите там, шаги похожие.</p>
+<p>Заходите в раздел «Облачные серверы» и нажимаете «Создать сервер».</p>
+<p><img src="/screenshots/step1_beget_cloud.png" alt="Облачные серверы Beget" loading="lazy" /></p>
+<p><em>Скриншот — раздел «Облачные серверы» на Beget</em></p>
+<p>В параметрах выбираете: <strong>2 ядра CPU</strong>, <strong>4 ГБ RAM</strong>, <strong>40 ГБ диск</strong>, ОС <strong>Ubuntu 24.04</strong>. Этих параметров хватит и на Агента, и есть запас на рост памяти и проектов на годы вперёд.</p>
+<p><img src="/screenshots/step1_beget_params.png" alt="Параметры VPS на Beget" loading="lazy" /></p>
+<p><em>Скриншот — конфигуратор тарифа: 2 ядра, 4 ГБ, 40 ГБ, Ubuntu 24.04</em></p>
+<aside class="callout callout-перевод"><span class="callout-icon" aria-hidden="true">💬</span><div class="callout-body"><p><strong>VPS</strong> — это арендованный маленький компьютер в интернете, который включён 24/7. Стоит в дата-центре, никогда не выключается, имеет свой адрес. Вы арендуете его, как квартиру — заплатили, получили ключи, заехали. Нужен, чтобы Ваш Агент работал круглосуточно, даже когда Ваш ноутбук закрыт.</p></div></aside>
+<p>Через ~30 секунд после оплаты на почту от хостинга придёт письмо с тремя строчками: <strong>IP-адрес сервера</strong> (вида <code>123.45.67.89</code>), <strong>логин</strong> (<code>root</code>) и <strong>пароль</strong>. Сохраните это в надёжном месте — это ключи от новой квартиры Агента.</p>
+<p><img src="/screenshots/step1_email_creds.png" alt="Письмо от хостинга с данными доступа" loading="lazy" /></p>
+<p><em>Скриншот — письмо с IP, логином и паролем сервера</em></p>
+<aside class="callout callout-совет"><span class="callout-icon" aria-hidden="true">!</span><div class="callout-body"><p>Тариф берите с запасом по диску — Агент со временем накопит память, дневники, knowledge-базу, и место уйдёт быстрее чем кажется. 40 ГБ хватит на несколько лет спокойной работы.</p></div></aside>
+<aside class="callout callout--warning"><div class="callout__title">Один Агент — один сервер</div><div class="callout__body"><p>Под одного Агента лучше арендовать <strong>отдельный</strong> VPS. Если со временем захочется завести ещё одного (например, рабочего и личного) — поселите его на <strong>другой сервер</strong>. Так каждый Агент работает стабильнее, и память не перепутается.</p></div></aside>
+<h2>Шаг 2. Создаёте бота в @BotFather (~3 минуты)</h2>
+<p>В Telegram открываете <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer"><code>@BotFather</code></a>, нажимаете <strong>Start</strong> и пишете команду <code>/newbot</code>. Он спросит две вещи по очереди:</p>
+<ol>
+<li><strong>Имя бота</strong> — то, что увидят пользователи. Например: «Агент Анны» или любое красивое имя.</li>
+<li><strong>Username</strong> — техническое имя. Должно заканчиваться на <code>bot</code> или <code>_bot</code>, должно быть уникальным. Например: <code>anna_agent_bot</code>.</li>
+</ol>
+<p>После этого <code>@BotFather</code> пришлёт <strong>токен</strong> — длинную строку вида <code>1234567890:AAEh-xxxx...</code>. Скопируйте его и сохраните рядом с IP-адресом сервера.</p>
+<p><img src="/screenshots/step2_botfather_newbot.png" alt="Создание бота в BotFather" loading="lazy" /></p>
+<p><em>Скриншот — диалог с @BotFather: создание нового бота и получение токена</em></p>
+<aside class="callout callout-перевод"><span class="callout-icon" aria-hidden="true">💬</span><div class="callout-body"><p><strong>BotFather</strong> — это официальный бот Telegram, через который создаются все остальные боты. Он выдаёт каждому новому боту <strong>токен</strong> — длинную строку, как электронный ключ. По этому токену сервер потом сможет писать в Telegram от имени Вашего бота.</p></div></aside>
+<aside class="callout callout-осторожно"><span class="callout-icon" aria-hidden="true">!</span><div class="callout-body"><p>Токен бота — это пароль от Вашего бота. Не показывайте его в чатах, не выкладывайте в открытые места. Если случайно засветили — попросите у <code>@BotFather</code> команду <code>/revoke</code>, выберите бота, получите новый токен.</p></div></aside>
+<p>Бот пока не отвечает на сообщения — это нормально. Он оживёт после Шага 4, когда сервер с ним подружится.</p>
+<h2>Шаг 3. Проверяете подписку Claude (~1 минута)</h2>
+<p>Откройте <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">claude.ai</a> в браузере, войдите своим аккаунтом. Если в верхнем меню видите статус <strong>Pro</strong> или <strong>Max</strong> — всё, идёте дальше. Если статус <strong>Free</strong> — оформите Pro в настройках профиля.</p>
+<aside class="callout callout-перевод"><span class="callout-icon" aria-hidden="true">💬</span><div class="callout-body"><p><strong>Подписка Claude</strong> — это Ваш аккаунт на claude.ai, которым Вы пользуетесь в обычном чате. Агент будет работать через эту же подписку — лимиты идут оттуда, отдельно за его работу ничего платить не нужно.</p></div></aside>
+<p>Убедитесь, что Вы помните логин/пароль от аккаунта Claude — они понадобятся в момент авторизации на сервере, в Шаге 4.</p>
+<h2>Шаг 4. Запускаете установку через Claude Code (~30 минут)</h2>
+<p>Самый большой шаг, но самый интересный. Здесь Claude Code на ноутбуке сам сходит на Ваш сервер и всё установит.</p>
+<p>Делается в <strong>две части</strong>: сначала ставим сервер (Часть А, ~20 минут), потом устанавливаем Конструктор Агентов через персональный промпт (Часть Б, ~2 минуты).</p>
+<h3>Часть А. Установка сервера локальным Claude Code</h3>
+<p>Откройте VS Code на ноутбуке. Создайте любую папку на рабочем столе — например, <code>agent-setup</code> — и откройте её в VS Code (<code>File → Open Folder</code>). Запустите Claude Code.</p>
+<p>Скопируйте в Claude Code этот установочный промпт, замените <strong>три значения</strong> на свои и нажмите Enter:</p>
+<div class="codeblock" data-lang="text"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Скачай инструкцию с
+https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/server/INSTALL-SERVER.md
+и выполни всё, что в ней написано.
+
+IP: 123.45.67.89
+Пароль: ваш-пароль-от-сервера
+Telegram-бот: 1234567890:AAEh-xxxxxxxxxxxxxxxxxxxxxxxx</code></pre></div>
+<p>Замените:</p>
+<ul>
+<li><code>123.45.67.89</code> → Ваш реальный IP из письма хостинга</li>
+<li><code>ваш-пароль-от-сервера</code> → Ваш пароль <code>root</code></li>
+<li><code>1234567890:AAEh-xxxx...</code> → Ваш токен от <code>@BotFather</code></li>
+</ul>
+<aside class="callout callout-совет"><span class="callout-icon" aria-hidden="true">!</span><div class="callout-body"><p>Пароль и токен Вы пишете прямо в чат Claude Code на ноутбуке. Они никуда не уходят дальше — Claude Code хранит их только в этой переписке. Сразу после установки можете поменять пароль через панель хостинга, а токен — через <code>/revoke</code> у <code>@BotFather</code>. Оба они уже сделают своё дело.</p></div></aside>
+<p>Дальше Claude Code ведёт Вас за руку. Сам подключается к серверу, разворачивает программы, поднимает Telegram-бота как службу. Перед каждым шагом одной фразой объясняет, что сейчас будет делать, после — что получилось.</p>
+<p>Что Claude Code сделает по шагам:</p>
+<ol>
+<li>Подключится к Вашему серверу по SSH</li>
+<li>Установит базовые программы — Node.js, Claude Code CLI</li>
+<li>Создаст на сервере отдельного пользователя <code>agent</code></li>
+<li>Поставит базовые скиллы (готовые роли: писатель, разведчик, разработчик, дизайнер)</li>
+<li>Поднимет Telegram-бота как службу 24/7</li>
+<li>Попросит Вас один раз авторизовать Claude на сервере (через ссылку)</li>
+<li>Настроит VS Code Tunnel, чтобы Вы могли открывать сервер из обычного VS Code</li>
+</ol>
+<h3>Авторизация Claude на сервере</h3>
+<p>В какой-то момент Claude Code напишет: «откройте эту ссылку, войдите своим аккаунтом Claude и нажмите Authorize». Это нужно один раз — чтобы Агент на сервере мог работать через Вашу подписку. Откройте ссылку в браузере, войдите как обычно, нажмите большую кнопку <strong>Authorize</strong>.</p>
+<p><img src="/screenshots/step5_claude_authorize.png" alt="Авторизация Claude Code" loading="lazy" /></p>
+<p><em>Скриншот — кнопка «Authorize» для подтверждения доступа Claude Code к серверу</em></p>
+<aside class="callout callout--tip"><div class="callout__title">Если выдало ошибку в браузере — не пугайтесь</div><div class="callout__body"><p>Это известная мелкая особенность Safari. Просто откройте ту же ссылку в Chrome или Firefox — заработает с первого раза. Ничего у Вас не сломалось.</p></div></aside>
+<p><img src="/screenshots/step5_browser_error.png" alt="Возможная ошибка в браузере" loading="lazy" /></p>
+<p><em>Скриншот — типичная ошибка браузера; решается переключением на Chrome или Firefox</em></p>
+<p>После авторизации вернитесь в Claude Code и скажите «готово» — он продолжит.</p>
+<p>Когда установка завершится, Claude Code напишет короткий отчёт: что поставлено, что сделать дальше. Telegram-бот к этому моменту уже жив — попробуйте написать Вашему боту в Telegram <code>/start</code>, он должен ответить.</p>
+<h3>Часть Б. Устанавливаем Конструктор Агентов</h3>
+<p>Когда Telegram-бот ответил на <code>/start</code> — сервер готов. Теперь устанавливаем Конструктор.</p>
+<p>Откройте <a href="https://t.me/jarchitect_bot" target="_blank" rel="noopener noreferrer"><code>@jarchitect_bot</code></a> в Telegram и напишите <code>/get</code>. Бот пришлёт Ваш персональный промпт и пошаговую инструкцию что с ним делать.</p>
+<aside class="callout callout-важно"><span class="callout-icon" aria-hidden="true">!</span><div class="callout-body"><p>Промпт персональный и работает <strong>один раз</strong> — это система защиты. Если что-то пошло не так или промпт сгорел — напишите боту <code>/new</code>, он выдаст свежий.</p></div></aside>
+<h2>Готово — Конструктор Агентов установлен</h2>
+<p>Когда Конструктор установлен, Ваш Агент автоматически прочитает опорные файлы (<code>CLAUDE.md</code>, <code>SOUL.md</code>, <code>MEMORY.md</code>, <code>GOALS.md</code>) и поприветствует Вас. Напишите что-нибудь — это уже первый разговор.</p>
+<p>Что у Вас сейчас есть:</p>
+<ul>
+<li><strong>Сервер</strong> в облаке, работает 24/7</li>
+<li><strong>Telegram-бот</strong> отвечает на Ваши сообщения через Вашу подписку Claude</li>
+<li><strong>Конструктор Агентов</strong> установлен и ждёт первого разговора</li>
+<li><strong>VS Code Tunnel</strong> — можно заходить на сервер с любого компьютера, где есть VS Code</li>
+</ul>
+<h2>Если что-то пошло не так</h2>
+<p><strong>Промпт от @jarchitect_bot уже использован или сгорел</strong> → напишите боту <code>/new</code>, он выдаст свежий. Один промпт работает один раз — это специально, для безопасности.</p>
+<p><strong>Claude Code на ноутбуке говорит «подключение не прошло»</strong> → вероятно SSH-порт у провайдера блокируется. Это редкий случай — напишите в <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer">@aibasis_bot</a>, разберёмся. Не пытайтесь чинить руками, не залезайте в веб-панель хостинга (там paste из буфера часто сломан и Вы только устанете).</p>
+<p>Все остальные типовые ситуации разобраны в <a href="/docs/troubleshooting/faq">разделе Troubleshooting</a> — заходите, ищите свой случай.</p>
+<h2>Мой Вам совет</h2>
+<p>Не торопитесь во время установки. Это случается один раз, и сделать это спокойно важнее, чем быстро. Прежде чем нажать Enter в Шаге 4 с паролем и токеном — перепроверьте, что заменили все три плейсхолдера. Это самая частая мелкая ошибка: «забыл подставить IP» или «забыл заменить пароль».</p>
+<p>И пока локальный Claude Code ставит сервер — не сидите над ним, не обновляйте чат каждые 10 секунд. Это нормальный процесс, он молча работает. Заварите чай, отойдите. Через 15-20 минут вернётесь — сервер и бот будут готовы, останется только часть Б.</p>
+<h2>Куда дальше</h2>
+<p>Когда Конструктор поприветствовал Вас и Вы увидели файлы в <code>~/jarvis-bonus/</code> — Вам прямой путь в <a href="/docs/start/first-day-checklist">Первый день с Агентом</a>. Там про то, как по-настоящему познакомиться с Конструктором, рассказать ему о себе и поставить первую настоящую задачу.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/start/welcome">Что такое Конструктор Агентов</a></li><li class="article-siblings__item"><a href="/docs/start/evolution">Эволюция Агента — как Ваш Агент становится умнее</a></li><li class="article-siblings__item article-siblings__item--current"><span>Установка Агента — четыре шага до работающего бота</span></li><li class="article-siblings__item"><a href="/docs/start/system-map">Карта дома Агента — где что живёт на сервере</a></li><li class="article-siblings__item"><a href="/docs/start/first-day-checklist">Первые шаги в первый день</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

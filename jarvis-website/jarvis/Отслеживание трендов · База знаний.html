@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Отслеживание трендов · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/monitoring">Мониторинг и тренды</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Отслеживание трендов</span>
+  </nav>
+        <h1>Отслеживание трендов</h1>
+        <div class="page-meta">4 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Агент не просто читает новости - он замечает, что одну тему обсуждают все, и говорит Вам об этом.</aside>
+        <p>Мониторинг - это не просто сбор новостей. Агент умеет замечать тренды: темы, которые набирают популярность, инструменты, о которых заговорили все, изменения в Вашей нише.</p>
+<h2>Как Агент находит тренды</h2>
+<p>Когда одну и ту же тему начинают обсуждать 3-5 разных каналов за короткое время - это тренд. Агент отслеживает такие совпадения и сообщает Вам.</p>
+<aside class="callout callout--insight"><div class="callout__title">Пример</div><div class="callout__body"><p>За два дня 4 канала написали про новую модель от Anthropic. Агент замечает это и пишет: &quot;Тренд: новая модель Claude. Обсуждается на 4 из 29 каналов. Вот краткая суть.&quot;</p></div></aside>
+<h2>Зачем это Вам</h2>
+<p><strong>Для контента.</strong> Если Вы ведёте канал или блог - тренды подсказывают, о чём писать прямо сейчас. Пока тема горячая, Ваш пост получит больше охвата.</p>
+<p><strong>Для бизнеса.</strong> Новый инструмент может изменить рынок. Узнаете раньше конкурентов - получите преимущество.</p>
+<p><strong>Для обучения.</strong> Мир нейросетей меняется каждую неделю. Тренды помогают не отстать и понимать, что сейчас актуально.</p>
+<h2>Как использовать</h2>
+<p>Спросите Агента:</p>
+<table>
+<thead><tr><th>Вопрос</th><th>Что получите</th></tr></thead>
+<tbody>
+<tr><td>&quot;Какие тренды на этой неделе?&quot;</td><td>Список горячих тем с пояснениями</td></tr>
+<tr><td>&quot;Что обсуждают в нише нейросетей?&quot;</td><td>Выборка по Вашей тематике</td></tr>
+<tr><td>&quot;О чём пишут мои конкуренты?&quot;</td><td>Анализ каналов конкурентов</td></tr>
+<tr><td>&quot;Есть ли новые инструменты?&quot;</td><td>Новинки, о которых заговорили</td></tr>
+</tbody></table>
+<h2>Тренды для создания контента</h2>
+<p>Агент не просто скажет &quot;вот тренд&quot;. Вы можете попросить его пойти дальше:</p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Напиши пост для моего канала на тему этого тренда</code></pre></div>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Сделай карусель для Instagram про это обновление</code></pre></div>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Подготовь сценарий для короткого видео на эту тему</code></pre></div>
+<p>Агент знает Ваш стиль (из SOUL.md) и напишет контент так, как Вы обычно пишете.</p>
+<h2>Автоматическое пополнение базы знаний</h2>
+<p>Всё, что Агент находит через мониторинг, сохраняется в его базу знаний. Со временем это работает как энциклопедия:</p>
+<ul>
+<li>Через месяц можно спросить: &quot;Какие главные новости были в апреле?&quot;</li>
+<li>Через полгода: &quot;Как менялись тренды в нейросетях за последние 6 месяцев?&quot;</li>
+</ul>
+<p>База знаний растёт автоматически. Вам не нужно ничего делать - просто пользуйтесь.</p>
+<aside class="callout callout--warning"><div class="callout__body"><p>Мониторинг хранит данные за последние 30 дней. Старые записи удаляются автоматически, чтобы не занимать место. Если нужно сохранить что-то важное надолго - попросите Агента записать в knowledge/.</p></div></aside>
+<h2>Как настроить под свою нишу</h2>
+<p>Тренды будут полезнее, если Агент следит за каналами именно из Вашей сферы. Пример:</p>
+<ul>
+<li><strong>Нейросети:</strong> каналы про AI, обзоры инструментов, разработчики</li>
+<li><strong>Маркетинг:</strong> каналы про рекламу, воронки, кейсы</li>
+<li><strong>E-commerce:</strong> каналы про маркетплейсы, тренды товаров, аналитика</li>
+</ul>
+<p>Скажите Агенту: &quot;Добавь в мониторинг каналы про [Вашу тему]&quot; - и он подберёт подходящие источники.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/monitoring/monitoring-what-is">Как подключить мониторинг</a></li><li class="article-siblings__item"><a href="/docs/monitoring/monitoring-sources">Источники и дайджесты</a></li><li class="article-siblings__item article-siblings__item--current"><span>Отслеживание трендов</span></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

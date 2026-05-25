@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Как Агент работает с проектами · База знаний</title>
+    <meta name="description" content="У Агента есть квартира (~/workspace/) и офисное здание (~/projects/). В квартире -личность. В офисе -рабочие проекты. Каждый этаж -отдельный проект." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects" class="is-active">Проекты</a>
+          <a href="/mcp">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/projects">Проекты</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Как Агент работает с проектами</span>
+  </nav>
+        <h1>Как Агент работает с проектами</h1>
+        <div class="page-meta">5 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">У Агента есть квартира (~/workspace/) и офисное здание (~/projects/). В квартире -личность. В офисе -рабочие проекты. Каждый этаж -отдельный проект.</aside>
+<p>Ваш Агент умеет вести несколько проектов одновременно: сайт, бот, контент-план, исследование -каждый в своей папке, со своими заметками, не мешая друг другу. Эта статья объясняет как устроена структура и как переключаться между проектами.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Два мира -личность и работа</div><div class="callout__body"><p><code>~/workspace/</code> -это личность Агента: память, характер, цели, скиллы. Она одна и общая для всех проектов.</p>
+<p><code>~/projects/</code> -это рабочие проекты: каждый в своей папке, со своими файлами и заметками. Проектов может быть сколько угодно.</p></div></aside>
+<h2>Структура на сервере</h2>
+<pre class="tree-diagram">
+🤖 Сервер Агента
+│
+├── 📂 ~/workspace/                Личность (общая)
+│      ├── SOUL.md                 характер
+│      ├── MEMORY.md               долгосрочная память
+│      ├── GOALS.md                текущие цели
+│      ├── USER.md                 профиль владельца
+│      ├── memory/                 дневники
+│      ├── knowledge/              справочники
+│      └── .claude/skills/         скиллы (14 штук)
+│
+└── 📂 ~/projects/                 Рабочие проекты
+       ├── my-website/             сайт-визитка
+       │     ├── memory/           заметки проекта
+       │     ├── knowledge/        решения проекта
+       │     └── ...               код, файлы
+       ├── telegram-bot/           Telegram-бот
+       └── content-plan/           контент-план
+</pre>
+<h2>Как создать новый проект</h2>
+<p>Просто скажите Агенту:</p>
+<blockquote><p>«Создай новый проект landing-page»</p></blockquote>
+<p>Агент создаст папку <code>~/projects/landing-page/</code> с подпапками <code>memory/</code> и <code>knowledge/</code> внутри. Дальше все файлы этого проекта будут жить здесь.</p>
+<p>Или создайте проект через git:</p>
+<blockquote><p>«Склонируй репозиторий https://github.com/user/repo в projects»</p></blockquote>
+<p>Агент выполнит <code>git clone</code> в <code>~/projects/repo/</code>.</p>
+<h2>Как переключаться между проектами</h2>
+<blockquote><p>«Работаем над проектом my-website»</p></blockquote>
+<p>Агент переключит фокус на папку <code>~/projects/my-website/</code>. Теперь все правки, поиск, чтение файлов -в контексте этого проекта.</p>
+<p>Но личность Агента (<code>SOUL.md</code>, <code>MEMORY.md</code>, <code>USER.md</code>) остаётся из <code>~/workspace/</code>. Агент всегда знает кто Вы, что Вам важно, в каком стиле общаться -независимо от проекта.</p>
+<h2>Изоляция проектов</h2>
+<p>Каждый проект <strong>изолирован</strong> от других:</p>
+<ul>
+<li>Заметки <code>memory/</code> в одном проекте не видны из другого</li>
+<li>Решения <code>knowledge/</code> хранятся отдельно</li>
+<li>Git-репозитории независимы</li>
+</ul>
+<p>Это значит, что Агент не перепутает контекст сайта-визитки с контекстом Telegram-бота. Каждый проект -отдельное пространство.</p>
+<h2>Два интерфейса -один диск</h2>
+<p>Если у Вас подключён VS Code Tunnel (<code>/connect</code>), оба интерфейса смотрят на одни и те же файлы:</p>
+<ul>
+<li><strong>Telegram</strong> -через Агента. Удобно для задач, вопросов, генерации.</li>
+<li><strong>VS Code</strong> -через браузер или приложение. Удобно для правки кода, просмотра структуры, загрузки файлов.</li>
+</ul>
+<p>Правило: <code>~/workspace/</code> -территория Агента (через Telegram). <code>~/projects/</code> -территория VS Code (через туннель). Агент не трогает проекты без Вашей просьбы.</p>
+<p>Если Вы правите файл в VS Code, а Агент одновременно тоже хочет его править -он увидит это через <code>git status</code> и спросит, прежде чем что-то менять.</p>
+<h2>Мой Вам совет</h2>
+<p>Не держите все файлы в <code>~/workspace/</code>. Туда идёт только личность Агента и общие знания. Рабочие задачи -в <code>~/projects/</code>, каждая в своей папке.</p>
+<p>Когда начинаете новую тему -создайте проект. Когда заканчиваете -проект остаётся на диске как архив. Через месяц можно вернуться и Агент вспомнит контекст из <code>memory/</code> и <code>knowledge/</code> этого проекта.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item article-siblings__item--current"><span>Как Агент работает с проектами</span></li><li class="article-siblings__item"><a href="/projects/projects-backup">Бэкапы -что сохранять и как не потерять</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

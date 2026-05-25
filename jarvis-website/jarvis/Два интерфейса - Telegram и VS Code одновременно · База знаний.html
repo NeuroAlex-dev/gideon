@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Два интерфейса - Telegram и VS Code одновременно · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/vscode">VS Code Tunnel</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Два интерфейса - Telegram и VS Code одновременно</span>
+  </nav>
+        <h1>Два интерфейса - Telegram и VS Code одновременно</h1>
+        <div class="page-meta">3 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Двое в одном офисе - один говорит задачи, второй проверяет результат.</aside>
+        <p>Telegram и VS Code смотрят на один и тот же сервер. Вы можете работать через оба интерфейса одновременно - давать задачи в Telegram и сразу видеть результат в VS Code.</p>
+<h2>Как это работает</h2>
+<p>Представьте: Вы сидите в Telegram и говорите Агенту &quot;сделай лендинг&quot;. Параллельно открыт VS Code. Как только Агент создаст файл - Вы тут же увидите его в дереве файлов VS Code.</p>
+<table>
+<thead><tr><th>Действие в Telegram</th><th>Что видите в VS Code</th></tr></thead>
+<tbody>
+<tr><td>&quot;Создай файл index.html&quot;</td><td>Файл появляется в дереве</td></tr>
+<tr><td>&quot;Напиши в MEMORY.md что я люблю кофе&quot;</td><td>MEMORY.md обновляется</td></tr>
+<tr><td>&quot;Сделай git commit&quot;</td><td>Появляется новый коммит</td></tr>
+</tbody></table>
+<p>И наоборот: если Вы отредактируете файл в VS Code - Агент увидит изменения при следующем обращении к этому файлу.</p>
+<h2>Правила совместной работы</h2>
+<aside class="callout callout--insight"><div class="callout__title">Один диск - два входа</div><div class="callout__body"><p>Все файлы - общие. Telegram и VS Code работают с одними и теми же папками. Изменения одного видны другому.</p></div></aside>
+<p><strong>Что важно помнить:</strong></p>
+<ol>
+<li><strong>Не правьте файл одновременно.</strong> Если Агент работает над файлом - не редактируйте его в VS Code в этот момент. Дождитесь, пока Агент закончит.</li>
+</ol>
+<ol>
+<li><strong>Агент видит Ваши правки.</strong> Если Вы что-то изменили в VS Code, а потом попросили Агента &quot;прочитай этот файл&quot; - он увидит Вашу версию.</li>
+</ol>
+<ol>
+<li><strong>Git-изменения общие.</strong> Если Вы сделали <code>git commit</code> в VS Code - Агент увидит это в <code>git log</code>. Если Агент закоммитил - Вы увидите в VS Code.</li>
+</ol>
+<h2>Когда использовать что</h2>
+<table>
+<thead><tr><th>Задача</th><th>Лучше через</th></tr></thead>
+<tbody>
+<tr><td>Дать задачу Агенту</td><td>Telegram</td></tr>
+<tr><td>Быстро поправить опечатку в файле</td><td>VS Code</td></tr>
+<tr><td>Посмотреть результат работы</td><td>VS Code</td></tr>
+<tr><td>Скачать файл</td><td>VS Code</td></tr>
+<tr><td>Проверить MEMORY.md</td><td>VS Code</td></tr>
+<tr><td>Создать сайт или написать код</td><td>Telegram (Агент напишет)</td></tr>
+<tr><td>Работать с git</td><td>Оба подходят</td></tr>
+<tr><td>Запустить тесты</td><td>VS Code (терминал)</td></tr>
+</tbody></table>
+<h2>Можно ли работать только через Telegram?</h2>
+<p>Да. VS Code - дополнительный инструмент, не обязательный. Всё, что можно сделать в VS Code, можно попросить Агента сделать через Telegram:</p>
+<ul>
+<li>&quot;Покажи содержимое MEMORY.md&quot;</li>
+<li>&quot;Отправь мне файл index.html&quot;</li>
+<li>&quot;Какие файлы есть в папке projects?&quot;</li>
+</ul>
+<p>VS Code просто быстрее для некоторых задач - особенно если нужно пролистать много файлов или поправить текст вручную.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/vscode/vscode-what-is">Что такое VS Code Tunnel и зачем он нужен</a></li><li class="article-siblings__item"><a href="/docs/vscode/vscode-connect">Как подключиться к VS Code Tunnel</a></li><li class="article-siblings__item"><a href="/docs/vscode/vscode-workflow">Работа с файлами и терминалом</a></li><li class="article-siblings__item article-siblings__item--current"><span>Два интерфейса - Telegram и VS Code одновременно</span></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

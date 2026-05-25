@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>5 примеров - что можно сделать с MCP · База знаний</title>
+    <meta name="description" content="MCP превращает Агента из собеседника в рабочую лошадку. Подключили календарь - Агент планирует встречи. Подключили почту - Агент пишет и отвечает. Подключили таблицы - Агент считает." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp" class="is-active">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/mcp">MCP</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>5 примеров - что можно сделать с MCP</span>
+  </nav>
+        <h1>5 примеров - что можно сделать с MCP</h1>
+        <div class="page-meta">7 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">MCP превращает Агента из собеседника в рабочую лошадку. Подключили календарь - Агент планирует встречи. Подключили почту - Агент пишет и отвечает. Подключили таблицы - Агент считает.</aside>
+<p>MCP позволяет Агенту работать с внешними сервисами напрямую. Не через копирование данных туда-сюда, а через прямое подключение. Ниже пять примеров для повседневных и бизнес-задач: что подключить, как настроить, какие команды давать Агенту.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Подключил - используй</div><div class="callout__body"><p>Каждый MCP-сервер дает Агенту набор новых действий. После подключения Вы просто описываете задачу обычными словами - Агент сам вызывает нужное действие из подключенного сервиса.</p></div></aside>
+<h2>1. Google Calendar - планирование дня</h2>
+<p>Подключив календарь, Агент видит Ваше расписание, создает события, ищет свободные окна и напоминает о встречах.</p>
+<p><strong>Как подключить:</strong></p>
+<p>Скажите Агенту:</p>
+<blockquote><p>«Подключи MCP-сервер Google Calendar»</p></blockquote>
+<p>Агент добавит в <code>~/.claude.json</code>:</p>
+<div class="codeblock" data-lang="json"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>{
+  &quot;google-calendar&quot;: {
+    &quot;type&quot;: &quot;http&quot;,
+    &quot;url&quot;: &quot;адрес_вашего_mcp_сервера&quot;,
+    &quot;headers&quot;: {
+      &quot;Authorization&quot;: &quot;Bearer ваш_токен&quot;
+    }
+  }
+}</code></pre></div>
+<p><strong>Что можно делать:</strong></p>
+<blockquote><p>«Какие у меня встречи на сегодня?»</p></blockquote>
+<blockquote><p>«Поставь созвон с Настей на четверг в 15:00, тема - обсуждение контент-плана»</p></blockquote>
+<blockquote><p>«Найди свободное окно на следующей неделе для двухчасовой сессии»</p></blockquote>
+<blockquote><p>«Напоминай мне каждое утро в 8:00, что запланировано на день»</p></blockquote>
+<h2>2. Gmail - почта без открытия почты</h2>
+<p>Агент читает входящие, пишет черновики, отвечает на письма и сортирует по важности. Вы не открываете почтовый клиент - всё через Telegram.</p>
+<p><strong>Что можно делать:</strong></p>
+<blockquote><p>«Покажи непрочитанные письма за сегодня»</p></blockquote>
+<blockquote><p>«Напиши ответ Алексею: спасибо, всё получил, встречаемся в среду»</p></blockquote>
+<blockquote><p>«Найди все письма от Сбербанка за последний месяц»</p></blockquote>
+<blockquote><p>«Отсортируй входящие: что срочно, что может подождать, что спам»</p></blockquote>
+<h2>3. Google Sheets - таблицы и отчеты</h2>
+<p>Агент работает с таблицами напрямую: читает данные, добавляет строки, считает итоги, строит сводки. Идеально для учета, CRM, финансов.</p>
+<p><strong>Что можно делать:</strong></p>
+<blockquote><p>«Открой таблицу &quot;Продажи апрель&quot; и покажи итог по столбцу &quot;Сумма&quot;»</p></blockquote>
+<blockquote><p>«Добавь в таблицу клиентов: Иванов Петр, +7-999-123-45-67, заявка на консультацию»</p></blockquote>
+<blockquote><p>«Сделай сводку по продажам за неделю из таблицы &quot;CRM&quot;»</p></blockquote>
+<blockquote><p>«Выгрузи список клиентов, которые не покупали больше 30 дней»</p></blockquote>
+<h2>4. Pencil - дизайн макетов из Telegram</h2>
+<p>Этот MCP-сервер уже установлен на Вашем сервере из коробки. Агент умеет открывать файлы макетов (<code>.pen</code>), менять текст, цвета, экспортировать картинки.</p>
+<p><strong>Конфигурация</strong> (уже есть в <code>~/.claude.json</code>):</p>
+<div class="codeblock" data-lang="json"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>{
+  &quot;pencil&quot;: {
+    &quot;type&quot;: &quot;stdio&quot;,
+    &quot;command&quot;: &quot;/home/agent/.pencil/mcp/visual_studio_code/out/mcp-server-linux-x64&quot;,
+    &quot;args&quot;: [&quot;--app&quot;, &quot;visual_studio_code&quot;],
+    &quot;env&quot;: {}
+  }
+}</code></pre></div>
+<p><strong>Что можно делать:</strong></p>
+<blockquote><p>«Открой макет визитки и поменяй номер телефона на +7-999-000-00-00»</p></blockquote>
+<blockquote><p>«Сделай скриншот главной страницы из макета landing.pen»</p></blockquote>
+<blockquote><p>«Экспортируй логотип из макета в PNG»</p></blockquote>
+<h2>5. Данные с сайтов - аналитика и мониторинг</h2>
+<p>Supadata - MCP-сервер для получения информации с веб-страниц. Полезен для мониторинга конкурентов, сбора контента, анализа рынка.</p>
+<p><strong>Конфигурация:</strong></p>
+<div class="codeblock" data-lang="json"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>{
+  &quot;supadata&quot;: {
+    &quot;type&quot;: &quot;http&quot;,
+    &quot;url&quot;: &quot;https://mcp.supadata.dev/v1&quot;
+  }
+}</code></pre></div>
+<p><strong>Как подключить:</strong></p>
+<blockquote><p>«Подключи MCP-сервер supadata, тип http, URL: https://mcp.supadata.dev/v1»</p></blockquote>
+<p><strong>Что можно делать:</strong></p>
+<blockquote><p>«Достань текст статьи с этого URL и сделай краткую выжимку»</p></blockquote>
+<blockquote><p>«Получи расшифровку этого YouTube-видео»</p></blockquote>
+<blockquote><p>«Собери описания товаров с этой страницы и оформи в таблицу»</p></blockquote>
+<h2>Как подключить любой новый MCP-сервер</h2>
+<p>Для всех примеров выше формат одинаковый. Скажите Агенту:</p>
+<blockquote><p>«Подключи MCP-сервер [название], URL: [адрес]»</p></blockquote>
+<p>Или если сервер запускается локально:</p>
+<blockquote><p>«Подключи MCP-сервер [название], команда: npx [имя-пакета]»</p></blockquote>
+<p>Агент сам отредактирует <code>~/.claude.json</code> и подключится к сервису. Подробная инструкция с форматами - в статье «Как подключить MCP-сервер».</p>
+<h2>Сводная таблица</h2>
+<table>
+<thead><tr><th>Задача</th><th>MCP-сервер</th><th>Для чего</th></tr></thead>
+<tbody>
+<tr><td>Планирование</td><td>Google Calendar</td><td>Расписание, встречи, напоминания</td></tr>
+<tr><td>Почта</td><td>Gmail</td><td>Чтение, ответы, сортировка</td></tr>
+<tr><td>Таблицы и CRM</td><td>Google Sheets</td><td>Учет клиентов, продажи, отчеты</td></tr>
+<tr><td>Дизайн</td><td>Pencil</td><td>Макеты, картинки, визитки</td></tr>
+<tr><td>Аналитика</td><td>Supadata</td><td>Данные с сайтов, расшифровки видео</td></tr>
+</tbody></table>
+<h2>Мой Вам совет</h2>
+<p>Начните с того, чем пользуетесь каждый день. Если весь день в почте - подключите Gmail. Если ведете клиентов в таблице - подключите Google Sheets. Если много встреч - Google Calendar.</p>
+<p>Pencil уже установлен из коробки. Supadata подключается без ключа - бесплатно.</p>
+<p>Не подключайте всё сразу. Один сервис, попробовали, привыкли - потом следующий.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/mcp/mcp-what-is">Что такое MCP и зачем он Агенту</a></li><li class="article-siblings__item"><a href="/mcp/mcp-setup">Как подключить MCP-сервер -пошаговая инструкция</a></li><li class="article-siblings__item article-siblings__item--current"><span>5 примеров - что можно сделать с MCP</span></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

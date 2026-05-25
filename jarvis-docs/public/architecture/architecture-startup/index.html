@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Что происходит при каждом запуске · База знаний</title>
+    <meta name="description" content="Представьте сотрудника, который каждое утро перед работой читает папку с личным делом. Именно так Агент начинает каждый диалог." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture" class="is-active">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/architecture">Архитектура</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Что происходит при каждом запуске</span>
+  </nav>
+        <h1>Что происходит при каждом запуске</h1>
+        <div class="page-meta">4 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Представьте сотрудника, который каждое утро перед работой читает папку с личным делом. Именно так Агент начинает каждый диалог.</aside>
+<p>Когда Вы пишете Агенту первое сообщение в диалоге — прежде чем он ответит, происходит кое-что важное. Агент читает пять источников по порядку. Этот порядок прописан в <code>CLAUDE.md</code> и не меняется.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Без файлов — обычный чат</div><div class="callout__body"><p>Дословно из CLAUDE.md: «Без этих файлов ты — обычный чат. С ними — мой Агент». Именно чтение файлов при запуске делает Агента <em>Вашим</em> — с памятью, с личностью, с пониманием Ваших текущих задач.</p></div></aside>
+<h2>Последовательность запуска</h2>
+<p>Из <code>CLAUDE.md</code> — дословно:</p>
+<p><strong>1. <code>SOUL.md</code></strong> — личность и стиль работы.</p>
+<p>Агент читает, кем он является, как обращается, что делает и чего не делает. Это первое, что он читает, — потому что стиль работы нужен с самого первого слова.</p>
+<p><strong>2. <code>MEMORY.md</code></strong> — долгосрочная память.</p>
+<p>Кто Вы, Ваши проекты, ключевые решения, которые Агент должен помнить. Здесь постоянные факты — они не меняются от сессии к сессии.</p>
+<p><strong>3. <code>GOALS.md</code></strong> — что важно прямо сейчас.</p>
+<p>Текущие цели и приоритеты. Агент понимает, на что делать упор в работе.</p>
+<p><strong>4. Файлы из <code>memory/</code> за последние 3 дня</strong> — последние решения и контекст.</p>
+<p>Дневники сессий с деталями — что делали позавчера, вчера, сегодня. Здесь оперативный контекст: незаконченные задачи, договорённости, ход работы.</p>
+<p><strong>5. <code>_progress.md</code></strong> — если есть в проекте.</p>
+<p>Если Агент в прошлой сессии работал над задачей и оставил файл прогресса — он прочитает его и продолжит с того места.</p>
+<h2>Почему именно такой порядок</h2>
+<p>Сначала — личность (<code>SOUL.md</code>), потом — долгосрочная память (<code>MEMORY.md</code>), потом — текущие цели (<code>GOALS.md</code>), потом — оперативный контекст (дневники). Это логичный порядок: сначала Агент «вспоминает себя», потом «вспоминает Вас», потом понимает, что сейчас важно.</p>
+<p>Если бы порядок был обратным — Агент знал бы последние события, но не знал бы, в каком стиле их обсуждать.</p>
+<h2>Что значит «обычный чат»</h2>
+<p>Если удалить все эти файлы или запустить Claude Code в пустой папке — Вы получите стандартный Claude без памяти и без персонализации. Он не знает Вашего имени, Ваших проектов, Ваших предпочтений. Именно наличие и качество этих файлов определяет, насколько Агент «чувствует» Вас.</p>
+<h2>Мой Вам совет</h2>
+<p>Если Агент вдруг начал вести себя «не так» — первым делом проверьте <code>SOUL.md</code> и <code>MEMORY.md</code>. Скорее всего, что-то в них изменилось или не было записано. Файлы — это единственная «память» между сессиями. Нет записи — нет памяти.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/architecture/glossary">Глоссарий</a></li><li class="article-siblings__item"><a href="/architecture/soul-md">Что такое SOUL.md</a></li><li class="article-siblings__item"><a href="/architecture/architecture-dna">9 файлов, из которых сделан Агент</a></li><li class="article-siblings__item article-siblings__item--current"><span>Что происходит при каждом запуске</span></li><li class="article-siblings__item"><a href="/architecture/architecture-autonomy">«Светофор»: что Агент делает сам, что показывает, что спрашивает</a></li><li class="article-siblings__item"><a href="/architecture/architecture-workspace">Где что живёт на сервере</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

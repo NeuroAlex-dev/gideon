@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>9 файлов, из которых сделан Агент · База знаний</title>
+    <meta name="description" content="Разберите любого Агента по частям — внутри 9 обычных текстовых файлов. Больше ничего. Вся личность, вся память, все правила — в папке ~/workspace/." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture" class="is-active">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/architecture">Архитектура</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>9 файлов, из которых сделан Агент</span>
+  </nav>
+        <h1>9 файлов, из которых сделан Агент</h1>
+        <div class="page-meta">5 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Разберите любого Агента по частям — внутри 9 обычных текстовых файлов. Больше ничего. Вся личность, вся память, все правила — в папке ~/workspace/.</aside>
+<p>Агент — это не программа с базой данных и сложным кодом внутри. Это Claude Code CLI, который читает набор текстовых файлов и действует согласно им. Девять файлов в папке <code>~/workspace/</code> — вот и весь «мозг». Понять, что в каждом, значит понять, как Агент вообще работает.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Файл = инструкция</div><div class="callout__body"><p>Каждый из 9 файлов — это текстовая инструкция для Агента. Нет файла — нет инструкции. Есть файл — Агент прочитал и применяет. Поэтому удалять эти файлы нельзя: Агент не «поломается», но потеряет часть себя.</p></div></aside>
+<h2>CLAUDE.md — правила работы</h2>
+<p>Особый файл. Claude Code CLI автоматически читает его каждый раз, как только открывает папку <code>~/workspace/</code>. Здесь — короткие правила для всей работы: как обращаться, что делать с памятью, три уровня автономности, список файлов ДНК.</p>
+<p>Этот файл не попадает в системный промпт через бота — CLI загружает его напрямую. Так что двойного чтения нет.</p>
+<p><strong>Редактирует:</strong> клиент (через интервью при установке).</p>
+<h2>8 файлов ДНК — личность и знания</h2>
+<p>Это файлы, которые бот подкладывает в системный промпт каждой сессии:</p>
+<table>
+<thead><tr><th>Файл</th><th>Что внутри</th><th>Кто редактирует</th></tr></thead>
+<tbody>
+<tr><td><code>SOUL.md</code></td><td>Характер, тон, стиль общения</td><td>Клиент</td></tr>
+<tr><td><code>USER.md</code></td><td>Профиль: кто Вы, сфера, контекст</td><td>Клиент</td></tr>
+<tr><td><code>MEMORY.md</code></td><td>Постоянные факты, проекты, решения</td><td>Агент + клиент</td></tr>
+<tr><td><code>MISSION.md</code></td><td>Главная цель — 1-2 предложения</td><td>Клиент</td></tr>
+<tr><td><code>GOALS.md</code></td><td>3-5 текущих целей</td><td>Клиент</td></tr>
+<tr><td><code>PROJECTS.md</code></td><td>Активные проекты</td><td>Клиент</td></tr>
+<tr><td><code>PREFERENCES.md</code></td><td>Стиль работы, инструменты</td><td>Клиент</td></tr>
+<tr><td><code>LEARNED.md</code></td><td>Выводы и паттерны</td><td>Только агент</td></tr>
+</tbody></table>
+<h2>Зачем разделение «клиент / агент»</h2>
+<p><strong>Клиент редактирует</strong> файлы с личностью и целями — Вы лучше знаете, кем должен быть Агент и чего Вы хотите. Агент не трогает эти файлы без просьбы.</p>
+<p><strong>Агент ведёт</strong> файлы с памятью и выводами — <code>MEMORY.md</code> Агент дополняет после каждой значимой сессии, <code>LEARNED.md</code> наполняет самостоятельно. Вы можете дописывать в MEMORY.md вручную — это нормально.</p>
+<h2>Что нельзя удалять</h2>
+<p>Из CLAUDE.md:</p>
+<ul>
+<li><code>SOUL.md</code> — удалите, и Агент потеряет характер</li>
+<li><code>MEMORY.md</code> — удалите, и Агент забудет всё, что знал о Вас</li>
+<li><code>GOALS.md</code> — удалите, и Агент не будет знать, что для Вас важно сейчас</li>
+<li><code>CLAUDE.md</code> — удалите, и Агент потеряет правила работы</li>
+<li>Папки <code>memory/</code> и <code>knowledge/</code> — в них живёт накопленный контекст</li>
+<li>Папку <code>.claude/</code> — там настройки и скиллы</li>
+</ul>
+<h2>Мой Вам совет</h2>
+<p>Самый быстрый способ понять своего Агента — открыть <code>SOUL.md</code> и <code>MEMORY.md</code> и прочитать. Всё, что Агент «знает» о Вас — там. Если что-то не так — правьте прямо в файле. Агент применит изменения с следующего диалога.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/architecture/glossary">Глоссарий</a></li><li class="article-siblings__item"><a href="/architecture/soul-md">Что такое SOUL.md</a></li><li class="article-siblings__item article-siblings__item--current"><span>9 файлов, из которых сделан Агент</span></li><li class="article-siblings__item"><a href="/architecture/architecture-startup">Что происходит при каждом запуске</a></li><li class="article-siblings__item"><a href="/architecture/architecture-autonomy">«Светофор»: что Агент делает сам, что показывает, что спрашивает</a></li><li class="article-siblings__item"><a href="/architecture/architecture-workspace">Где что живёт на сервере</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Бэкапы -что сохранять и как не потерять · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/projects">Проекты и деплой</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Бэкапы -что сохранять и как не потерять</span>
+  </nav>
+        <h1>Бэкапы -что сохранять и как не потерять</h1>
+        <div class="page-meta">4 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Сервер -как рабочий стол. Всё важное с рабочего стола должно быть скопировано в сейф. Сейф = GitHub.</aside>
+        <p>Всё, что Ваш Агент знает, помнит и создал -живёт на VPS. Если с сервером что-то случится (авария, случайное удаление, переустановка) -данные могут пропасть. Бэкапы -единственная страховка. Эта статья -что и как сохранять.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Что не в GitHub -того не существует</div><div class="callout__body"><p>Память, знания и проекты на VPS -это Ваш единственный экземпляр. Подключите GitHub и регулярно делайте <code>git push</code>. Восстановление из GitHub -одна команда. Восстановление без бэкапа -невозможно.</p></div></aside>
+<h2>Что бэкапить</h2>
+<table>
+<thead><tr><th>Что</th><th>Где на сервере</th><th>Важность</th><th>Почему</th></tr></thead>
+<tbody>
+<tr><td><code>MEMORY.md</code></td><td><code>~/workspace/</code></td><td>Критично</td><td>Вся долгосрочная память о Вас</td></tr>
+<tr><td><code>SOUL.md</code>, <code>USER.md</code></td><td><code>~/workspace/</code></td><td>Критично</td><td>Личность и профиль Агента</td></tr>
+<tr><td><code>GOALS.md</code></td><td><code>~/workspace/</code></td><td>Важно</td><td>Текущие цели</td></tr>
+<tr><td><code>knowledge/</code></td><td><code>~/workspace/</code></td><td>Важно</td><td>Накопленная база знаний</td></tr>
+<tr><td><code>memory/</code></td><td><code>~/workspace/</code></td><td>Желательно</td><td>Дневники (последние 30 дней)</td></tr>
+<tr><td><code>.claude/skills/</code></td><td><code>~/workspace/</code></td><td>Важно</td><td>Все скиллы</td></tr>
+<tr><td>Проекты</td><td><code>~/projects/</code></td><td>Критично</td><td>Код, сайты, боты</td></tr>
+<tr><td><code>.env</code></td><td><code>~/.agent/</code></td><td>Критично</td><td>API-ключи (запишите отдельно!)</td></tr>
+</tbody></table>
+<h2>Что НЕ нужно бэкапить</h2>
+<ul>
+<li>Daily notes старше 30 дней -автоочистка удалит их сама</li>
+<li><code>/tmp/</code> -временные файлы</li>
+<li><code>node_modules/</code> -восстанавливается через <code>npm install</code></li>
+<li><code>.agent/bot/</code> -код бота обновляется командой <code>/new</code> в <code>@jarchitect_bot</code></li>
+</ul>
+<h2>Простой бэкап через git</h2>
+<p>Если GitHub уже подключён, скажите Агенту:</p>
+<blockquote><p>«Сделай бэкап workspace в GitHub»</p></blockquote>
+<p>Агент выполнит:</p>
+<div class="copy-block"><span class="copy-block__label">Команды бэкапа</span><code class="copy-block__value">cd ~/workspace
+git add -A
+git commit -m &quot;backup: 2026-05-10&quot;
+git push</code><button class="copy-btn" type="button" data-copy-source="copy">Скопировать</button></div>
+<p>Для каждого проекта -аналогично:</p>
+<blockquote><p>«Запуши проект my-website в GitHub»</p></blockquote>
+<h2>Автоматический бэкап</h2>
+<p>Агент коммитит изменения в процессе работы -формат <code>[agent] feat: ...</code>. Это уже локальная история. Чтобы она уехала в GitHub:</p>
+<blockquote><p>«Каждый вечер предлагай мне запушить все изменения за день в GitHub»</p></blockquote>
+<p>Агент запомнит и будет напоминать. Или настройте расписание через <code>/settings</code>:</p>
+<blockquote><p>«Присылай напоминание о бэкапе каждый день в 20:00»</p></blockquote>
+<h2>Особый случай: ключи API</h2>
+<p>Файл <code>.env</code> (<code>~/.agent/.env</code>) содержит Ваши API-ключи. Его <strong>нельзя</strong> пушить в GitHub (это небезопасно). Но его нужно помнить.</p>
+<p>Рекомендация: запишите список Ваших ключей (Deepgram, GitHub, Vercel и т.д.) в надёжное место -менеджер паролей, заметки телефона, бумажка в ящике стола. Если сервер пропадёт -ключи придётся вводить заново через <code>/settings</code>.</p>
+<h2>Восстановление из бэкапа</h2>
+<p>Если пришлось переустановить Агента (новый VPS, авария):</p>
+<ol>
+<li>Установите Агента через <code>@jarchitect_bot</code> как обычно</li>
+<li>Пройдите первичную настройку (bootstrap)</li>
+<li>Скажите Агенту:</li>
+</ol>
+<blockquote><p>«Склонируй мой workspace из GitHub: https://github.com/username/workspace»</p></blockquote>
+<p>Агент скачает все файлы -память, знания, скиллы -и вернётся в рабочее состояние. Восстановление проектов -аналогично, по одному:</p>
+<blockquote><p>«Склонируй проект my-website из GitHub»</p></blockquote>
+<h2>Мой Вам совет</h2>
+<p>Минимум, который спасёт Вас от потери данных:</p>
+<ol>
+<li>Подключите GitHub (статья «GitHub -бэкап и совместная работа»)</li>
+<li>Раз в неделю говорите Агенту: «Запуши workspace в GitHub»</li>
+<li>Запишите API-ключи в безопасное место вне сервера</li>
+</ol>
+<p>Три действия, пять минут в неделю. Если сервер упадёт -восстановитесь за 10 минут вместо «всё пропало».</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/projects/projects-overview">Как Агент работает с проектами</a></li><li class="article-siblings__item"><a href="/docs/projects/projects-github">GitHub -бэкап и совместная работа</a></li><li class="article-siblings__item"><a href="/docs/projects/projects-deploy">Деплой проектов через Vercel</a></li><li class="article-siblings__item article-siblings__item--current"><span>Бэкапы -что сохранять и как не потерять</span></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

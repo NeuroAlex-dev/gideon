@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Команды бота — короткий справочник · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/bot">Бот в Telegram</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Команды бота — короткий справочник</span>
+  </nav>
+        <h1>Команды бота — короткий справочник</h1>
+        <div class="page-meta">7 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Пять кнопок на каждый день и пять — для особых случаев. Знаете все десять — и Вы хозяин дома.</aside>
+        <p>В чате с Вашим Агентом доступно десять команд. Большинством Вы будете пользоваться каждый день, частью — раз в полгода, а парой — может быть никогда. Эта статья — короткий справочник: что делает каждая, в каком случае к ней обращаться, и где спрятаны полезные привычки, которые помогут Вам экономить лимит и время.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Главный смысл</div><div class="callout__body"><p><strong>Пять команд — для повседневной работы</strong>, они видны в меню Telegram при наборе <code>/</code>.</p>
+<p><strong>Пять — для особых случаев</strong>, их вызывают руками, когда нужно.</p>
+<p>Знаете все десять — и Агент в Ваших руках полностью.</p></div></aside>
+<h2>Пятёрка из меню Telegram</h2>
+<p>Эти команды видны прямо в подсказке, когда Вы набираете «/» в чате с Агентом. Открываете чат, тапаете по «/» возле скрепки — и Telegram сам показывает список.</p>
+<h3><code>/start</code> — главное меню</h3>
+<p>Если Агент уже настроен — короткое приветствие со списком основных команд.</p>
+<p>Если Агент только что установлен и ещё не знает Вас — запускает <strong>знакомство</strong> (bootstrap):</p>
+<ul>
+<li>спросит как Вас зовут,</li>
+<li>чем занимаетесь,</li>
+<li>какие у Вас цели.</li>
+</ul>
+<p>Эти ответы превратятся в файлы личности (<code>USER.md</code>, <code>GOALS.md</code>, <code>MEMORY.md</code>).</p>
+<p><strong>Когда использовать:</strong></p>
+<ul>
+<li>В самый первый раз после установки — <strong>обязательно</strong>, иначе Агент не сможет работать как Ваш персональный.</li>
+<li>В обычной жизни — почти никогда, разве что забыли какие команды есть.</li>
+</ul>
+<h3><code>/stop</code> — остановить задачу</h3>
+<p>Прерывает то, что Агент делает прямо сейчас. Внутри активный процесс гасится мягко (SIGTERM), и через 3 секунды — жёстко (SIGKILL). Сообщение «⏳ Думаю...» сменится на «⏹ Задача остановлена».</p>
+<p><strong>Когда использовать:</strong></p>
+<ul>
+<li>Агент <strong>печатает дольше 5 минут</strong> и Вам кажется что он завис.</li>
+</ul>
+<ul>
+<li>Иногда это просто <strong>кажется</strong>, особенно если задача большая. Агент может реально думать 10-20 минут, если задача требует много шагов: разведать, прочитать файлы, написать, проверить, переписать. Если процесс ещё не остановился — лучше подождать ещё пару минут.</li>
+</ul>
+<ul>
+<li>Агент вдруг <strong>начал слать много сообщений</strong> подряд, а Вы его не просили. Это редко, но иногда может случиться — например, после перезагрузки сервера или если что-то пошло не так. <code>/stop</code> его остановит.</li>
+</ul>
+<ul>
+<li>Вы <strong>передумали в процессе</strong>. Например, попросили длинный отчёт, а потом поняли что хотели короткую сводку. <code>/stop</code> → переформулировать.</li>
+</ul>
+<p><strong>Что важно:</strong> <code>/stop</code> обрывает только <strong>текущую задачу</strong>. Контекст разговора (что Вы только что обсуждали) остаётся — можно сразу продолжить с того же места, ничего не сбрасывается.</p>
+<h3><code>/reset</code> — новая сессия (главная команда для экономии лимита)</h3>
+<p>Очищает <strong>контекст текущего разговора</strong>: Агент забывает всё что Вы обсуждали в этой сессии, и следующее сообщение начнётся «с чистого листа».</p>
+<p>Долгосрочная память (<code>MEMORY.md</code>, <code>USER.md</code>, <code>GOALS.md</code>) <strong>не трогается</strong> — это файлы Вашей личности, они читаются заново при каждом запуске. Сбросить можно только текущий разговор.</p>
+<aside class="callout callout--tip"><div class="callout__title">Зачем `/reset` экономит Вам деньги</div><div class="callout__body"><p>Это <strong>самая важная привычка</strong> в работе с Агентом. Каждое сообщение в активной сессии Claude пересылает <strong>всю предыдущую историю</strong> разговора, чтобы помнить контекст. И Вы за эту историю <strong>платите токенами</strong> из дневного лимита.</p>
+<p>Если Вы 3 часа обсуждали продажи, а теперь начинаете писать пост в инстаграм — <strong>без <code>/reset</code></strong> Агент будет тащить в каждом новом запросе всю историю про продажи. Это <strong>лишние тысячи токенов = лишние доллары</strong> из Вашего лимита.</p>
+<p>С <code>/reset</code> — следующая задача начинается с пустого контекста, расход минимальный.</p></div></aside>
+<p><strong>Когда использовать:</strong></p>
+<ul>
+<li><strong>Перед каждой новой задачей</strong>, не связанной с предыдущей. Это главная привычка.</li>
+</ul>
+<ul>
+<li>Утром обсуждали продажи → теперь хотите придумать пост → <code>/reset</code> → новая тема.</li>
+</ul>
+<ul>
+<li>Закончили большой проект (час-два разговора) → перед следующим вопросом → <code>/reset</code>.</li>
+</ul>
+<ul>
+<li>Видите по <code>/status</code> что расход за день растёт быстрее обычного → проверьте, не забыли ли <code>/reset</code> между темами.</li>
+</ul>
+<p><strong>Что НЕ теряется:</strong></p>
+<ul>
+<li>Файлы личности (SOUL.md, MEMORY.md, USER.md, GOALS.md) — Агент их прочитает заново.</li>
+<li>Знания о Вас, накопленные раньше.</li>
+<li>Все Ваши проекты в <code>~/projects/</code>.</li>
+</ul>
+<p><strong>Что теряется:</strong></p>
+<ul>
+<li>Только то что обсуждали <strong>в этой сессии</strong>. Агент-помощник больше не помнит «ты только что мне сказал что...».</li>
+</ul>
+<blockquote><p>💬 <strong>Совет:</strong> заведите привычку — каждое новое утро начинайте с <code>/reset</code>. Это пять секунд, которые экономят Вам реальные деньги в течение дня.</p></blockquote>
+<h3><code>/settings</code> — настройки</h3>
+<p>Открывает inline-меню с шестью пунктами:</p>
+<ul>
+<li>Модель (Haiku / Sonnet / Opus),</li>
+<li>Режим (Обычный / Авто),</li>
+<li>Переменные окружения (API-ключи),</li>
+<li>Часовой пояс,</li>
+<li>Дневной лимит расходов,</li>
+<li>Перезагрузка.</li>
+</ul>
+<p><strong>Когда использовать:</strong></p>
+<ul>
+<li><strong>При первой настройке</strong> после установки — обязательно пройдитесь по меню, посмотрите что есть, даже если ничего не меняете.</li>
+</ul>
+<ul>
+<li>Когда хотите <strong>добавить ключ нового сервиса</strong> (Deepgram, OpenAI, Notion, Gmail и так далее) — путь только через <code>/settings → 🔑 Переменные окружения</code>. Никогда не отправляйте ключи обычным сообщением в чат.</li>
+</ul>
+<ul>
+<li>Когда хотите <strong>сменить модель</strong> — например, переключиться с Haiku (быстро и дёшево) на Opus (умнее, дороже) для сложной задачи.</li>
+</ul>
+<ul>
+<li>Когда нужно <strong>перезагрузить Агента</strong> — после обновления, или если он ведёт себя странно. Это безопасный рестарт.</li>
+</ul>
+<p>Подробный обзор каждой вкладки — в статье «Меню <code>/settings</code> — карта по вкладкам».</p>
+<h3><code>/status</code> — статус системы</h3>
+<p>Короткая сводка:</p>
+<ul>
+<li>Какая модель сейчас работает,</li>
+<li>Какой режим,</li>
+<li>Часовой пояс,</li>
+<li>Активна ли сессия,</li>
+<li>Сколько Вы потратили сегодня против дневного лимита (со светофором: 🟢 — всё хорошо, 🟡 — близко к лимиту, 🔴 — лимит достигнут, новые запросы заблокированы до завтра).</li>
+</ul>
+<p><strong>Когда использовать:</strong></p>
+<ul>
+<li><strong>Утром</strong> — «жив ли Агент, какая модель крутится, сколько вчера ушло».</li>
+</ul>
+<ul>
+<li><strong>Перед запуском долгой задачи</strong> — посмотреть сколько осталось до лимита. Если уже 🟡 — может стоит подождать до завтра, чтобы хватило на день.</li>
+</ul>
+<ul>
+<li><strong>Раз в неделю</strong> — общая картина расходов и режима, чтобы понимать «во сколько мне обходится мой нейросотрудник».</li>
+</ul>
+<h2>Пять команд для особых случаев</h2>
+<p>Эти команды <strong>в меню не видны</strong> — их нужно набирать руками. Большинство — про доступ и безопасность.</p>
+<h3><code>/log</code> — лог SSH-доступа</h3>
+<p>Покажет последние 50 записей о том, <strong>кто заходил на Ваш сервер по SSH</strong>. Используется для контроля: видно когда оператор подключался для обновления или техподдержки.</p>
+<p><strong>Когда использовать:</strong></p>
+<ul>
+<li><strong>Раз в месяц</strong> — заглянуть для контроля. На свежем сервере, куда никто не заходил извне — будет «Лог пуст».</li>
+</ul>
+<ul>
+<li>Если <strong>возникло подозрение</strong> или странности с сервером (Агент стал вести себя по-другому, появились незнакомые файлы) — посмотрите кто и когда подключался.</li>
+</ul>
+<h3><code>/privacy</code> — политика обработки данных</h3>
+<p>Показывает текст файла <code>DATA-POLICY.md</code> из <code>~/workspace/</code>. Это документ про то, <strong>как обращаются с Вашими данными</strong>: что хранится у Вас, что отправляется в Anthropic при запросах, что не передаётся вообще.</p>
+<p><strong>Когда использовать:</strong></p>
+<ul>
+<li><strong>Один раз в начале</strong> — прочитайте чтобы понимать что и где живёт.</li>
+</ul>
+<ul>
+<li><strong>Перед обсуждением чувствительной темы</strong> (личное, финансы, паспортные данные клиентов) — освежите в памяти что попадает в запросы а что нет.</li>
+</ul>
+<h3><code>/revoke</code> — отозвать SSH-доступ оператора</h3>
+<p><strong>Жёсткая команда</strong>, которая <strong>выгоняет с сервера ключ оператора</strong>. После этого никто извне не сможет зайти на Ваш сервер по SSH:</p>
+<ul>
+<li>ни обновления Конструктора,</li>
+<li>ни техподдержка,</li>
+<li>никто.</li>
+</ul>
+<p>Только Вы.</p>
+<p><strong>Когда использовать:</strong></p>
+<ul>
+<li>Если Вы решили <strong>полностью «закрыть дверь»</strong> — например, на время отпуска, или принципиально не хотите больше получать обновления извне.</li>
+</ul>
+<ul>
+<li>В случае <strong>серьёзной утечки или подозрения</strong>, что Ваш сервер скомпрометирован.</li>
+</ul>
+<p><strong>Имейте в виду:</strong> после <code>/revoke</code> обновления Конструктора <strong>перестанут приходить</strong>, и оператор не сможет помочь если что-то сломается. Возврат — через <code>/grant</code>.</p>
+<h3><code>/grant</code> — вернуть SSH-доступ</h3>
+<p>Обратная команда — <strong>возвращает ключ оператора</strong> обратно на сервер. Покажет ключ для подтверждения, и после Вашего «✅ Да» оператор снова сможет приходить с обновлениями.</p>
+<p><strong>Когда использовать:</strong></p>
+<ul>
+<li>После <code>/revoke</code>, когда передумали и хотите снова получать обновления и техподдержку.</li>
+</ul>
+<h3><code>/telemetry on|off|без аргумента</code> — синхронизация с Конструктором</h3>
+<p>Включает или отключает ежечасную «телеметрию» — отчёт Конструктору «Конструктор Агентов» о том, что Ваш Агент жив и какая у него версия. По умолчанию — включена.</p>
+<ul>
+<li><code>/telemetry</code> без аргумента — покажет текущий статус (✅ активна / ⛔ отключена).</li>
+<li><code>/telemetry off</code> — отключить.</li>
+<li><code>/telemetry on</code> — включить.</li>
+</ul>
+<p><strong>Когда использовать:</strong></p>
+<ul>
+<li><strong>Почти никогда.</strong> Только если по каким-то причинам не хотите чтобы Конструктор знал какая у Вас версия.</li>
+</ul>
+<ul>
+<li>Минус отключения: <strong>пропустите уведомления о новых обновлениях</strong> — они приходят как раз через эту телеметрию.</li>
+</ul>
+<h2>Что доступно а что не доступно — светофор</h2>
+<div class="access-grid">
+<div class="access-card access-card--green">
+<div class="access-card__title">🟢 ПОВСЕДНЕВНЫЕ</div>
+<div class="access-card__zones">
+<code>/start · /stop · /reset · /settings · /status</code>
+<small>видны в меню Telegram, нужны каждый день или каждую неделю</small>
+</div>
+<p>&lt;/div&gt;</p>
+<div class="access-card access-card--yellow">
+<div class="access-card__title">🟡 КОНТРОЛЬ И ДОСТУП</div>
+<div class="access-card__zones">
+<code>/log · /privacy · /revoke · /grant · /telemetry</code>
+<small>не в меню — набираете руками. Раз в месяц или год</small>
+</div>
+<p>&lt;/div&gt;</p>
+<div class="access-card access-card--red">
+<div class="access-card__title">🔴 ОПАСНЫЕ — ОБДУМАЙТЕ</div>
+<div class="access-card__zones">
+<code>/revoke</code> — обновления перестанут приходить<br/>
+<code>/telemetry off</code> — Конструктор не узнает о Вас
+<small>можно вернуть в исходное (через <code>/grant</code> и <code>/telemetry on</code>), но лучше не нажимать «на пробу»</small>
+</div>
+<p>&lt;/div&gt;</p>
+<p>&lt;/div&gt;</p>
+<h2>Мой Вам совет</h2>
+<p>Из всех десяти команд <strong>главная привычка — <code>/reset</code> перед каждой новой темой</strong>. Это:</p>
+<ul>
+<li>Экономит Ваш дневной лимит (не тащите старую историю в новый запрос).</li>
+<li>Разгружает голову Агенту (он не путается между темами).</li>
+<li>Делает ответы точнее (контекст чистый, фокус только на новой задаче).</li>
+</ul>
+<p>Утром начали работать — <code>/reset</code>. Закончили большую тему — <code>/reset</code>. Видите что расход растёт быстрее обычного — проверьте, не забыли ли <code>/reset</code>.</p>
+<p>И запомните <strong>разницу между <code>/stop</code> и <code>/reset</code></strong>:</p>
+<ul>
+<li><code>/stop</code> — «прерви то что делаешь сейчас». Память остаётся, можно сразу продолжить.</li>
+</ul>
+<ul>
+<li><code>/reset</code> — «забудь весь разговор». Начнём с чистого листа.</li>
+</ul>
+<p>Путаете эти две — Агент или продолжит «думать» лишнее (если хотели прервать), или забудет всё подряд (если просто хотели остановить). Различить просто:</p>
+<ul>
+<li><strong>прервать действие</strong> = <code>/stop</code></li>
+<li><strong>закрыть тему</strong> = <code>/reset</code></li>
+</ul>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item article-siblings__item--current"><span>Команды бота — короткий справочник</span></li><li class="article-siblings__item"><a href="/docs/bot/settings-menu">Меню /settings — карта по вкладкам</a></li><li class="article-siblings__item"><a href="/docs/bot/voice-deepgram">Голос — Deepgram, Whisper и трюки</a></li><li class="article-siblings__item"><a href="/docs/bot/media">Что Агент видит — фото, документы, видео</a></li><li class="article-siblings__item"><a href="/docs/bot/sessions-reset">Сессии и /reset — когда «забывать» разговор</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

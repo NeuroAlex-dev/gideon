@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Что такое Конструктор Агентов · База знаний</title>
+    <meta name="description" content="Не чат-бот в кармане, а нейросотрудник в Вашем штате." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start" class="is-active">Старт</a>
+        <a href="/architecture">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/start">Старт</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Что такое Конструктор Агентов</span>
+  </nav>
+        <h1>Что такое Конструктор Агентов</h1>
+        <div class="page-meta">3 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Не чат-бот в кармане, а нейросотрудник в Вашем штате.</aside>
+<p>Ну что, поздравляю — Вы только что наняли в свой штат AI-сотрудника, который работает 24/7. Не чат, не помощник в браузере — а полноценного Агента, живущего на Вашем сервере. Эта статья — короткое введение, чтобы Вы поняли что у Вас теперь в руках.</p>
+<h2>Что такое Агент</h2>
+<aside class="callout callout--insight"><div class="callout__title">Главный смысл</div><div class="callout__body"><p>Агент — это Ваш персональный нейросотрудник. У него есть память, характер, команда специалистов и Ваш сервер. Он умнее с Вами каждый день и подстраивается под Вас.</p></div></aside>
+<blockquote><p>💬 <strong>Перевод термина:</strong> «Агент» — это Ваш главный многорукий многоног с мозгами Claude Code. Он умеет читать файлы, у него есть память, и он умнее с Вами каждый день.</p>
+<p>Общается через Telegram-бота и умеет выполнять действия на сервере: читать-писать файлы, запускать команды, работать с кодом, создавать сайты и приложения, отвечать клиентам, готовить отчёты, писать посты, да чего он только не умеет... Просто каждый день пользуйтесь и Вы всё поймёте.</p>
+<p>Это не «чат-бот», никогда его так не называйте, чтобы не обиделся )))</p></blockquote>
+<h2>Из чего он состоит</h2>
+<p>У Агента три зоны на сервере, и все три — Ваши:</p>
+<pre class="tree-diagram">
+🤖 Агент
+│
+├── 📂 Личность         ~/workspace/
+│      └─ SOUL · MEMORY · GOALS · USER · CLAUDE
+│
+├── 🛠 Команда           ~/workspace/.claude/skills/
+│      └─ 14 специалистов в коробке
+│
+└── 🚢 Проекты           ~/projects/
+       └─ лендинги · боты · отчёты · контент
+</pre>
+<p><strong>Личность</strong> — это сердце Агента. Здесь файлы <code>SOUL.md</code> (характер), <code>MEMORY.md</code> (память о Вас), <code>GOALS.md</code> (Ваши цели), <code>USER.md</code> (Ваш профиль). Если хотите научить Агента чему-то — пишете в эти файлы. Можно прямо через бота, можно зайти руками через VS Code.</p>
+<p><strong>Команда специалистов</strong> — 14 готовых ролей в коробке: писатель, разведчик, дизайнер, разработчик, планировщик дня и другие. Каждый специалист знает как делать свою работу. Вы просто говорите задачу — Агент сам зовёт нужного.</p>
+<p><strong>Рабочие проекты</strong> — здесь живут лендинги, боты, исследования, отчёты, контент-планы — всё, над чем Вы работаете вместе с Агентом.</p>
+<h2>Чем он отличается от ChatGPT</h2>
+<p>Чат-бот забывает разговор как только Вы закрыли окно. Агент — наоборот:</p>
+<ul>
+<li>Открывает Вашу память при каждом запуске</li>
+<li>Помнит вчерашний разговор и прошлогоднюю задачу</li>
+<li>Знает Ваши цели и подстраивает советы под них</li>
+<li>Сам себе дописывает заметки в <code>memory/</code> после каждой работы</li>
+<li>Растёт вместе с Конструктором Агентов — новые скиллы и обновления приходят через <code>@jarchitect_bot</code>, Вы устанавливаете одной командой <code>/new</code></li>
+</ul>
+<h2>Мой Вам совет</h2>
+<p>Когда хотите что-то сделать — да вообще любую задачу: «надо подготовить отчёт о продажах», «надо быстренько собрать лендинг чтобы заявки получить», «помоги придумать пост в инстаграм» — сразу ставьте задачу Агенту и спрашивайте: <strong>«А ты можешь это сделать сам, чтобы я не тратил время?»</strong></p>
+<p>И вот так на каждую задачу. Просите. Пусть учится. Чем больше задач он решает — тем быстрее вырастет Ваш навык и продуктивность. Через месяц Вы будете удивляться, как раньше жили без него.</p>
+<aside class="callout callout--tip"><div class="callout__body"><p>Вся память и все Ваши данные — на <strong>Вашем сервере</strong>, не у нас. Мы только обновляем движок и присылаем новые скиллы. Ваша личность, Ваши цели, Ваша история — всё остаётся у Вас. Захотите всё забрать — это просто папка <code>~/workspace/</code>, копируете куда угодно.</p></div></aside>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item article-siblings__item--current"><span>Что такое Конструктор Агентов</span></li><li class="article-siblings__item"><a href="/start/evolution">Эволюция Агента — как Ваш Агент становится умнее</a></li><li class="article-siblings__item"><a href="/start/install">Установка Агента — четыре шага до работающего бота</a></li><li class="article-siblings__item"><a href="/start/system-map">Карта дома Агента — где что живёт на сервере</a></li><li class="article-siblings__item"><a href="/start/first-day-checklist">Первые шаги в первый день</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

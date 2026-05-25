@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>knowledge/ — тематические справочники · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/memory">Память Агента</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>knowledge/ — тематические справочники</span>
+  </nav>
+        <h1>knowledge/ — тематические справочники</h1>
+        <div class="page-meta">5 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Библиотека за спиной с папками-справочниками. Один файл — одна тема, заглядываешь когда нужно.</aside>
+        <p>Третий уровень памяти — самый недооценённый. Но именно он превращает Агента из «универсального помощника» в <strong>эксперта по Вашим делам</strong>. Папка <code>~/workspace/knowledge/</code> — это библиотека, в которую Агент по ходу работы складывает глубокие справочники: как устроен Ваш сервер, как работает Ваша воронка продаж, какая у Вас архитектура бэкапов, какие решения уже пробовали и что вышло. И в следующий раз, когда возникает вопрос по теме, — Агент не «думает заново», а открывает свой справочник.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Один файл — одна тема, без лимита на размер</div><div class="callout__body"><p>В отличие от <code>MEMORY.md</code> (≤200 строк), у <code>knowledge/</code> лимита нет. Каждая тема живёт в своём файле — и может быть хоть на 5 строк, хоть на 50 экранов. Это <strong>долгая семантическая память</strong> Агента: знания о Вашем мире, накопленные навсегда.</p></div></aside>
+<h2>Когда тема уходит сюда, а не в <code>MEMORY.md</code></h2>
+<p>Простой признак: если описание занимает больше 5–7 строк и относится к <strong>одной конкретной области</strong>, ему место в <code>knowledge/</code>.</p>
+<p>Сравните:</p>
+<ul>
+<li><em>«Бэкап делается в Яндекс.Диск раз в сутки»</em> — короткий факт, в <code>MEMORY.md</code>.</li>
+</ul>
+<ul>
+<li><em>«У нас бэкап через скрипт <code>~/scripts/backup.sh</code>, запускается по cron в 03:00, шифрует через age, заливает в Яндекс.Диск через WebDAV, ротация — 14 дней. Восстановление — командой <code>./restore.sh DATE</code>. Если что-то пошло не так — лог в <code>/var/log/backup.log</code>»</em> — это уже отдельный справочник <code>knowledge/backup.md</code>.</li>
+</ul>
+<p><code>MEMORY.md</code> — для <strong>знакомства</strong>. <code>knowledge/</code> — для <strong>глубины</strong>.</p>
+<h2>Что обычно живёт в <code>knowledge/</code></h2>
+<p>Папки у разных людей разные, но шаблонные темы повторяются:</p>
+<ul>
+<li><strong>Архитектура проекта</strong> — как всё устроено, кто с кем общается, где границы. <em><code>knowledge/architecture-jarvis.md</code></em></li>
+</ul>
+<ul>
+<li><strong>Конфиги серверов</strong> — порты, пути, переменные, права доступа. <em><code>knowledge/server-prod.md</code></em></li>
+</ul>
+<ul>
+<li><strong>Найденные решения</strong> — <em>«если SSL не подхватывается, делаем X»</em>. <em><code>knowledge/troubleshooting.md</code></em></li>
+</ul>
+<ul>
+<li><strong>Бизнес-процессы</strong> — воронка продаж, путь клиента, регламенты подрядчиков. <em><code>knowledge/sales-funnel.md</code></em></li>
+</ul>
+<ul>
+<li><strong>Контакты и доступы по ролям</strong> — кто за что отвечает, без паролей. <em><code>knowledge/team-roles.md</code></em></li>
+</ul>
+<ul>
+<li><strong>Рецепты повторяющихся задач</strong> — <em>«как раскатить новый лендинг», «как опубликовать пост в трёх каналах сразу»</em>. <em><code>knowledge/playbook-launch-landing.md</code></em></li>
+</ul>
+<ul>
+<li><strong>Описания продуктов и услуг</strong> — что продаём, в чём ценность, какие пакеты. <em><code>knowledge/products.md</code></em></li>
+</ul>
+<h2>Как Агент сам решает, выносить тему</h2>
+<p>Обычно срабатывает один из трёх триггеров:</p>
+<ol>
+<li><strong>Вы спросили одно и то же 3 раза.</strong> <em>«Как у меня настроен бэкап?»</em> — Агент один раз разобрался, ответил, и параллельно создал <code>knowledge/backup.md</code>. В следующий раз пойдёт сразу туда.</li>
+</ol>
+<ol>
+<li><strong>Тема разрослась внутри <code>MEMORY.md</code>.</strong> Запись стала длиннее 7–10 строк — Агент предлагает: <em>«Вынести в отдельный справочник?»</em>. Соглашаетесь — он переносит и оставляет в <code>MEMORY.md</code> только короткую отсылку.</li>
+</ol>
+<ol>
+<li><strong>Вы прямо попросили.</strong> <em>«Заведи справочник про нашу воронку продаж и опиши там как у нас всё устроено»</em> — Агент проводит мини-интервью и пишет файл.</li>
+</ol>
+<p>Если хотите ускорить — просто говорите: <em>«Это похоже на отдельную тему — заведи справочник в <code>knowledge/</code>»</em>. Не надо думать о структуре, имени файла, формате. Агент сам сделает.</p>
+<h2>Как пользоваться</h2>
+<p>Здесь самое приятное: <strong>никак специально</strong>. Когда Вы задаёте вопрос по теме, Агент сам проверяет — есть ли справочник? Если да — открывает его и отвечает оттуда. Если справочника нет — отвечает «по памяти» и при подходящем случае предлагает завести новый.</p>
+<p>Несколько фраз, которые помогают явно:</p>
+<ul>
+<li><em>«Что у меня записано про X?»</em> — Агент откроет соответствующий справочник.</li>
+</ul>
+<ul>
+<li><em>«Покажи мне справочник про сервер»</em> — прочитает в чат.</li>
+</ul>
+<ul>
+<li><em>«Дополни <code>knowledge/&lt;тема&gt;.md</code> — теперь у нас ещё и Y»</em> — допишет и покажет diff.</li>
+</ul>
+<ul>
+<li><em>«Забудь про X — мы больше им не пользуемся»</em> — пометит файл как устаревший или удалит, по согласованию с Вами.</li>
+</ul>
+<h2>Что туда писать, а что — нет</h2>
+<div class="access-grid">
+
+<div class="access-card access-card--green">
+<div class="access-card__title">✅ ИДЕАЛЬНО ПОДХОДИТ</div>
+<div class="access-card__zones">
+Архитектура и конфиги.
+<small>Чем точнее и полнее — тем лучше Агент потом ориентируется.</small>
+
+Рецепты повторяющихся задач.
+<small>Один раз описали как «запустить лендинг» — потом просите «запусти как обычно».</small>
+
+Описание Ваших продуктов и услуг.
+<small>Чтобы Агент мог писать тексты в Вашей логике, а не своей.</small>
+</div>
+<p>&lt;/div&gt;</p>
+<div class="access-card access-card--yellow">
+<div class="access-card__title">⚠️ С ОГЛЯДКОЙ</div>
+<div class="access-card__zones">
+Цены, сроки, текущие проекты.
+<small>Быстро устаревают. Поставьте дату в начале файла и пересматривайте раз в квартал.</small>
+</div>
+<p>&lt;/div&gt;</p>
+<div class="access-card access-card--red">
+<div class="access-card__title">❌ НИКОГДА</div>
+<div class="access-card__zones">
+Ключи, пароли, токены.
+<small>Только через <code>/settings → 🔑</code>. Это правило одно для всех файлов памяти.</small>
+
+Персональные данные людей под NDA.
+<small>Если есть сомнения — лучше обезличить или вообще не хранить.</small>
+</div>
+<p>&lt;/div&gt;</p>
+<p>&lt;/div&gt;</p>
+<h2>Мой Вам совет</h2>
+<p>Называйте справочники <strong>по-человечески, как папки на компьютере</strong>. <code>backup.md</code>, <code>server-prod.md</code>, <code>sales-funnel.md</code>, <code>products.md</code>. Никаких <code>kb-v2-final-FINAL-проверенный.md</code> — Вы не один такой, мы все так начинали :)</p>
+<p>И не пытайтесь <strong>писать справочники заранее, на пустом месте</strong>. Это так не работает. Хорошие справочники появляются <strong>из реальных задач</strong>: что-то делали → возникла повторяющаяся тема → Агент завёл файл и наполнил из обсуждения. Через полгода у Вас будет 10–15 справочников, каждый написан кровью и потом конкретных решений. Это и есть <strong>рабочая семантическая память</strong> Агента — то, благодаря чему он становится действительно «Вашим».</p>
+<p>И последнее. Папка <code>knowledge/</code> — это в каком-то смысле <strong>карта Вашего бизнеса</strong>, написанная Агентом по итогам работы с Вами. Иногда полезно просто посмотреть <code>ls ~/workspace/knowledge/</code> и удивиться: «Ого, я и не подозревал, что у меня всё это уже описано». Это приятный момент — когда видишь, что Агент знает Вас лучше, чем Вы про себя помните.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/memory/memory-three-levels">Три уровня памяти Агента — почему он умнее ChatGPT</a></li><li class="article-siblings__item"><a href="/docs/memory/soul-and-user">SOUL.md и USER.md — личность Агента и Ваш профиль</a></li><li class="article-siblings__item"><a href="/docs/memory/memory-md">MEMORY.md — что помнить навсегда</a></li><li class="article-siblings__item"><a href="/docs/memory/daily-notes">Дневники — хроника работы дня</a></li><li class="article-siblings__item article-siblings__item--current"><span>knowledge/ — тематические справочники</span></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

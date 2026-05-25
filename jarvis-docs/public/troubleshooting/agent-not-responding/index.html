@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Агент не отвечает или завис · База знаний</title>
+    <meta name="description" content="Сотрудник уснул за столом - будим, а не увольняем." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting" class="is-active">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/troubleshooting">Подводные камни</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Агент не отвечает или завис</span>
+  </nav>
+        <h1>Агент не отвечает или завис</h1>
+        <div class="page-meta">5 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Сотрудник уснул за столом - будим, а не увольняем.</aside>
+<p>Вы написали Агенту, а он молчит. Или ответил &quot;Думаю...&quot; и пропал. Не паникуйте - разбираемся по порядку.</p>
+<h2>Шаг 1. Подождите</h2>
+<p>Агент не чат-бот - он реально работает. Если Вы попросили сделать лендинг, написать статью или проанализировать таблицу - ему нужно время. Сложные задачи могут занять 2-5 минут.</p>
+<aside class="callout callout--insight"><div class="callout__title">Когда ждать нормально</div><div class="callout__body"><p>Генерация сайта, длинного текста, анализ большого файла - это задачи на несколько минут. Если задача простая (&quot;привет&quot;, &quot;какая погода&quot;) и ответа нет 30 секунд - переходите к шагу 2.</p></div></aside>
+<h2>Шаг 2. Отправьте короткое сообщение</h2>
+<p>Напишите:</p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Привет, ты тут?</code></pre></div>
+<p>Если ответил - всё в порядке. Предыдущая задача просто была тяжёлой.</p>
+<h2>Шаг 3. Команда /clear</h2>
+<p>Если молчит - сбросьте текущий разговор:</p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>/clear</code></pre></div>
+<p>Это как закрыть зависшую программу и открыть заново. Память и файлы сохраняются, сбрасывается только текущий диалог.</p>
+<h2>Шаг 4. Перезагрузка через /settings</h2>
+<p>Если <code>/clear</code> не помог:</p>
+<ol>
+<li>Откройте <code>/settings</code> в боте</li>
+<li>Нажмите <strong>Перезагрузить</strong></li>
+<li>Подождите 15 секунд</li>
+</ol>
+<h2>Шаг 5. Проверьте подписку</h2>
+<p>Если после перезагрузки Агент по-прежнему молчит или выдаёт ошибку - скорее всего, истекла подписка Claude.</p>
+<ol>
+<li>Зайдите на <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">claude.ai</a> — проверьте, что подписка активна</li>
+<li>Если подписка активна — отправьте <code>/auth</code> в <code>@jarchitect_bot</code> для обновления токена</li>
+<li>Агент перезапустится и снова заработает</li>
+</ol>
+<aside class="callout callout--tip"><div class="callout__body"><p>Ошибка 401 = подписка или истёкший токен. Сначала проверьте подписку на claude.ai. Если активна — обновите токен через <code>/auth</code> в <code>@jarchitect_bot</code>. Бота переустанавливать не нужно.</p></div></aside>
+<p>---</p>
+<h2>Частые причины зависания</h2>
+<h3>Вы отправили слишком большой файл</h3>
+<p>Файл на 10 000 строк, PDF на 200 страниц, Excel на 50 листов - Агент попытается обработать, но может захлебнуться. Контекстное окно Claude имеет лимит.</p>
+<p><strong>Как правильно:</strong></p>
+<ul>
+<li>Разбейте файл на части: &quot;Проанализируй первые 100 строк&quot;, потом следующие</li>
+<li>Для Excel: укажите конкретный лист и диапазон</li>
+<li>Для PDF: &quot;Прочитай страницы 1-10&quot;</li>
+<li>Лучший вариант - попросите Агента самому придумать способ обработки:</li>
+</ul>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Вот файл data.csv на 10 000 строк. Предложи как его обработать, чтобы не забить контекст. Может, напишешь скрипт?</code></pre></div>
+<p>Агент сам напишет скрипт на Python или JavaScript, который обработает весь файл - посчитает статистику, найдёт нужные строки, сделает выжимку. Скрипт работает на сервере и не тратит контекст.</p>
+<h3>Вы хотите &quot;написать книгу&quot; за одно сообщение</h3>
+<p>&quot;Напиши мне бизнес-план на 50 страниц&quot; или &quot;Сделай сайт интернет-магазина с каталогом, корзиной, оплатой и CRM&quot; - это слишком для одного запроса. Агент начнёт, но может зависнуть на середине.</p>
+<p><strong>Как правильно:</strong></p>
+<ul>
+<li>Большую задачу разбивайте на шаги</li>
+<li>&quot;Сделай структуру бизнес-плана&quot; → &quot;Напиши раздел про рынок&quot; → &quot;Напиши финансовую часть&quot;</li>
+<li>&quot;Создай главную страницу магазина&quot; → &quot;Добавь каталог&quot; → &quot;Сделай корзину&quot;</li>
+</ul>
+<h3>Слишком длинный разговор</h3>
+<p>50+ сообщений в одной сессии = переполнение контекста. Агент начинает путаться, тормозить, забывать начало разговора.</p>
+<p><strong>Как правильно:</strong></p>
+<ul>
+<li>Между задачами пишите <code>/clear</code></li>
+<li>Одна задача = один разговор</li>
+<li>Если задача большая - разбивайте на сессии</li>
+</ul>
+<h3>Много сообщений подряд без ожидания ответа</h3>
+<p>Вы написали 5 сообщений за минуту, не дождавшись ни одного ответа. Агент обработает только последнее, а может и зависнуть.</p>
+<p><strong>Как правильно:</strong></p>
+<ul>
+<li>Одно сообщение → дождитесь ответа → следующее</li>
+<li>Если нужно уточнить задачу - напишите всё в одном сообщении, а не тремя частями</li>
+</ul>
+<h3>Нечёткая формулировка</h3>
+<p>&quot;Сделай красиво&quot; - Агент не знает, что именно Вы хотите. Он начнёт что-то делать, но результат Вас вряд ли устроит, а процесс займёт больше времени.</p>
+<p><strong>Как правильно:</strong></p>
+<ul>
+<li>&quot;Сделай лендинг для курса по йоге, тёмный дизайн, 3 блока: заголовок, программа, отзывы&quot;</li>
+<li>Чем конкретнее задача, тем быстрее и точнее результат</li>
+</ul>
+<p>---</p>
+<h2>Если ничего не помогло</h2>
+<p>Нажмите кнопку <strong>Поддержка</strong> в меню бота. Опишите:</p>
+<ul>
+<li>Когда перестал отвечать</li>
+<li>Какую задачу давали последней</li>
+<li>Пробовали ли <code>/clear</code> и перезагрузку</li>
+</ul>
+<aside class="callout callout--warning"><div class="callout__body"><p>Не переустанавливайте Агента самостоятельно. Это крайняя мера. Сначала - поддержка.</p></div></aside>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item article-siblings__item--current"><span>Агент не отвечает или завис</span></li><li class="article-siblings__item"><a href="/troubleshooting/api-key-errors">Ошибки 401, 403, 404, 429 - что делать</a></li><li class="article-siblings__item"><a href="/troubleshooting/memory-context">Проблемы с памятью и контекстом</a></li><li class="article-siblings__item"><a href="/troubleshooting/faq">Частые вопросы (FAQ)</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

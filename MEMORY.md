@@ -22,6 +22,7 @@
 
 - **Парсер участников Telegram-чатов** (`parser/`). Node.js + GramJS + Express. Работает под PM2 как `agent-parser` на порту 3000. Команда `/parser` в @flash_gideon_bot вызывает его по HTTP на localhost (loopback bypass — без пароля). Веб-доступ — через Vercel на красивый URL (см. раздел «Инфраструктура» → Vercel + nip.io). Авторизация: пароль через UI, токен сессии — HMAC в localStorage. Спека: `docs/superpowers/specs/2026-05-18-telegram-parser-design.md`. План: `docs/superpowers/plans/2026-05-18-telegram-parser.md`.
 - **Sales Manager — AI-продавец** (`sales-manager/`). Node.js + GramJS + Express + better-sqlite3. Два процесса PM2: `agent-sales-manager-server` (HTTP API на :3001) и `agent-sales-manager-worker` (outbound scheduler + inbound NewMessage listener). Шарит TG-сессию с парсером через `parser/data/session.txt`. AI через Claude CLI по подписке (как бот). Брифинг кампаний в `/sales` в @flash_gideon_bot, метрики в `gideon-bay.vercel.app/sales.html` (rewrite `/api/sales/*` → sales.138-16-178-94.nip.io). MVP: режимы `full_auto` + `draft_approval`, тёплый аутрич 10-20 первых сообщений/день, многоуровневый анти-бан. Спека: `docs/superpowers/specs/2026-05-21-sales-manager-design.md`. План: `docs/superpowers/plans/2026-05-21-sales-manager.md`. 54/54 тестов проходят.
+- **jarvis-docs — база знаний по Джарвису** (`jarvis-docs/`). Статический сайт на чистом HTML+CSS, без фреймворков. Исходник — выгрузка 40 HTML в `jarvis-website/jarvis/`. Генератор `scripts/build.js` + `scripts/templates.js` (чистый Node, без npm-зависимостей): парсит regex'ами, переписывает ссылки `/docs/...` → `/...`, пишет файлы как `<section>/<slug>/index.html`. Содержит 39 статей в 11 разделах. Деплой: `https://jarvis-docs-two.vercel.app` (имя `jarvis-docs` было занято, Vercel выдал `-two`). Vercel dashboard: `vercel.com/neuroalex-devs-projects/jarvis-docs`. Пересборка: `node scripts/build.js`, передеплой: `vercel deploy --prod --yes` из папки.
 
 ---
 
@@ -37,7 +38,8 @@
 - **Telegram-бот:** @flash_gideon_bot (https://t.me/flash_gideon_bot, токен настроен). Запускается напрямую через node из `C:\Users\Administrator\.agent\start-bot.bat` (не через PM2). PM2 установлен глобально, но для бота не используется
 - **Автозапуск бота:** задача `GideonBot` в Планировщике Windows, действие — start-bot.bat, триггер по логону пользователя
 - **Парсер:** `parser/` в этом проекте, запускается через `pm2 start parser/ecosystem.config.cjs`, имя процесса `agent-parser`
-- **Node.js:** v20.19.1, путь `C:\Users\Administrator\nodejs\`
+- **Node.js:** v20.19.1, путь `C:\Users\Administrator\nodejs\`. **Не в системном PATH** — для глобальных npm-установок с native post-install скриптами (esbuild и др.) нужно явно подставлять PATH: `powershell -Command '$env:PATH = "C:\Users\Administrator\nodejs;" + $env:PATH; npm i -g <package>'`
+- **Vercel CLI:** установлен глобально (`C:\Users\Administrator\nodejs\vercel.cmd`), залогинен как `neuroalex-dev`. Для запуска из bash: тот же приём с PATH через PowerShell
 - **Python:** 3.12.7, путь `C:\Program Files\Python312\` (в системном PATH, установлен 18.05.2026 для расширения Claude Voice в VS Code)
 - **Claude CLI:** `C:\Users\Administrator\.vscode\extensions\anthropic.claude-code-2.1.143-win32-x64\resources\native-binary\claude.exe`
 - **Бот:** `C:\Users\Administrator\.agent\bot\` (ecosystem.config.cjs, PM2)

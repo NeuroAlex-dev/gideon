@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Как подключить MCP-сервер -пошаговая инструкция · База знаний</title>
+    <meta name="description" content="Один JSON-файл, две строчки конфига -и Агент умеет новый фокус." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp" class="is-active">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/mcp">MCP</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Как подключить MCP-сервер -пошаговая инструкция</span>
+  </nav>
+        <h1>Как подключить MCP-сервер -пошаговая инструкция</h1>
+        <div class="page-meta">6 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Один JSON-файл, две строчки конфига -и Агент умеет новый фокус.</aside>
+<p>Вы решили подключить к Агенту новый инструмент через MCP. Вся конфигурация живёт в одном файле -<code>~/.claude.json</code>. Эта статья показывает как именно добавить MCP-сервер: вручную через файл, или попросив Агента.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Один файл -все подключения</div><div class="callout__body"><p>Все MCP-серверы Агента записаны в <code>~/.claude.json</code> → секция <code>mcpServers</code>. Добавить новый сервер = дописать блок в этот файл. Удалить = стереть блок. Никакого перезапуска -Агент подхватит изменения при следующем сообщении.</p></div></aside>
+<h2>Способ 1: попросить Агента</h2>
+<p>Самый простой путь -скажите Агенту прямо в чате:</p>
+<blockquote><p>«Подключи MCP-сервер supadata, URL: https://mcp.supadata.dev/v1»</p></blockquote>
+<p>Агент сам прочитает <code>~/.claude.json</code>, добавит новую запись в секцию <code>mcpServers</code> и запишет файл обратно. Вам не нужно открывать никакие файлы руками.</p>
+<p>Это работает, потому что в правилах Агента (CLAUDE.md) есть инструкция:</p>
+<blockquote><p>Добавить MCP: прочитай <code>~/.claude.json</code> через Read, добавь сервер в <code>mcpServers</code>, запиши ВСЁ обратно через Write.</p></blockquote>
+<h2>Способ 2: через VS Code</h2>
+<p>Если у Вас подключён VS Code Tunnel (<code>/connect</code>), можно отредактировать файл вручную:</p>
+<ol>
+<li>Откройте VS Code</li>
+<li>Откройте файл <code>~/.claude.json</code></li>
+<li>Найдите секцию <code>&quot;mcpServers&quot;</code> (или создайте, если её нет)</li>
+<li>Добавьте блок нового сервера</li>
+</ol>
+<h2>Формат конфигурации</h2>
+<p>Файл <code>~/.claude.json</code> выглядит так:</p>
+<div class="codeblock" data-lang="json"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>{
+  &quot;mcpServers&quot;: {
+    &quot;pencil&quot;: {
+      &quot;type&quot;: &quot;stdio&quot;,
+      &quot;command&quot;: &quot;/home/agent/.pencil/mcp/visual_studio_code/out/mcp-server-linux-x64&quot;,
+      &quot;args&quot;: [&quot;--app&quot;, &quot;visual_studio_code&quot;],
+      &quot;env&quot;: {}
+    },
+    &quot;supadata&quot;: {
+      &quot;type&quot;: &quot;http&quot;,
+      &quot;url&quot;: &quot;https://mcp.supadata.dev/v1&quot;
+    }
+  }
+}</code></pre></div>
+<p>Каждый MCP-сервер -это объект с именем (ключ) и настройками (значение).</p>
+<h2>Тип stdio -программа на сервере</h2>
+<p>Используется когда MCP-сервер -это программа, которая запускается на Вашем VPS.</p>
+<div class="codeblock" data-lang="json"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>{
+  &quot;type&quot;: &quot;stdio&quot;,
+  &quot;command&quot;: &quot;/путь/к/программе&quot;,
+  &quot;args&quot;: [&quot;аргумент1&quot;, &quot;аргумент2&quot;],
+  &quot;env&quot;: {}
+}</code></pre></div>
+<table>
+<thead><tr><th>Поле</th><th>Что</th><th>Обязательно</th></tr></thead>
+<tbody>
+<tr><td><code>type</code></td><td>Всегда <code>&quot;stdio&quot;</code></td><td>Да</td></tr>
+<tr><td><code>command</code></td><td>Путь к исполняемому файлу или команда (<code>npx</code>, <code>node</code>)</td><td>Да</td></tr>
+<tr><td><code>args</code></td><td>Массив аргументов командной строки</td><td>Нет</td></tr>
+<tr><td><code>env</code></td><td>Переменные окружения для процесса (например, API-ключ)</td><td>Нет</td></tr>
+</tbody></table>
+<p><strong>Пример с npx</strong> (Apify -автоматизация веб-задач):</p>
+<div class="codeblock" data-lang="json"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>{
+  &quot;apify&quot;: {
+    &quot;type&quot;: &quot;stdio&quot;,
+    &quot;command&quot;: &quot;npx&quot;,
+    &quot;args&quot;: [&quot;@apify/mcp-server&quot;],
+    &quot;env&quot;: {
+      &quot;APIFY_TOKEN&quot;: &quot;ваш_токен&quot;
+    }
+  }
+}</code></pre></div>
+<p>При каждом запуске Claude Code CLI запускает эту программу и общается с ней через stdin/stdout. Когда сессия завершается -процесс останавливается.</p>
+<h2>Тип http -удалённый сервер</h2>
+<p>Используется когда MCP-сервер работает в облаке по URL.</p>
+<div class="codeblock" data-lang="json"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>{
+  &quot;type&quot;: &quot;http&quot;,
+  &quot;url&quot;: &quot;https://адрес-сервера/путь&quot;,
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer ваш_токен&quot;
+  }
+}</code></pre></div>
+<table>
+<thead><tr><th>Поле</th><th>Что</th><th>Обязательно</th></tr></thead>
+<tbody>
+<tr><td><code>type</code></td><td>Всегда <code>&quot;http&quot;</code></td><td>Да</td></tr>
+<tr><td><code>url</code></td><td>Полный URL сервера</td><td>Да</td></tr>
+<tr><td><code>headers</code></td><td>HTTP-заголовки (для авторизации)</td><td>Нет</td></tr>
+</tbody></table>
+<p><strong>Пример</strong> (Supadata -данные с сайтов):</p>
+<div class="codeblock" data-lang="json"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>{
+  &quot;supadata&quot;: {
+    &quot;type&quot;: &quot;http&quot;,
+    &quot;url&quot;: &quot;https://mcp.supadata.dev/v1&quot;
+  }
+}</code></pre></div>
+<h2>Как удалить MCP-сервер</h2>
+<p><strong>Через Агента:</strong></p>
+<blockquote><p>«Отключи MCP-сервер supadata»</p></blockquote>
+<p>Агент удалит запись из <code>~/.claude.json</code>.</p>
+<p><strong>Вручную через VS Code:</strong></p>
+<p>Откройте <code>~/.claude.json</code>, удалите блок нужного сервера из <code>mcpServers</code>, сохраните файл.</p>
+<h2>Как проверить, что подключено</h2>
+<p>Попросите Агента:</p>
+<blockquote><p>«Какие MCP-серверы у меня подключены?»</p></blockquote>
+<p>Агент прочитает <code>~/.claude.json</code> и покажет список. Или откройте файл сами через VS Code.</p>
+<h2>Частые ошибки</h2>
+<p><strong>MCP-сервер не появляется после добавления.</strong></p>
+<p>Агент читает <code>~/.claude.json</code> при старте новой сессии. Если Вы добавили сервер во время активного разговора -сделайте <code>/reset</code>, и при следующем сообщении Агент подключится к новому серверу.</p>
+<p><strong>Ошибка «command not found» для stdio-типа.</strong></p>
+<p>Программа не установлена на сервере. Если MCP-сервер требует <code>npx</code> -проверьте что Node.js установлен (он ставится при установке Агента). Если это бинарный файл -проверьте что путь в <code>command</code> верный и файл имеет права на запуск (<code>chmod +x</code>).</p>
+<p><strong>Ошибка авторизации для http-типа.</strong></p>
+<p>Проверьте что URL и заголовки указаны правильно. Если сервер требует API-ключ -добавьте его в <code>headers</code> или в <code>env</code>.</p>
+<h2>Мой Вам совет</h2>
+<p>Начинайте с Способа 1 -просто попросите Агента. Он знает как редактировать <code>~/.claude.json</code> и сделает это аккуратно. К ручному редактированию переходите, только если Агент почему-то не справился (такое бывает редко).</p>
+<p>После подключения нового MCP -обязательно протестируйте: попросите Агента сделать что-нибудь простое через этот сервер. Если ответил -значит подключение работает.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/mcp/mcp-what-is">Что такое MCP и зачем он Агенту</a></li><li class="article-siblings__item article-siblings__item--current"><span>Как подключить MCP-сервер -пошаговая инструкция</span></li><li class="article-siblings__item"><a href="/mcp/mcp-examples">5 примеров - что можно сделать с MCP</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

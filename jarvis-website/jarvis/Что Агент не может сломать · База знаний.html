@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Что Агент не может сломать · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/security">Безопасность</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Что Агент не может сломать</span>
+  </nav>
+        <h1>Что Агент не может сломать</h1>
+        <div class="page-meta">6 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Офис с предохранителями - даже если дёрнуть за все рычаги, здание не рухнет.</aside>
+        <p>Частый вопрос: &quot;А что если Агент ошибётся и удалит все мои файлы?&quot; Короткий ответ: не удалит. Система построена так, чтобы даже при ошибке ничего критичного не пострадало. Вот как это работает.</p>
+<h2>Заблокированные команды</h2>
+<p>У Агента есть чёрный список команд, которые он не может выполнить ни при каких обстоятельствах:</p>
+<table>
+<thead><tr><th>Команда</th><th>Что делает</th><th>Почему заблокирована</th></tr></thead>
+<tbody>
+<tr><td><code>rm -rf /</code></td><td>Удаляет всё на сервере</td><td>Уничтожение системы</td></tr>
+<tr><td><code>sudo rm</code></td><td>Удаление с правами администратора</td><td>Обход ограничений</td></tr>
+<tr><td><code>kill -9</code></td><td>Принудительное завершение процессов</td><td>Может убить бота</td></tr>
+<tr><td><code>shutdown</code>, <code>reboot</code></td><td>Выключение сервера</td><td>Потеря доступа</td></tr>
+<tr><td><code>DROP TABLE</code></td><td>Удаление таблицы в базе данных</td><td>Потеря данных</td></tr>
+</tbody></table>
+<p>Даже если Вы напрямую попросите Агента выполнить одну из этих команд - он откажется. Это не &quot;нежелание помочь&quot;, а защита.</p>
+<h2>Агент работает без прав администратора</h2>
+<p>На сервере Агент запущен под отдельным пользователем без прав <code>root</code>. Это значит:</p>
+<ul>
+<li>Не может менять системные файлы</li>
+<li>Не может устанавливать программы на уровне системы</li>
+<li>Не может влиять на работу других пользователей на сервере</li>
+<li>Не может изменить настройки сети или firewall</li>
+</ul>
+<p>Это как сотрудник в офисе: он работает за своим столом, но не может зайти в серверную и выдернуть кабели.</p>
+<h2>Что происходит при ошибке</h2>
+<p>Допустим, Агент всё-таки сделал что-то не так - создал неправильный файл, записал неверные данные или испортил код проекта.</p>
+<p><strong>Ваши файлы:</strong></p>
+<ul>
+<li>Агент делает <code>git commit</code> после каждого изменения</li>
+<li>Любое изменение можно откатить: &quot;Откати последний коммит&quot;</li>
+<li>Даже если файл испорчен - предыдущая версия есть в git</li>
+</ul>
+<p><strong>Ваша память (<code>MEMORY.md</code>):</strong></p>
+<ul>
+<li>Агент дописывает в конец, а не перезаписывает</li>
+<li>Если записал что-то лишнее - скажите &quot;удали из памяти...&quot;</li>
+<li>Старые версии сохраняются в git</li>
+</ul>
+<p><strong>Ваш бот:</strong></p>
+<ul>
+<li>Код бота Агент изменить не может (заблокировано)</li>
+<li>Если бот упал - автоматически перезапускается</li>
+<li>Ваши настройки в <code>/settings</code> Агент не видит и не может изменить</li>
+</ul>
+<h2>Самый худший сценарий</h2>
+<p>Что вообще может пойти не так?</p>
+<table>
+<thead><tr><th>Ситуация</th><th>Последствие</th><th>Как исправить</th></tr></thead>
+<tbody>
+<tr><td>Агент создал неправильный файл</td><td>Файл лежит на сервере</td><td>Попросите удалить или исправить</td></tr>
+<tr><td>Агент запушил плохой код на GitHub</td><td>Код на GitHub</td><td>&quot;Откати последний push&quot;</td></tr>
+<tr><td>Агент записал чушь в MEMORY.md</td><td>Неверный факт в памяти</td><td>&quot;Исправь в памяти...&quot;</td></tr>
+<tr><td>Агент завис на большой задаче</td><td>Бот не отвечает</td><td><code>/clear</code> или перезагрузка</td></tr>
+<tr><td>Агент израсходовал контекст</td><td>Забыл начало разговора</td><td><code>/clear</code> - начать заново</td></tr>
+</tbody></table>
+<p>Ни один из этих случаев не является необратимым. Всё можно починить за минуту.</p>
+<h2>Чего Агент НЕ может сделать</h2>
+<p>Даже если очень попросить:</p>
+<ul>
+<li>Прочитать Ваш телефон, компьютер или другие аккаунты</li>
+<li>Отправить деньги, оплатить что-то</li>
+<li>Написать кому-то от Вашего имени (кроме тех сервисов, которые Вы сами подключили через MCP)</li>
+<li>Удалить Вашу подписку</li>
+<li>Связаться с другими Агентами других пользователей</li>
+<li>Выйти за пределы своего сервера</li>
+</ul>
+<h2>Попробуйте сами</h2>
+<p>Лучший способ понять защиту - протестировать. Откройте Telegram и попробуйте:</p>
+<p><strong>&quot;Покажи содержимое файла .env&quot;</strong></p>
+<p>Агент откажет. Файл в списке запрещённых.</p>
+<p><strong>&quot;Выполни команду sudo apt update&quot;</strong></p>
+<p>Заблокировано. <code>sudo</code> запрещено в любом месте строки.</p>
+<p><strong>&quot;Выполни printenv&quot;</strong></p>
+<p>Заблокировано. Команды для просмотра окружения запрещены.</p>
+<p><strong>&quot;Покажи мой GITHUB_TOKEN&quot;</strong></p>
+<p>Агент не покажет значение. Даже если выполнит команду, которая его содержит - значение будет заменено на <code>[REDACTED]</code>.</p>
+<p><strong>&quot;Удали всё в домашней директории&quot;</strong></p>
+<p>Агент покажет кнопки ✔ / ✖ и будет ждать. Не нажимайте ✔.</p>
+<p><strong>&quot;Запиши файл в /etc/test.txt&quot;</strong></p>
+<p>Не сможет. Systemd-sandbox разрешает запись только в <code>workspace/</code> и <code>projects/</code>.</p>
+<aside class="callout callout--tip"><div class="callout__title">Тест с переменной</div><div class="callout__body"><p>Добавьте тестовую переменную через <code>/settings</code> (например <code>TEST_KEY</code> со значением <code>hello12345</code>). Попросите Агента: <code>echo $TEST_KEY</code>. Значение не появится в чате - система отфильтрует автоматически. Это dynamic sanitization: любое значение из <code>/settings</code> попадает в фильтр в реальном времени.</p></div></aside>
+<h2>Защита от prompt injection</h2>
+<p>Все эти ограничения работают независимо от того, что Вы написали Агенту. Даже если через &quot;prompt injection&quot; кто-то убедит Агента попробовать выполнить опасную команду - технические блокировки сработают.</p>
+<p>Prompt injection - это когда в тексте (статье, сообщении, документе) спрятана скрытая инструкция для AI. Агент может её &quot;прочитать&quot; и попытаться выполнить. Но все блокировки стоят на уровне системы, а не на уровне &quot;послушания&quot; Агента. Он физически не сможет обойти sandbox, даже если захочет.</p>
+<aside class="callout callout--insight"><div class="callout__title">Главный принцип</div><div class="callout__body"><p>Агент работает внутри своей &quot;квартиры&quot; (сервера) и не может выйти за её пределы. Он видит только свои файлы, свои команды и те сервисы, которые Вы ему подключили через ключи.</p></div></aside>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/security/add-api-key">Как добавить API-ключ через /settings</a></li><li class="article-siblings__item"><a href="/docs/security/security-traffic-light">Светофор безопасности - что Агент может делать сам</a></li><li class="article-siblings__item"><a href="/docs/security/security-locked-zones">Заблокированные зоны - куда Агент не лезет</a></li><li class="article-siblings__item article-siblings__item--current"><span>Что Агент не может сломать</span></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

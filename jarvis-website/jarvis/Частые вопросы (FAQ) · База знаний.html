@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Частые вопросы (FAQ) · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/troubleshooting">Подводные камни</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Частые вопросы (FAQ)</span>
+  </nav>
+        <h1>Частые вопросы (FAQ)</h1>
+        <div class="page-meta">6 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Шпаргалка по самым популярным вопросам - быстро находите ответ.</aside>
+        <p>Собрали вопросы, которые задают чаще всего. Если Вашего вопроса здесь нет - напишите в поддержку через кнопку в меню бота.</p>
+<h2>Подписка и доступ</h2>
+<h3>Агент перестал отвечать. Что делать первым?</h3>
+<p>Проверьте подписку Claude на <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">claude.ai</a> — убедитесь, что она активна. Если подписка в порядке, но Агент молчит — обновите токен: отправьте <code>/auth</code> в <code>@jarchitect_bot</code>.</p>
+<h3>Что делать, если истёк доступ?</h3>
+<p>Зайдите на <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">claude.ai</a>, продлите подписку. Затем отправьте <code>/auth</code> в <code>@jarchitect_bot</code> — токен обновится. Если не помогло — напишите в поддержку.</p>
+<h3>Мои данные хранятся у Вас?</h3>
+<p>Нет. Все файлы Агента живут на <strong>Вашем</strong> сервере (VPS). Мы обновляем только движок и скиллы. Ваша память, проекты, ключи - всё у Вас. Захотите забрать - это просто папка <code>~/workspace/</code>, копируете куда угодно.</p>
+<h3>Можно ли использовать Агента с телефона?</h3>
+<p>Да. Агент работает через Telegram - пишите ему как обычному контакту. Голосовые, фото, файлы - всё принимает.</p>
+<p>---</p>
+<h2>Как правильно работать с Агентом</h2>
+<h3>Я написал 5 сообщений подряд, а Агент ответил только на последнее</h3>
+<p>Агент обрабатывает сообщения по одному. Если отправить пять подряд, не дождавшись ответа - он может обработать только последнее или зависнуть.</p>
+<p><strong>Правило:</strong> одно сообщение → дождались ответа → следующее.</p>
+<p>Если нужно дать Агенту много информации - соберите всё в одно сообщение, а не отправляйте по кусочкам.</p>
+<h3>Я отправил файл на 10 000 строк и Агент завис</h3>
+<p>Большие файлы &quot;съедают&quot; контекст Агента. У Claude есть лимит на размер одного разговора, и файл на 10 000 строк может занять его почти целиком.</p>
+<p><strong>Как правильно:</strong></p>
+<ul>
+<li>&quot;Прочитай файл X, строки 1-200&quot; - работайте порциями</li>
+<li>&quot;Проанализируй лист <code>Продажи</code>, колонки A-E&quot; - указывайте конкретную часть</li>
+<li>Самый умный способ - попросите Агента написать скрипт:</li>
+</ul>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Вот файл на 10 000 строк. Предложи как его обработать, чтобы не забить контекст. Напиши скрипт.</code></pre></div>
+<p>Агент напишет программу, которая обработает файл целиком на сервере - без нагрузки на контекст.</p>
+<h3>Я попросил &quot;сделать сайт&quot; и Агент завис на полпути</h3>
+<p>Задача &quot;сделай интернет-магазин с каталогом, корзиной, оплатой, личным кабинетом и CRM&quot; - слишком большая для одного запроса. Агент начнёт, но может потерять нить.</p>
+<p><strong>Как правильно:</strong> разбивайте на шаги:</p>
+<ol>
+<li>&quot;Сделай главную страницу магазина&quot;</li>
+<li>&quot;Добавь каталог товаров&quot;</li>
+<li>&quot;Сделай корзину&quot;</li>
+</ol>
+<p>После каждого шага - <code>/clear</code>, и новый разговор.</p>
+<h3>Агент делает не то, что я прошу</h3>
+<p>Скорее всего, формулировка слишком общая. &quot;Сделай красиво&quot; или &quot;улучши&quot; - Агент интерпретирует по-своему.</p>
+<p><strong>Как правильно:</strong></p>
+<ul>
+<li>Вместо &quot;сделай красиво&quot; → &quot;поменяй фон на тёмный, шрифт на крупный, добавь отступы&quot;</li>
+<li>Вместо &quot;напиши пост&quot; → &quot;напиши пост про 3 способа использовать ChatGPT для бизнеса, 1000 символов, с примерами&quot;</li>
+<li>Чем конкретнее задача, тем точнее результат</li>
+</ul>
+<p>---</p>
+<h2>Память и контекст</h2>
+<h3>Почему Агент забыл, о чём мы говорили?</h3>
+<p>Переполнился контекст разговора. Это нормально для длинных диалогов. Напишите <code>/clear</code> и повторите задачу. Долгосрочная память (имя, проекты, предпочтения) сохраняется.</p>
+<p>Подробнее: <a href="/article/troubleshooting/memory-context/">Проблемы с памятью и контекстом</a></p>
+<h3>Как научить Агента чему-то новому?</h3>
+<p>Скажите прямо:</p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Запомни: мой основной проект - кулинарный блог, я пишу на русском</code></pre></div>
+<p>Или попросите создать инструкцию:</p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Создай файл knowledge/рецепты.md с правилами: только ПП, без сахара, порции на 2</code></pre></div>
+<h3>Агент видит мои личные данные?</h3>
+<p>Только то, что на его сервере: файлы, которые Вы создали, сообщения в чате, ключи из <code>/settings</code>. К Вашему телефону, компьютеру, другим аккаунтам доступа нет.</p>
+<p>---</p>
+<h2>Команды и возможности</h2>
+<h3>Какие команды знает Агент?</h3>
+<table>
+<thead><tr><th>Команда</th><th>Что делает</th></tr></thead>
+<tbody>
+<tr><td><code>/clear</code></td><td>Сбросить текущий разговор (память сохраняется)</td></tr>
+<tr><td><code>/status</code></td><td>Показать статус бота и сервера</td></tr>
+<tr><td><code>/settings</code></td><td>Настройки: ключи, перезагрузка, переподключение</td></tr>
+<tr><td><code>/stop</code></td><td>Остановить текущую задачу</td></tr>
+</tbody></table>
+<p>Но Агент - не набор команд. Говорите ему задачи обычным языком.</p>
+<h3>Что Агент может обработать?</h3>
+<p>| Формат | Работает? | Совет |</p>
+<p>|--------|:---------:|-------|</p>
+<p>| Текст | Да | Конкретные задачи, не &quot;простыни&quot; |</p>
+<p>| Голосовые | Да | Нужен <code>DEEPGRAM_API_KEY</code> |</p>
+<p>| Фото | Да | Агент увидит и опишет |</p>
+<p>| Excel / CSV | Да | Указывайте конкретный лист и диапазон |</p>
+<p>| PDF | Да | По частям, не весь сразу |</p>
+<p>| Ссылки | Да | Скачает и прочитает страницу |</p>
+<p>| Файл 10 000+ строк | С ограничениями | Разбейте на части |</p>
+<h3>Агент может зайти на сайт?</h3>
+<p>Да. Отправьте ссылку - Агент скачает страницу и извлечёт текст. Google Docs и Google Sheets тоже поддерживаются (если документ открыт по ссылке).</p>
+<h3>Можно подключить Google Calendar / Gmail?</h3>
+<p>Да, через MCP-серверы. Подробности: <a href="/category/mcp/">Интеграции через MCP</a>.</p>
+<p>---</p>
+<h2>Технические вопросы</h2>
+<h3>Что будет, если сервер упадёт?</h3>
+<p>Бот перезапускается автоматически. Ваши файлы и память на диске - не пропадут. Если сервер полностью недоступен - напишите в поддержку.</p>
+<h3>Как обновляется Агент?</h3>
+<p>Через команду <code>/new</code> в <code>@jarchitect_bot</code>. Когда выйдет обновление — бот пришлёт уведомление. Отправьте <code>/new</code>, получите команду установки и запустите в терминале. Займёт 2-3 минуты. Ваши данные не затрагиваются.</p>
+<h3>Могу ли я перенести Агента на другой сервер?</h3>
+<p>Теоретически да, но самостоятельно сложно. Напишите в поддержку - поможем.</p>
+<p>---</p>
+<aside class="callout callout--insight"><div class="callout__title">Не нашли ответ?</div><div class="callout__body"><p>Нажмите кнопку <strong>Поддержка</strong> в меню бота и опишите проблему. Обычно отвечаем в течение нескольких часов.</p></div></aside>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/troubleshooting/agent-not-responding">Агент не отвечает или завис</a></li><li class="article-siblings__item"><a href="/docs/troubleshooting/api-key-errors">Ошибки 401, 403, 404, 429 - что делать</a></li><li class="article-siblings__item"><a href="/docs/troubleshooting/memory-context">Проблемы с памятью и контекстом</a></li><li class="article-siblings__item article-siblings__item--current"><span>Частые вопросы (FAQ)</span></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Глоссарий · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/architecture">Как устроен Агент</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Глоссарий</span>
+  </nav>
+        <h1>Глоссарий</h1>
+        <div class="page-meta">5 мин · обновлено 2026-05-09</div>
+        <aside class="metaphor"></aside>
+        <h2>Агент</h2>
+<p>Программа на Claude Code, которая работает на вашем VPS, имеет память и доступ к Telegram-боту.</p>
+<h2>Скилл</h2>
+<p>Markdown-файл в <code>~/.claude/skills/&lt;name&gt;/SKILL.md</code>, описывающий специальное поведение Агента в определённой задаче.</p>
+<h2>Светофор</h2>
+<p>Правила безопасности при выполнении команд: GREEN (делай), YELLOW (покажи), RED (спроси).</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item article-siblings__item--current"><span>Глоссарий</span></li><li class="article-siblings__item"><a href="/docs/architecture/soul-md">Что такое SOUL.md</a></li><li class="article-siblings__item"><a href="/docs/architecture/architecture-dna">9 файлов, из которых сделан Агент</a></li><li class="article-siblings__item"><a href="/docs/architecture/architecture-startup">Что происходит при каждом запуске</a></li><li class="article-siblings__item"><a href="/docs/architecture/architecture-autonomy">«Светофор»: что Агент делает сам, что показывает, что спрашивает</a></li><li class="article-siblings__item"><a href="/docs/architecture/architecture-customize">Как настроить Агента под себя</a></li><li class="article-siblings__item"><a href="/docs/architecture/architecture-workspace">Где что живёт на сервере</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

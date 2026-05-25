@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Проблемы с памятью и контекстом · База знаний</title>
+    <meta name="description" content="Блокнот на месте, но страницу перелистнули - находим нужную." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security">Безопасность</a>
+          <a href="/troubleshooting" class="is-active">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/troubleshooting">Подводные камни</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Проблемы с памятью и контекстом</span>
+  </nav>
+        <h1>Проблемы с памятью и контекстом</h1>
+        <div class="page-meta">5 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Блокнот на месте, но страницу перелистнули - находим нужную.</aside>
+<p>Агент забыл, о чём Вы говорили. Или не помнит Ваше имя. Или повторяет вопрос, на который Вы уже отвечали. Разбираемся, почему это происходит и как исправить.</p>
+<h2>Два вида памяти</h2>
+<p>У Агента два вида памяти, и работают они по-разному:</p>
+<table>
+<thead><tr><th>Вид</th><th>Что хранит</th><th>Как долго</th><th>Аналогия</th></tr></thead>
+<tbody>
+<tr><td><strong>Сессия</strong></td><td>Текущий диалог</td><td>Пока не сбросите</td><td>Оперативная память компьютера</td></tr>
+<tr><td><strong>Долгосрочная память</strong></td><td>Факты о Вас, проекты, предпочтения</td><td>Навсегда</td><td>Жёсткий диск</td></tr>
+</tbody></table>
+<p>Когда Вы пишете <code>/clear</code> или перезагружаете бот - сессия очищается (оперативка). Долгосрочная память (<code>MEMORY.md</code>, <code>memory/</code>, <code>knowledge/</code>) остаётся на месте (диск).</p>
+<h2>Проблема 1: &quot;Забыл, о чём говорили 5 минут назад&quot;</h2>
+<p><strong>Что случилось:</strong> Контекст разговора переполнился. У Claude есть лимит на размер одного разговора. Когда лимит близок - Агент автоматически сжимает историю. При сжатии детали теряются.</p>
+<p><strong>Почему это происходит чаще всего:</strong></p>
+<ul>
+<li>Разговор длится 50+ сообщений без <code>/clear</code></li>
+<li>Вы отправили большой файл (таблица, код на тысячи строк) - он съел почти весь контекст</li>
+<li>Вы описываете задачу длинным текстом на 3 экрана - а потом ещё уточняете</li>
+</ul>
+<p><strong>Что делать:</strong></p>
+<ol>
+<li>Напишите <code>/clear</code> - начните новый разговор</li>
+<li>Сформулируйте задачу заново - коротко и конкретно</li>
+<li>Если задача большая - разбейте на части</li>
+</ol>
+<aside class="callout callout--insight"><div class="callout__title">Правило: одна задача = одна сессия</div><div class="callout__body"><p>Сделали лендинг → <code>/clear</code>. Написали пост → <code>/clear</code>. Проанализировали таблицу → <code>/clear</code>. Не копите контекст.</p></div></aside>
+<h2>Проблема 2: &quot;Не помнит моё имя / проект / предпочтения&quot;</h2>
+<p><strong>Что случилось:</strong> Информация не записана в долгосрочную память.</p>
+<p>Агент записывает в <code>MEMORY.md</code> автоматически, но не всё. Если факт важный - скажите прямо:</p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Запомни: мой основной проект называется &quot;Сияние&quot;, он на Next.js</code></pre></div>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Запиши в память: я предпочитаю Python, не TypeScript</code></pre></div>
+<p><strong>Как проверить, что в памяти:</strong></p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Покажи что у тебя записано в MEMORY.md</code></pre></div>
+<h2>Проблема 3: &quot;Помнит что-то неправильное&quot;</h2>
+<p>Агент запомнил устаревший факт и теперь ссылается на него.</p>
+<p><strong>Что делать:</strong></p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Исправь в памяти: мой Telegram теперь @новый_ник, а не @старый</code></pre></div>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Удали из памяти запись про проект X - он закрыт</code></pre></div>
+<h2>Проблема 4: &quot;После перезагрузки всё забыл&quot;</h2>
+<p>Это нормально для сессии - текущий разговор сбрасывается. Но долгосрочная память сохраняется.</p>
+<p>Если после перезагрузки Агент не помнит даже базовые факты - <code>MEMORY.md</code> пустой или повреждён. Напишите в поддержку.</p>
+<h2>Проблема 5: &quot;Я отправил большой файл и Агент потерял нить&quot;</h2>
+<p>Файл на 5000+ строк может &quot;забить&quot; весь контекст Агента. После этого ему не хватает места, чтобы помнить ваш разговор.</p>
+<p><strong>Как работать с большими файлами:</strong></p>
+<ul>
+<li>Не отправляйте файл целиком, если нужна только часть: &quot;Прочитай строки 1-100 файла X&quot;</li>
+<li>Для Excel: &quot;Проанализируй лист <code>Продажи</code>, колонки A-D&quot;</li>
+<li>Для PDF: &quot;Прочитай страницы 5-10&quot;</li>
+<li>Самый умный способ - попросите Агента написать скрипт для обработки:</li>
+</ul>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>У меня файл data.csv на 8000 строк. Предложи как его обработать, чтобы не забить контекст. Напиши скрипт.</code></pre></div>
+<p>Агент напишет программу (Python или JavaScript), которая обработает весь файл на сервере - посчитает, отфильтрует, сделает выжимку. Скрипт работает напрямую с файлом и не тратит контекст разговора.</p>
+<h2>Проблема 6: &quot;Агент не ведёт дневник&quot;</h2>
+<p>Агент должен записывать заметки в <code>memory/</code> каждый день. Если перестал - напомните:</p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Запиши в дневник что мы сегодня сделали</code></pre></div>
+<p>---</p>
+<h2>Как избежать проблем с контекстом</h2>
+<table>
+<thead><tr><th>Привычка</th><th>Зачем</th></tr></thead>
+<tbody>
+<tr><td><code>/clear</code> между задачами</td><td>Свежий контекст для каждой задачи</td></tr>
+<tr><td>Конкретные формулировки</td><td>Агент тратит меньше контекста на уточнения</td></tr>
+<tr><td>Большие файлы по частям</td><td>Не забивать контекст данными</td></tr>
+<tr><td>Одно сообщение = одна мысль</td><td>Не 5 сообщений подряд, а одно структурированное</td></tr>
+<tr><td>&quot;Запомни...&quot; для важного</td><td>Явно записывать в долгосрочную память</td></tr>
+</tbody></table>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/troubleshooting/agent-not-responding">Агент не отвечает или завис</a></li><li class="article-siblings__item"><a href="/troubleshooting/api-key-errors">Ошибки 401, 403, 404, 429 - что делать</a></li><li class="article-siblings__item article-siblings__item--current"><span>Проблемы с памятью и контекстом</span></li><li class="article-siblings__item"><a href="/troubleshooting/faq">Частые вопросы (FAQ)</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

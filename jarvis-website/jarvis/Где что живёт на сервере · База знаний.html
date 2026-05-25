@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Где что живёт на сервере · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/architecture">Как устроен Агент</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Где что живёт на сервере</span>
+  </nav>
+        <h1>Где что живёт на сервере</h1>
+        <div class="page-meta">4 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Сервер — это квартира. Четыре комнаты с разными правилами входа. В одну — всегда заходите, в другую — не трогайте.</aside>
+        <p>На сервере четыре папки. Каждая — со своим назначением и своими правилами. Понять эту структуру важно: от неё зависит, куда Агент кладёт файлы, откуда читает память и что никогда не трогает.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Workspace — только для ДНК и памяти</div><div class="callout__body"><p>Новые проекты — не в workspace. Скиллы — не в workspace. Workspace — только для DNA-файлов и дневников памяти. Это правило прошито в CLAUDE.md и ARCHITECTURE_CONTEXT бота.</p></div></aside>
+<h2>Карта папок</h2>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>/home/agent/
+├── .claude/              ← настройки Claude Code
+│   ├── settings.json     ← правила светофора
+│   └── skills/           ← скиллы (навыки Агента)
+│
+├── workspace/            ← главная рабочая папка (cwd)
+│   ├── CLAUDE.md         ← правила работы (читает CLI)
+│   ├── SOUL.md           ← личность
+│   ├── MEMORY.md         ← долгосрочная память
+│   ├── GOALS.md          ← текущие цели
+│   ├── USER.md, MISSION.md, PROJECTS.md, PREFERENCES.md, LEARNED.md
+│   ├── memory/           ← дневники по дням (YYYY-MM-DD.md)
+│   ├── knowledge/        ← справочники и инструкции
+│   └── .media/           ← медиафайлы от Вас (фото, документы)
+│
+├── projects/             ← папка для проектов
+│   └── название-проекта/ ← каждый проект — в своей подпапке
+│
+└── .agent/               ← служебная папка бота (не трогать)</code></pre></div>
+<h2>Четыре зоны и их роль</h2>
+<h3><code>~/.claude/</code> — настройки и скиллы</h3>
+<p>Здесь живут настройки Claude Code (<code>settings.json</code>) и скиллы (<code>skills/</code>). Когда устанавливаете новый скилл — он попадает сюда. Agene знает всю папку <code>skills/</code> наизусть при каждом запуске.</p>
+<h3><code>~/workspace/</code> — ДНК и память</h3>
+<p>Сюда Claude Code CLI «смотрит» как в рабочую папку. Отсюда загружает <code>CLAUDE.md</code> автоматически. Сюда бот подкладывает DNA-файлы в системный промпт.</p>
+<p><strong>Что здесь хранить:</strong> только DNA-файлы, дневники памяти (<code>memory/</code>), базу знаний (<code>knowledge/</code>) и медиафайлы от Вас (<code>.media/</code>).</p>
+<p><strong>Что сюда НЕ класть:</strong> новые проекты — они живут в <code>~/projects/</code>.</p>
+<h3><code>~/projects/</code> — новые проекты</h3>
+<p>Когда Агент создаёт что-то новое — лендинг, бота, скрипт, API — он кладёт это в <code>~/projects/название/</code>, а не в workspace. Так разные проекты не мешают друг другу, и workspace остаётся чистым.</p>
+<p>Каждый проект в своей папке: <code>~/projects/my-bot/</code>, <code>~/projects/landing-v2/</code>, <code>~/projects/parser/</code>.</p>
+<h3><code>~/.agent/</code> — служебная папка бота (не трогать)</h3>
+<p>Здесь живёт код самого Telegram-бота, его конфиг и секреты. Агент не читает и не меняет эту папку — это заблокировано правилами. Если что-то в боте сломалось — перезапуск через <code>/settings</code>, не через вмешательство в эту папку.</p>
+<h2>Мой Вам совет</h2>
+<p>Если не уверены, куда Агент положил какой-то файл — спросите прямо: <em>«Покажи структуру папки workspace»</em> или <em>«Где лежит проект X?»</em>. Агент даст точный путь. Знание этой структуры экономит время, когда нужно найти конкретный файл или разобраться, что пошло не так.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/architecture/glossary">Глоссарий</a></li><li class="article-siblings__item"><a href="/docs/architecture/soul-md">Что такое SOUL.md</a></li><li class="article-siblings__item"><a href="/docs/architecture/architecture-dna">9 файлов, из которых сделан Агент</a></li><li class="article-siblings__item"><a href="/docs/architecture/architecture-startup">Что происходит при каждом запуске</a></li><li class="article-siblings__item"><a href="/docs/architecture/architecture-autonomy">«Светофор»: что Агент делает сам, что показывает, что спрашивает</a></li><li class="article-siblings__item"><a href="/docs/architecture/architecture-customize">Как настроить Агента под себя</a></li><li class="article-siblings__item article-siblings__item--current"><span>Где что живёт на сервере</span></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

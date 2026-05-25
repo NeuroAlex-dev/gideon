@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Карта дома Агента — где что живёт на сервере · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/start">Старт</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Карта дома Агента — где что живёт на сервере</span>
+  </nav>
+        <h1>Карта дома Агента — где что живёт на сервере</h1>
+        <div class="page-meta">5 мин · обновлено 2026-05-09</div>
+        <aside class="metaphor">У Агента три комнаты — мотор, душа и мастерская. Знаете карту — никогда не запутаетесь.</aside>
+        <p>Если Вы решите заглянуть в гости к своему Агенту через VS Code Tunnel — пригодится карта его дома. Чтобы знать в какой комнате что живёт и куда лазить руками не нужно. Эта статья — короткий план этажей.</p>
+<h2>Главное сообщение</h2>
+<aside class="callout callout--insight"><div class="callout__title">Главный смысл</div><div class="callout__body"><p>У Агента <strong>три зоны</strong> на сервере: системная (мотор), личность (душа) и проекты (мастерская). Знаете эту карту — никогда не запутаетесь, что трогать руками, а что не надо.</p></div></aside>
+<h2>Карта целиком</h2>
+<pre class="tree-diagram">
+🏠 /home/agent/
+   │
+   ├── 🔧 ~/.agent/           ← мотор (НЕ трогаем)
+   │      └─ bot · sessions · .env · state.json
+   │
+   ├── 💛 ~/workspace/        ← душа (правьте смело)
+   │      └─ SOUL · MEMORY · GOALS · skills · memory/ · knowledge/
+   │
+   └── 🛠 ~/projects/         ← мастерская (рабочие проекты)
+          └─ лендинги · боты · отчёты · контент
+</pre>
+<h2>Зона 1 — мотор (<code>~/.agent/</code>)</h2>
+<p>Это системная папка. Здесь живёт сам бот, ключи API, настройки, история сессий, бэкапы предыдущих версий. Агенту туда <strong>нельзя писать</strong> — read-only, чтобы случайно ничего не сломал.</p>
+<pre class="tree-diagram">
+🔧 ~/.agent/
+   ├─ bot/             ← движок Telegram-бота
+   │     ├─ index.js
+   │     └─ versions/  ← бэкапы прошлых версий (для отката)
+   ├─ sessions/        ← история переписки (авто-очистка через 7 дней)
+   ├─ traces/          ← логи для отладки
+   ├─ .env             ← API-ключи (доступ только владельцу)
+   └─ state.json       ← настройки модели, лимиты, расписание
+</pre>
+<aside class="callout callout--warning"><div class="callout__title">Сюда руками лучше не лазить</div><div class="callout__body"><p>Эти файлы трогает только сам Бот «Конструктор Агентов» при установке и обновлениях. Если что-то здесь сломаете — Агент перестанет работать. Хотите изменить настройки (модель, лимит, расписание)? Используйте <code>/settings</code> в чате с Агентом — там всё устроено безопасно.</p></div></aside>
+<h2>Зона 2 — душа (<code>~/workspace/</code>)</h2>
+<p>Это <strong>сердце Агента</strong>. Здесь живёт всё, что делает Вашего Агента именно Вашим: характер, память о Вас, Ваши цели, Ваши предпочтения, команда специалистов. Здесь Вы можете править руками что угодно — ничего не сломается.</p>
+<pre class="tree-diagram">
+💛 ~/workspace/
+   │
+   ├─ 📜 Файлы личности (8 главных файлов Агента)
+   │     ├─ SOUL.md         ← характер, тон, манера
+   │     ├─ MEMORY.md       ← долгосрочная память о Вас
+   │     ├─ GOALS.md        ← Ваши текущие цели
+   │     ├─ USER.md         ← Ваш профиль (роль, опыт, контекст)
+   │     ├─ MISSION.md      ← миссия Агента
+   │     ├─ PROJECTS.md     ← список активных проектов
+   │     ├─ PREFERENCES.md  ← Ваши предпочтения работы
+   │     └─ LEARNED.md      ← выводы Агента из работы с Вами
+   │
+   ├─ ⚙️ Конфигурация
+   │     ├─ CLAUDE.md       ← правила поведения (что делать всегда)
+   │     ├─ SERVICES.md     ← каталог Ваших сервисов и API
+   │     └─ DATA-POLICY.md  ← политика обработки данных
+   │
+   ├─ 🛠 .claude/skills/    ← 14 специалистов (writer · designer · researcher...)
+   │
+   ├─ 📂 memory/            ← дневник: YYYY-MM-DD.md за каждый день
+   ├─ 📚 knowledge/         ← база знаний (статьи, решения, конфиги)
+   ├─ 📦 content/           ← контент-материалы
+   └─ 🖼 .media/            ← фото/видео из чата (авто-очистка >7 дней)
+</pre>
+<aside class="callout callout--tip"><div class="callout__title">Сюда правьте смело</div><div class="callout__body"><p>Это Ваша зона. Хотите изменить характер Агента — открываете <code>SOUL.md</code> и пишете. Хотите добавить факт в память — дописываете в <code>MEMORY.md</code>. Хотите, чтобы Агент знал о новой цели — добавляете в <code>GOALS.md</code>. <strong>Ничего не сломается.</strong> Агент при следующем запуске просто прочитает обновлённую версию.</p></div></aside>
+<blockquote><p>💬 <strong>Перевод термина:</strong> «DNA-файлы» — это 8 файлов с большой буквы (<code>SOUL</code>, <code>MEMORY</code>, <code>GOALS</code> и т.д.). Они описывают Агента: какой он, что помнит, к чему стремится. ДНК — потому что именно эти файлы делают Вашего Агента уникальным, не похожим на других.</p></blockquote>
+<h2>Зона 3 — мастерская (<code>~/projects/</code>)</h2>
+<p>Здесь живут Ваши <strong>рабочие проекты</strong>: лендинги, боты, отчёты, исследования, контент-планы. Каждый проект — отдельная папка. У каждого свой <code>memory/</code> (заметки по проекту) и <code>knowledge/</code> (решения, конфиги, важные ссылки).</p>
+<pre class="tree-diagram">
+🛠 ~/projects/
+   ├─ продажи-2026-q2/
+   │     ├─ memory/         ← заметки по проекту
+   │     ├─ knowledge/      ← решения, конфиги, лиды
+   │     └─ ... (файлы проекта)
+   │
+   ├─ landing-osen/
+   │     └─ ...
+   │
+   └─ telegram-bot-school/
+         └─ ...
+</pre>
+<aside class="callout callout--tip"><div class="callout__body"><p>Когда Вы говорите Агенту «Запусти проект про новый лендинг» — он создаёт здесь отдельную папку и складывает туда всё: код, заметки, контент, скриншоты. Через месяц Вы сможете вернуться к этому проекту, и Агент откроет папку — как офисный сотрудник возвращается в свою картотеку.</p></div></aside>
+<h2>Что можно править а что нет — светофор</h2>
+<div class="access-grid">
+<div class="access-card access-card--red">
+<div class="access-card__title">🔴 НЕ ТРОГАЕМ</div>
+<div class="access-card__zones">
+<code>~/.agent/</code> — мотор Бота
+<small>сюда пишет только Бот «Конструктор Агентов» при установке и обновлениях</small>
+</div>
+<p>&lt;/div&gt;</p>
+<div class="access-card access-card--yellow">
+<div class="access-card__title">🟡 АГЕНТ ВЕДЁТ САМ</div>
+<div class="access-card__zones">
+<code>~/workspace/memory/</code>
+<small>дневники: читать можно, править — только если нашли ошибку</small>
+</div>
+<p>&lt;/div&gt;</p>
+<div class="access-card access-card--green">
+<div class="access-card__title">🟢 ПРАВИМ СМЕЛО</div>
+<div class="access-card__zones">
+<code>~/workspace/</code> — DNA-файлы и конфиг<br/>
+<code>~/workspace/.claude/skills/</code> — скиллы<br/>
+<code>~/workspace/knowledge/</code> — база знаний<br/>
+<code>~/projects/</code> — проекты
+<small>здесь Вы и Агент работаете совместно</small>
+</div>
+<p>&lt;/div&gt;</p>
+<p>&lt;/div&gt;</p>
+<h2>Мой Вам совет</h2>
+<p>Если только начинаете — откройте через VS Code Tunnel <strong>три файла</strong>: <code>SOUL.md</code>, <code>MEMORY.md</code>, <code>GOALS.md</code>. Прочитайте что Агент уже знает о Вас. Допишите если что-то важное упустили. Это самая полезная пятнадцатиминутка в первый день — Вы сразу почувствуете что Агент именно <strong>Ваш</strong>, а не «один из тысячи».</p>
+<p>И ещё: <strong>не пугайтесь количества файлов</strong>. На карте их много, но в реальной жизни Вы будете заходить в три-четыре файла, остальные просто молча работают. Карта нужна на случай «А где у меня лежат вчерашние заметки?» — тогда Вы знаете: <code>~/workspace/memory/2026-05-09.md</code>.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/docs/start/welcome">Что такое Конструктор Агентов</a></li><li class="article-siblings__item"><a href="/docs/start/evolution">Эволюция Агента — как Ваш Агент становится умнее</a></li><li class="article-siblings__item"><a href="/docs/start/install">Установка Агента — четыре шага до работающего бота</a></li><li class="article-siblings__item article-siblings__item--current"><span>Карта дома Агента — где что живёт на сервере</span></li><li class="article-siblings__item"><a href="/docs/start/first-day-checklist">Первые шаги в первый день</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

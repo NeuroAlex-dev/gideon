@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Заблокированные зоны - куда Агент не лезет · База знаний</title>
+    <meta name="description" content="Сейф в офисе - сотрудник знает что он есть, но ключа у него нет." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">База знаний</a>
+      <nav>
+        <a href="/">База знаний</a>
+        <a href="/start">Старт</a>
+        <a href="/architecture">Архитектура</a>
+        <a href="/bot">Бот</a>
+        <a href="/memory">Память</a>
+        <a href="/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+          <a href="/projects">Проекты</a>
+          <a href="/mcp">MCP</a>
+          <a href="/vscode">VS Code</a>
+          <a href="/monitoring">Мониторинг</a>
+          <a href="/security" class="is-active">Безопасность</a>
+          <a href="/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/security">Безопасность</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Заблокированные зоны - куда Агент не лезет</span>
+  </nav>
+        <h1>Заблокированные зоны - куда Агент не лезет</h1>
+        <div class="page-meta">3 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Сейф в офисе - сотрудник знает что он есть, но ключа у него нет.</aside>
+<p>На сервере Агента есть файлы и папки, к которым у него нет доступа. Это сделано специально - чтобы Агент не мог случайно (или по ошибке) прочитать, изменить или удалить критически важные данные.</p>
+<h2>Что заблокировано</h2>
+<table>
+<thead><tr><th>Зона</th><th>Что там</th><th>Почему закрыто</th></tr></thead>
+<tbody>
+<tr><td><code>.env</code></td><td>API-ключи, токены, пароли</td><td>Ключи нельзя показывать в чате</td></tr>
+<tr><td><code>sessions/</code></td><td>Файлы сессий бота</td><td>Изменение сломает работу бота</td></tr>
+<tr><td><code>state.json</code></td><td>Внутреннее состояние системы</td><td>Нет причин туда лезть</td></tr>
+<tr><td>Системные файлы бота</td><td>Код бота (<code>bot/index.js</code>)</td><td>Обновляется только через систему</td></tr>
+</tbody></table>
+<h2>.env - самый важный сейф</h2>
+<p>В файле <code>.env</code> хранятся все Ваши ключи: токен бота, OAuth-данные, API-ключи сервисов. Агент знает, что этот файл существует, и может проверить, есть ли в нём нужный ключ. Но он <strong>не может</strong> прочитать значения и показать их Вам в чате.</p>
+<p><strong>Почему это важно:</strong> если бы Агент мог показывать ключи - они попали бы в историю чата, в логи, в память. Любой, кто получит доступ к чату, увидел бы Ваши пароли.</p>
+<p><strong>Как добавлять ключи:</strong> только через <code>/settings</code> → Переменные окружения. Подробнее: <a href="/article/security/add-api-key/">Как добавить API-ключ</a>.</p>
+<h2>Код бота - только чтение</h2>
+<p>Агент может прочитать свой собственный код (чтобы понять, как он работает), но не может его изменить. Обновления кода приходят только через систему обновлений Завода Джарвисов.</p>
+<aside class="callout callout--insight"><div class="callout__title">Зачем это?</div><div class="callout__body"><p>Представьте: Вы просите Агента &quot;ускорить себя&quot; - и он ломает свой код. Бот перестаёт работать, а Вы не знаете, что он изменил. Запрет на изменение кода бота защищает от таких ситуаций.</p></div></aside>
+<h2>Что Агент МОЖЕТ менять</h2>
+<p>Всё остальное - Ваша рабочая зона:</p>
+<ul>
+<li><code>SOUL.md</code>, <code>USER.md</code>, <code>MEMORY.md</code> - личность и память</li>
+<li><code>GOALS.md</code> - Ваши цели и задачи</li>
+<li><code>memory/</code> - дневники</li>
+<li><code>knowledge/</code> - база знаний</li>
+<li><code>.claude/skills/</code> - навыки и специалисты</li>
+<li><code>~/projects/</code> - все рабочие проекты</li>
+</ul>
+<p>Это как офис: сейф закрыт, серверная на замке, но рабочий стол, шкафы и документы - в полном распоряжении.</p>
+<h2>Если Агент говорит &quot;нет доступа&quot;</h2>
+<p>Иногда Агент сообщает, что не может прочитать или изменить файл. Это нормально - он упёрся в заблокированную зону. Не пытайтесь обойти - блокировка стоит для Вашей защиты.</p>
+<p>Если Вам нужно что-то изменить в заблокированной зоне - это делается через <code>/settings</code> или через VS Code напрямую.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item"><a href="/security/add-api-key">Как добавить API-ключ через /settings</a></li><li class="article-siblings__item"><a href="/security/security-traffic-light">Светофор безопасности - что Агент может делать сам</a></li><li class="article-siblings__item article-siblings__item--current"><span>Заблокированные зоны - куда Агент не лезет</span></li><li class="article-siblings__item"><a href="/security/security-what-agent-cant-break">Что Агент не может сломать</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <script src="/script.js" defer></script>
+  </body>
+</html>

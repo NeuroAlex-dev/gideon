@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Как подключить мониторинг · База знаний</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/docs/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/docs" class="brand">База знаний</a>
+      <nav>
+        <a href="/docs">База знаний</a>
+        <a href="/docs/start">Старт</a>
+        <a href="/docs/architecture">Архитектура</a>
+        <a href="/docs/bot">Бот</a>
+        <a href="/docs/memory">Память</a>
+        <a href="/docs/skills">Скиллы</a>
+        <details class="nav-more">
+          <summary>Ещё</summary>
+          <div class="nav-more__menu">
+            <a href="/docs/projects">Проекты</a>
+            <a href="/docs/mcp">MCP</a>
+            <a href="/docs/vscode">VS Code</a>
+            <a href="/docs/monitoring">Мониторинг</a>
+            <a href="/docs/security">Безопасность</a>
+            <a href="/docs/troubleshooting">Подводные камни</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <main>
+      <article class="prose">
+        <nav class="article-breadcrumb">
+    <a href="/docs">База знаний</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <a href="/docs/monitoring">Мониторинг и тренды</a>
+    <span class="article-breadcrumb__sep">/</span>
+    <span>Как подключить мониторинг</span>
+  </nav>
+        <h1>Как подключить мониторинг</h1>
+        <div class="page-meta">4 мин · обновлено 2026-05-10</div>
+        <aside class="metaphor">Стажёр каждое утро читает 30 каналов и кладёт Вам на стол выжимку на одну страницу.</aside>
+        <p>Каждый день выходят десятки новостей про нейросети, инструменты и обновления. Читать всё самому — невозможно. Мониторинг решает эту проблему: Агент сам читает каналы и присылает Вам короткую выжимку.</p>
+<aside class="callout callout--insight"><div class="callout__title">Простым языком</div><div class="callout__body"><p>Представьте помощника, который каждое утро просматривает 30 новостных каналов и говорит: &quot;Вот три вещи, которые стоит знать сегодня.&quot; Это и есть мониторинг.</p></div></aside>
+<h2>Мониторинг не включён по умолчанию</h2>
+<p>Когда Вы получаете Агента, мониторинг ещё не настроен — нет источников, нет дайджеста. Вы сами решаете, за какими каналами следить и когда получать сводку.</p>
+<p>Настроить можно за 2 минуты — просто напишите Агенту в Telegram.</p>
+<h2>Шаг 1. Добавьте источники</h2>
+<p>Скажите Агенту, за кем следить. Два типа источников:</p>
+<p><strong>Telegram-каналы:</strong></p>
+<div class="copy-block"><code class="copy-block__value">Добавь в мониторинг Telegram-канал @название_канала</code><button class="copy-btn" type="button" data-copy-source="copy">Скопировать</button></div>
+<p><strong>YouTube-каналы:</strong></p>
+<div class="copy-block"><code class="copy-block__value">Добавь в мониторинг YouTube-канал @НазваниеКанала</code><button class="copy-btn" type="button" data-copy-source="copy">Скопировать</button></div>
+<p>Агент сам найдёт канал и начнёт его отслеживать. Добавляйте по одному или сразу несколько — как удобно.</p>
+<aside class="callout callout--tip"><div class="callout__body"><p>Не знаете, с чего начать? Попросите Агента:</p>
+<p>&quot;Давай настроим мониторинг. Я хочу следить за новостями в нейросетях — подскажи, какие каналы добавить.&quot;</p>
+<p>Агент предложит варианты, а Вы выберете.</p></div></aside>
+<h2>Шаг 2. Настройте дайджест</h2>
+<p>Попросите Агента присылать сводку в удобное время:</p>
+<div class="copy-block"><code class="copy-block__value">Настрой мне ежедневный дайджест в 8 утра</code><button class="copy-btn" type="button" data-copy-source="copy">Скопировать</button></div>
+<p>Агент будет каждое утро присылать топ новостей за сутки: заголовок, суть в 2-3 предложениях, ссылка на источник.</p>
+<p>Можете уточнить, что именно хотите видеть:</p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Дайджест должен включать: новые модели AI, обновления инструментов,
+интересные кейсы. Не включай слухи и спекуляции.</code></pre></div>
+<h2>Шаг 3. Пользуйтесь</h2>
+<p>После настройки Вы можете в любой момент спросить Агента:</p>
+<table>
+<thead><tr><th>Вопрос</th><th>Что получите</th></tr></thead>
+<tbody>
+<tr><td>&quot;Что нового сегодня?&quot;</td><td>Свежий дайджест</td></tr>
+<tr><td>&quot;Были ли новости про Claude?&quot;</td><td>Выборка по конкретной теме</td></tr>
+<tr><td>&quot;Какие тренды на этой неделе?&quot;</td><td>Горячие темы из всех каналов</td></tr>
+</tbody></table>
+<h2>Как управлять источниками</h2>
+<p>Добавлять и убирать каналы можно в любой момент:</p>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Убери из мониторинга канал @старый_канал</code></pre></div>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Покажи, что сейчас мониторится</code></pre></div>
+<div class="codeblock"><button class="copy-btn" type="button" aria-label="Скопировать">📋 Скопировать</button><pre><code>Добавь ещё 3 канала про маркетинг</code></pre></div>
+<p>Агент обновит настройки и начнёт (или перестанет) следить за указанными каналами.</p>
+<h2>Это платно?</h2>
+<p>Мониторинг входит в работу Агента. Дополнительно платить не нужно — Агент использует тот же Claude, что и для обычных задач.</p>
+        <nav class="article-siblings">
+    <p class="article-siblings__title">В этом разделе</p>
+    <ul class="article-siblings__list"><li class="article-siblings__item article-siblings__item--current"><span>Как подключить мониторинг</span></li><li class="article-siblings__item"><a href="/docs/monitoring/monitoring-sources">Источники и дайджесты</a></li><li class="article-siblings__item"><a href="/docs/monitoring/monitoring-trends">Отслеживание трендов</a></li></ul>
+  </nav>
+      </article>
+    </main>
+    <footer>
+      Поддержка:
+      <a href="https://t.me/aibasis_bot" target="_blank" rel="noopener noreferrer"
+        >@aibasis_bot</a
+      >
+    </footer>
+    <script>
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var container = btn.closest('.codeblock, .prompt-block, .copy-block') || btn.parentElement;
+          var node =
+            container.querySelector('.copy-block__value') ||
+            container.querySelector('.prompt-block__body') ||
+            container.querySelector('code');
+          if (!node) return;
+          var text = node.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            var orig = btn.textContent;
+            btn.setAttribute('data-copied', 'true');
+            btn.textContent = '✓ Скопировано';
+            setTimeout(function () {
+              btn.textContent = orig;
+              btn.removeAttribute('data-copied');
+            }, 2000);
+          } catch (e) {
+            btn.textContent = '✗ Не получилось';
+            setTimeout(function () { btn.textContent = '📋 Скопировать'; }, 2000);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
