@@ -14,7 +14,7 @@
 - memory/ — дневники по дням
 - knowledge/ — справочники и инструкции
 - .claude/settings.json — настройки разрешений Claude Code (светофор: зелёное/жёлтое/красное)
-- .claude/skills/ — 4 предустановленных скилла (discovery-interview, content-creator, fullstack-developer, frontend-design)
+- workspace/.claude/skills/ — 4 предустановленных скилла (discovery-interview, content-creator, fullstack-developer, frontend-design)
 - bot/ — Telegram-бот на Grammy + Claude Code CLI (опционально, устанавливается на VPS)
 - server/INSTALL-SERVER.md — пошаговая инструкция для установки на VPS
 
@@ -26,7 +26,7 @@
 Установка ещё не пройдена. Прочитай INSTALL.md и проведи интервью из 10 вопросов. Подробные инструкции — в INSTALL.md.
 
 ### Ситуация 2: Пользователь просит установить на сервер / VPS
-Используй скилл server-setup. Он находится в .claude/skills/server-setup/SKILL.md. Там пошаговая инструкция: подключение по SSH, установка системы, копирование файлов, настройка VS Code Tunnel.
+Используй скилл server-setup. Он находится в workspace/.claude/skills/server-setup/SKILL.md. Там пошаговая инструкция: подключение по SSH, установка системы, копирование файлов, настройка VS Code Tunnel.
 
 Триггерные фразы: «установи на сервер», «настрой VPS», «перенеси на сервер», «подключись к серверу», «разверни на сервере», «поставь на VPS».
 
@@ -56,7 +56,7 @@
 ## Компоненты репозитория
 
 ### setup-server.sh
-Скрипт установки окружения на VPS. Ставит Node.js, Claude Code CLI, создаёт пользователя agent, структуру папок (/home/agent/workspace/, /home/agent/projects/, /home/agent/.claude/), скачивает settings.json и 4 скилла, устанавливает VS Code Tunnel. Запускается на сервере (не локально). Подробности — в скилле server-setup.
+Скрипт установки окружения на VPS. Ставит Node.js, Claude Code CLI, создаёт пользователя agent, структуру папок (/home/agent/workspace/, /home/agent/projects/, /home/agent/workspace/.claude/skills/), скачивает settings.json и 4 скилла, устанавливает VS Code Tunnel. Запускается на сервере (не локально). Подробности — в скилле server-setup.
 
 ### bot/
 Telegram-бот (Grammy + Claude Code CLI). Позволяет общаться с Агентом через Telegram 24/7. Устанавливается на VPS опционально — при указании токена бота. Работает через подписку Claude (OAuth), API-ключ не нужен.
@@ -64,5 +64,5 @@ Telegram-бот (Grammy + Claude Code CLI). Позволяет общаться 
 ### .claude/settings.json
 Настройки разрешений Claude Code — «светофор». Зелёное (делай сам), жёлтое (покажи что делаешь), красное (стоп, спроси). Также включает плагин Superpowers и дополнительные директории.
 
-### .claude/skills/
-4 предустановленных скилла: discovery-interview (сбор ТЗ), content-creator (контент), fullstack-developer (код), frontend-design (дизайн). Подробнее — в .claude/skills/README.md.
+### workspace/.claude/skills/
+4 предустановленных скилла: discovery-interview (сбор ТЗ), content-creator (контент), fullstack-developer (код), frontend-design (дизайн). Подробнее — в workspace/.claude/skills/README.md.

@@ -89,9 +89,10 @@ fi
 # Структура папок
 mkdir -p "$HOME_DIR/workspace/memory"
 mkdir -p "$HOME_DIR/workspace/knowledge"
+mkdir -p "$HOME_DIR/workspace/.claude/skills"
 mkdir -p "$HOME_DIR/projects"
 mkdir -p "$HOME_DIR/.agent/bot"
-mkdir -p "$HOME_DIR/.claude/skills"
+mkdir -p "$HOME_DIR/.claude"
 
 # Дефолтные настройки Claude Code (светофор разрешений)
 if [ ! -f "$HOME_DIR/.claude/settings.json" ]; then
@@ -101,16 +102,17 @@ if [ ! -f "$HOME_DIR/.claude/settings.json" ]; then
     || warn "Не удалось скачать settings.json — можно добавить позже"
 fi
 
-# Скиллы (навыки агента)
-SKILLS_BASE="https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/.claude/skills"
+# Скиллы (навыки агента) — живут в workspace, чтобы Claude Code находил их
+# через project-level lookup (cwd=workspace), а не через ~/.claude/skills
+SKILLS_BASE="https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/workspace/.claude/skills"
 for SKILL in discovery-interview content-creator fullstack-developer frontend-design; do
-  if [ ! -f "$HOME_DIR/.claude/skills/$SKILL/SKILL.md" ]; then
-    mkdir -p "$HOME_DIR/.claude/skills/$SKILL"
+  if [ ! -f "$HOME_DIR/workspace/.claude/skills/$SKILL/SKILL.md" ]; then
+    mkdir -p "$HOME_DIR/workspace/.claude/skills/$SKILL"
     curl -fsSL "$SKILLS_BASE/$SKILL/SKILL.md" \
-      -o "$HOME_DIR/.claude/skills/$SKILL/SKILL.md" 2>/dev/null || true
+      -o "$HOME_DIR/workspace/.claude/skills/$SKILL/SKILL.md" 2>/dev/null || true
   fi
 done
-log "Скиллы установлены (4 навыка)"
+log "Скиллы установлены (4 навыка) в workspace/.claude/skills/"
 
 # Симлинк для единой памяти (бот и VS Code читают один CLAUDE.md)
 ln -sf "$HOME_DIR/workspace/CLAUDE.md" "$HOME_DIR/CLAUDE.md"

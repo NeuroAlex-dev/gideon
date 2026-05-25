@@ -157,21 +157,23 @@ jarvis-architect/
 ├── examples/              ← пример заполненного Агента
 ├── docs/
 │   └── s                  ← копия setup-server.sh для GitHub Pages
-└── .claude/
-    ├── CLAUDE.md           ← проектные инструкции для Claude Code
-    ├── settings.json       ← настройки разрешений (светофор) + плагин Superpowers
-    └── skills/
-        ├── README.md       ← гайд по скиллам (урок 5)
-        ├── server-setup/
-        │   └── SKILL.md    ← скилл установки на VPS
-        ├── discovery-interview/
-        │   └── SKILL.md    ← сбор ТЗ через интервью
-        ├── content-creator/
-        │   └── SKILL.md    ← написание контента
-        ├── fullstack-developer/
-        │   └── SKILL.md    ← разработка кода
-        └── frontend-design/
-            └── SKILL.md    ← дизайн интерфейсов
+├── .claude/
+│   ├── CLAUDE.md           ← проектные инструкции для Claude Code
+│   └── settings.json       ← настройки разрешений (светофор) + плагин Superpowers
+└── workspace/
+    └── .claude/
+        └── skills/         ← скиллы (Claude Code находит их project-level из workspace)
+            ├── README.md       ← гайд по скиллам (урок 5)
+            ├── server-setup/
+            │   └── SKILL.md    ← скилл установки на VPS
+            ├── discovery-interview/
+            │   └── SKILL.md    ← сбор ТЗ через интервью
+            ├── content-creator/
+            │   └── SKILL.md    ← написание контента
+            ├── fullstack-developer/
+            │   └── SKILL.md    ← разработка кода
+            └── frontend-design/
+                └── SKILL.md    ← дизайн интерфейсов
 ```
 
 ---

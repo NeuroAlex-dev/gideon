@@ -138,7 +138,7 @@ ls -1 ~/jarvis-bonus | head -20
 1. Прочти Read'ом существующие `SOUL.md`, `MEMORY.md` в той папке — чтобы НЕ перетереть их.
 2. Скажи: «Я НЕ трону Вашу память (`MEMORY.md`, `memory/`, `knowledge/`). Что добавить из бонуса?»
 3. Покажи AskUserQuestion с тремя вариантами:
-   - **Только новые скиллы** из `.claude/skills/` (5 готовых специалистов)
+   - **Только новые скиллы** из `workspace$HOME_DIR/workspace/.claude/skills/` (5 готовых специалистов)
    - **Скиллы + Telegram-бот** (`bot/`) и server-инструкции (`server/`)
    - **Всё кроме DNA-файлов** — скиллы, бот, server, README, examples
 4. Скопируй выбранные части из `~/jarvis-bonus/` в существующую папку. **Никогда** не перетирай `SOUL.md`, `MEMORY.md`, `GOALS.md`, `CLAUDE.md`, `memory/`, `knowledge/` без явного разрешения пользователя.
@@ -154,7 +154,7 @@ ls -1 ~/jarvis-bonus | head -20
 >
 > Что есть:
 > - 4 ядерных файла (CLAUDE, SOUL, MEMORY, GOALS) — Ваша память и характер
-> - 5 скиллов в `.claude/skills/` — команда подчинённых
+> - 5 скиллов в `workspace$HOME_DIR/workspace/.claude/skills/` — команда подчинённых
 > - Папка `memory/` для дневников по дням
 > - Папка `knowledge/` для Ваших справочников
 >

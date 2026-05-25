@@ -1,4 +1,4 @@
-# .claude/skills/ — команда специалистов Вашего Агента
+# workspace/.claude/skills/ — команда специалистов Вашего Агента
 
 Эта папка — для скиллов. Скилл = инструкция для одного специалиста, к которому Агент будет обращаться сам, когда увидит подходящую задачу.
 
@@ -32,7 +32,7 @@
 ```
 Поставь мне скилл discovery-interview от parcadei.
 Адрес: https://github.com/parcadei/Continuous-Claude-v3
-Положи в папку .claude/skills моего проекта jarvis.
+Положи в папку workspace/.claude/skills моего проекта jarvis.
 ```
 
 ---
@@ -47,7 +47,7 @@
 
 ```
 Поставь мне скилл content-creator из github.com/Shubhamsaboo/awesome-llm-apps.
-Положи в папку .claude/skills моего проекта jarvis.
+Положи в папку workspace/.claude/skills моего проекта jarvis.
 ```
 
 ---
@@ -62,7 +62,7 @@
 
 ```
 Поставь мне скилл fullstack-developer из github.com/Shubhamsaboo/awesome-llm-apps.
-Положи в папку .claude/skills моего проекта jarvis.
+Положи в папку workspace/.claude/skills моего проекта jarvis.
 ```
 
 > Если ставите Писателя и Разработчика по очереди — это нормально, оба из одного репозитория.
@@ -80,7 +80,7 @@
 ```
 Поставь мне скилл frontend-design от Anthropic.
 Адрес: https://github.com/anthropics/claude-code
-Положи в папку .claude/skills моего проекта jarvis.
+Положи в папку workspace/.claude/skills моего проекта jarvis.
 ```
 
 ---
@@ -124,7 +124,7 @@
 После установки всех скиллов:
 
 ```
-Закоммить и запушь .claude/skills/ с сообщением
+Закоммить и запушь workspace/.claude/skills/ с сообщением
 «skills: установил команду специалистов»
 ```
 
@@ -132,22 +132,22 @@
 
 ---
 
-## Если Вы уже скачали шаблон без папки .claude/skills/
+## Если Вы уже скачали шаблон без папки workspace/.claude/skills/
 
 Если Вы прошли Урок 4 раньше, чем эта папка появилась в шаблоне — скачайте только её, не пересоздавая весь Агент:
 
 **Через окно Claude Code (рекомендуется):**
 
 ```
-Скачай папку .claude/skills из репозитория Ntmib/jarvis-architect
+Скачай папку workspace/.claude/skills из репозитория Ntmib/jarvis-architect
 в мой проект jarvis. Адрес папки на GitHub:
-https://github.com/Ntmib/jarvis-architect/tree/main/.claude/skills
+https://github.com/Ntmib/jarvis-architect/tree/main/workspace/.claude/skills
 ```
 
 **Или вручную через terminal** (для продвинутых):
 
 ```bash
-npx degit Ntmib/jarvis-architect/.claude/skills .claude/skills
+npx degit Ntmib/jarvis-architect/workspace/.claude/skills workspace/.claude/skills
 ```
 
 После этого продолжите установку скиллов по фразам из этого файла.

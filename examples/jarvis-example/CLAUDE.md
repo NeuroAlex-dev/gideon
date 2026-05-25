@@ -84,4 +84,4 @@
 
 - `SOUL.md`, `MEMORY.md`, `GOALS.md`, этот файл
 - Папки `memory/` и `knowledge/`
-- Папку `.claude/skills/` (когда появится в Уроке 5)
+- Папку `workspace$HOME_DIR/workspace/.claude/skills/` (когда появится в Уроке 5)

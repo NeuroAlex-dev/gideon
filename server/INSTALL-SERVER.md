@@ -106,7 +106,7 @@ npm install -g @anthropic-ai/claude-code 2>&1 | tail -5 && which claude
 
 **3.4. Пользователь agent и папки:**
 ```
-id agent 2>/dev/null || useradd -m -s /bin/bash agent && mkdir -p /home/agent/workspace/memory /home/agent/workspace/knowledge /home/agent/projects /home/agent/.agent/bot /home/agent/.claude/skills && chown -R agent:agent /home/agent && echo OK
+id agent 2>/dev/null || useradd -m -s /bin/bash agent && mkdir -p /home/agent/workspace/memory /home/agent/workspace/knowledge /home/agent/workspace/.claude/skills /home/agent/projects /home/agent/.agent/bot /home/agent/.claude && chown -R agent:agent /home/agent && echo OK
 ```
 
 **3.5. Права на Claude Code для пользователя agent:**
@@ -167,7 +167,7 @@ curl -fsSL https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/.claude
 **Установи скиллы (навыки агента):**
 Скиллы — это готовые инструкции, которые усиливают агента. Скачай 4 базовых скилла:
 ```
-for SKILL in discovery-interview content-creator fullstack-developer frontend-design; do mkdir -p /home/agent/.claude/skills/$SKILL && curl -fsSL https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/.claude/skills/$SKILL/SKILL.md -o /home/agent/.claude/skills/$SKILL/SKILL.md; done && echo OK
+for SKILL in discovery-interview content-creator fullstack-developer frontend-design; do mkdir -p /home/agent/workspace/.claude/skills/$SKILL && curl -fsSL https://raw.githubusercontent.com/Ntmib/jarvis-architect/main/workspace/.claude/skills/$SKILL/SKILL.md -o /home/agent/workspace/.claude/skills/$SKILL/SKILL.md; done && echo OK
 ```
 
 После копирования — поправь владельца и создай симлинк для единой памяти:
