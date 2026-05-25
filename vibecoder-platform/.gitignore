@@ -1,0 +1,6 @@
+.vercel
+node_modules
+raw-source-prev
+
+# Auth cookie captured for the crawler — must not be committed.
+scripts/storage-state.json
