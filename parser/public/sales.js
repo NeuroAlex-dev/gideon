@@ -53,15 +53,17 @@ async function needsSetup() {
 function esc(s) { return String(s ?? "").replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c])); }
 
 function renderCard(c) {
+  const pauseLabel = c.status === "running" ? "⏸ Пауза" : (c.status === "paused" || c.status === "ready" ? "▶ Запустить" : "—");
   return `<div class="campaign-card">
     <h3>${esc(c.name)}</h3>
     <div class="meta">
       Статус: <span class="status-${esc(c.status)}">${esc(c.status)}</span> ·
       Режим: ${esc(c.mode || "—")}
     </div>
-    <div>
+    <div class="card-actions">
       <a href="./sales-campaign.html?id=${c.id}">Открыть</a>
-      <button id="pause-${c.id}">${c.status === "running" ? "Пауза" : (c.status === "paused" || c.status === "ready" ? "Запустить" : "—")}</button>
+      <button id="pause-${c.id}">${pauseLabel}</button>
+      <button id="delete-${c.id}" class="delete-btn">🗑 Удалить</button>
     </div>
   </div>`;
 }
@@ -70,21 +72,36 @@ async function loadCampaigns() {
   try {
     const list = await api("GET", "/campaigns");
     const root = document.getElementById("campaigns-list");
-    root.innerHTML = list.map(renderCard).join("") || "<p>Кампаний нет. Создай через бота: /sales</p>";
+    root.innerHTML = list.map(renderCard).join("") || "<p>Кампаний нет. Нажми «+ Создать кампанию» выше.</p>";
     for (const c of list) {
-      const btn = document.getElementById(`pause-${c.id}`);
-      if (!btn) continue;
-      btn.addEventListener("click", async () => {
-        try {
-          await api("POST", `/campaigns/${c.id}/${c.status === "running" ? "pause" : "start"}`);
-          loadCampaigns();
-        } catch (e) { alert(e.message); }
-      });
+      const pauseBtn = document.getElementById(`pause-${c.id}`);
+      if (pauseBtn) {
+        pauseBtn.addEventListener("click", async () => {
+          try {
+            await api("POST", `/campaigns/${c.id}/${c.status === "running" ? "pause" : "start"}`);
+            loadCampaigns();
+          } catch (e) { alert(e.message); }
+        });
+      }
+      const delBtn = document.getElementById(`delete-${c.id}`);
+      if (delBtn) {
+        delBtn.addEventListener("click", async () => {
+          if (!confirm(`Удалить кампанию «${c.name}»? Это необратимо.`)) return;
+          try {
+            await api("DELETE", `/campaigns/${c.id}`);
+            loadCampaigns();
+          } catch (e) { alert(e.message); }
+        });
+      }
     }
   } catch (e) {
     if (e.message !== "unauthorized") console.error(e);
   }
 }
+
+document.getElementById("new-campaign-btn")?.addEventListener("click", () => {
+  location.href = "./sales-campaign.html?id=new";
+});
 
 function showLogin() {
   document.getElementById("auth-section").hidden = false;

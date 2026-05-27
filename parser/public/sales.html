@@ -16,6 +16,30 @@
   nav a { margin-right: 1em; }
   .auth-form { max-width: 320px; margin: 2em auto; padding: 1em; border: 1px solid #ddd; border-radius: 6px; }
   .setup-hint { background: rgba(82,136,193,0.15); border: 1px solid var(--accent, #5288c1); padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 14px; }
+  .campaign-card .card-actions { display: flex; gap: 8px; align-items: center; margin-top: 0.5em; flex-wrap: wrap; }
+  .campaign-card .card-actions a, .campaign-card .card-actions button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border, #444);
+    background: transparent;
+    color: var(--text, #ddd);
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .campaign-card .card-actions a:hover, .campaign-card .card-actions button:hover { border-color: var(--accent, #5288c1); }
+  .campaign-card .card-actions .delete-btn:hover { color: #e57373; border-color: #e57373; }
+  #new-campaign-btn {
+    padding: 10px 16px;
+    background: var(--accent, #5288c1);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  #new-campaign-btn:hover { opacity: 0.9; }
+  #campaigns-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; padding: 0 24px; }
   #header-actions { display: flex; gap: 8px; align-items: center; }
   #header-actions a, #header-actions button {
     background: transparent;
@@ -52,7 +76,10 @@
       <div id="auth-error" style="color: red; margin-top: 0.5em;"></div>
     </div>
     <div id="campaigns-section" hidden>
-      <div id="campaigns-list"></div>
+      <div id="campaigns-toolbar">
+        <button id="new-campaign-btn" type="button">+ Создать кампанию</button>
+      </div>
+      <div id="campaigns-list" style="padding: 0 24px;"></div>
     </div>
   </main>
   <script src="./sales.js"></script>
