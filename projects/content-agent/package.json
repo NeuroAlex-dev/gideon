@@ -12,7 +12,8 @@
   "dependencies": {
     "better-sqlite3": "^11.3.0",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "telegram": "^2.26.16"
   },
   "engines": {
     "node": ">=20"
