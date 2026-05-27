@@ -30,6 +30,7 @@ import { handlePendingInput, registerSecretsHandlers } from "./secrets-menu.js";
 import { hasAnyTranscriber, registerVoiceHelpers, voiceFallbackKeyboard, VOICE_FALLBACK_PROMPT } from "./voice-helper.js";
 import { registerParserHandlers } from "./parser-menu.js";
 import { registerSalesHandlers } from "./sales-menu.js";
+import { registerContentHandlers } from "./content-menu.js";
 import { registerSettingsHandlers, getClaudeModel, getClaudePermissionMode, getTimezone } from "./settings-menu.js";
 import { registerCommandsHandlers } from "./commands-menu.js";
 
@@ -98,6 +99,7 @@ const mainKeyboard = new Keyboard()
   .text("📋 Статус").text("🔄 Новый диалог").row()
   .text("📁 Проекты").text("🧠 Память").row()
   .text("🎯 Парсер").text("💼 Продажи").row()
+  .text("✍ Контент").row()
   .resized()
   .persistent();
 
@@ -1069,6 +1071,11 @@ registerParserHandlers(bot, isOwner);
 // Sales Manager — AI-продавец (модуль sales-menu.js)
 registerSalesHandlers(bot, isOwner);
 
+// Контент-Агент — раздел «✍ Контент» (модуль content-menu.js).
+// ВАЖНО: регистрируется до основного bot.on("message:text"), чтобы мастера
+// контента перехватывали ввод по своему wizards-режиму (иначе текст уйдёт в Claude).
+registerContentHandlers(bot, isOwner);
+
 // /start
 bot.command("start", async (ctx) => {
   // Auto-lock: first user to /start becomes the owner
@@ -1160,6 +1167,13 @@ bot.hears("💼 Продажи", async (ctx) => {
   if (!isOwner(ctx)) return;
   ctx.message.text = "/sales";
   ctx.message.entities = [{ type: "bot_command", offset: 0, length: 6 }];
+  await bot.handleUpdate({ update_id: 0, message: ctx.message });
+});
+
+bot.hears("✍ Контент", async (ctx) => {
+  if (!isOwner(ctx)) return;
+  ctx.message.text = "/content";
+  ctx.message.entities = [{ type: "bot_command", offset: 0, length: 8 }];
   await bot.handleUpdate({ update_id: 0, message: ctx.message });
 });
 
@@ -1384,6 +1398,7 @@ bot.start({
       { command: "monitor",    description: "Поиск по своей базе знаний" },
       { command: "parser",     description: "Парсер участников чатов" },
       { command: "sales",      description: "Sales Manager — AI-продавец" },
+      { command: "content",    description: "Контент-Агент — стиль и посты" },
     ]);
     // Принудительно обновляем reply keyboard у владельца (новые кнопки 🎯 Парсер / 💼 Продажи)
     if (_ownerId) {
