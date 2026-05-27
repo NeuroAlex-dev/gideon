@@ -25,6 +25,45 @@ CREATE TABLE IF NOT EXISTS posts (
   created_at INTEGER NOT NULL,
   approved_at INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS sources (
+  id INTEGER PRIMARY KEY,
+  platform TEXT NOT NULL,
+  ref TEXT NOT NULL,
+  title TEXT,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS keywords (
+  id INTEGER PRIMARY KEY,
+  term TEXT NOT NULL,
+  scope TEXT NOT NULL DEFAULT 'include',
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS digests (
+  id INTEGER PRIMARY KEY,
+  created_at INTEGER NOT NULL,
+  period TEXT,
+  keywords_json TEXT,
+  platforms_json TEXT,
+  rendered_text TEXT,
+  saved INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS digest_items (
+  id INTEGER PRIMARY KEY,
+  digest_id INTEGER NOT NULL,
+  platform TEXT,
+  source_ref TEXT,
+  url TEXT,
+  title TEXT,
+  summary TEXT,
+  raw_text TEXT,
+  metrics_json TEXT,
+  published_at INTEGER
+);
 `;
 
 export function openDb(path = "./data/content-agent.db") {
@@ -97,4 +136,72 @@ export function setPostStatus(db, id, status) {
   } else {
     db.prepare("UPDATE posts SET status = ? WHERE id = ?").run(status, id);
   }
+}
+
+// ── Sources ──
+export function addSource(db, { platform, ref, title = null }) {
+  return db.prepare("INSERT INTO sources (platform, ref, title, created_at) VALUES (?, ?, ?, ?)")
+    .run(platform, ref, title, Date.now()).lastInsertRowid;
+}
+export function listSources(db, { platform = null } = {}) {
+  return platform
+    ? db.prepare("SELECT * FROM sources WHERE active = 1 AND platform = ? ORDER BY id").all(platform)
+    : db.prepare("SELECT * FROM sources WHERE active = 1 ORDER BY id").all();
+}
+export function removeSource(db, id) {
+  return db.prepare("DELETE FROM sources WHERE id = ?").run(id).changes;
+}
+
+// ── Keywords ──
+export function addKeyword(db, { term, scope = "include" }) {
+  return db.prepare("INSERT INTO keywords (term, scope, created_at) VALUES (?, ?, ?)")
+    .run(term, scope, Date.now()).lastInsertRowid;
+}
+export function listKeywords(db) {
+  return db.prepare("SELECT * FROM keywords ORDER BY id").all();
+}
+export function removeKeyword(db, id) {
+  return db.prepare("DELETE FROM keywords WHERE id = ?").run(id).changes;
+}
+
+// ── Digests ──
+export function createDigest(db, { period, keywords = [], platforms = [] }) {
+  return db.prepare("INSERT INTO digests (created_at, period, keywords_json, platforms_json) VALUES (?, ?, ?, ?)")
+    .run(Date.now(), period, JSON.stringify(keywords), JSON.stringify(platforms)).lastInsertRowid;
+}
+export function addDigestItems(db, digestId, items) {
+  const stmt = db.prepare(`INSERT INTO digest_items
+    (digest_id, platform, source_ref, url, title, summary, raw_text, metrics_json, published_at)
+    VALUES (@digest_id, @platform, @source_ref, @url, @title, @summary, @raw_text, @metrics_json, @published_at)`);
+  const tx = db.transaction((rows) => {
+    for (const r of rows) {
+      stmt.run({
+        digest_id: digestId,
+        platform: r.platform ?? "telegram",
+        source_ref: r.source_ref ?? null,
+        url: r.url ?? null,
+        title: r.title ?? null,
+        summary: r.summary ?? null,
+        raw_text: r.text ?? r.raw_text ?? null,
+        metrics_json: JSON.stringify(r.metrics ?? {}),
+        published_at: r.date ?? r.published_at ?? null,
+      });
+    }
+  });
+  tx(items);
+}
+export function getDigest(db, id) {
+  return db.prepare("SELECT * FROM digests WHERE id = ?").get(id);
+}
+export function listDigestItems(db, digestId) {
+  return db.prepare("SELECT * FROM digest_items WHERE digest_id = ? ORDER BY id").all(digestId);
+}
+export function getDigestItem(db, id) {
+  return db.prepare("SELECT * FROM digest_items WHERE id = ?").get(id);
+}
+export function setDigestRendered(db, id, text) {
+  db.prepare("UPDATE digests SET rendered_text = ? WHERE id = ?").run(text, id);
+}
+export function saveDigest(db, id) {
+  db.prepare("UPDATE digests SET saved = 1 WHERE id = ?").run(id);
 }
