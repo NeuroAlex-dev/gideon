@@ -429,7 +429,7 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
     try {
       await api("POST", "/sources", { platform: "telegram", ref });
       await ctx.reply(`✅ Канал ${esc(ref)} добавлен в мониторинг.`,
-        { reply_markup: new InlineKeyboard().text("📡 К источникам", "ca:sources").row().text("🏠 Меню", "ca:menu") });
+        { reply_markup: new InlineKeyboard().text("🔍 Найти информацию", "ca:find").text("📡 Источники", "ca:sources").row().text("➕ Ещё канал", "ca:src-add").row().text("🏠 Меню", "ca:menu") });
     } catch (e) {
       await ctx.reply(`⚠️ ${esc(e.message)}`);
     }
@@ -444,10 +444,15 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     await ctx.answerCallbackQuery();
     wizards.set(ctx.chat.id, { mode: "find", platforms: ["telegram"] });
-    const kb = new InlineKeyboard();
+    let count = 0;
+    try { count = (await api("GET", "/sources?platform=telegram")).length; } catch {}
+    const kb = new InlineKeyboard().text("➕ Добавить TG-канал", "ca:src-add").row();
     for (const [label, val] of PERIODS) kb.text(label, `ca:find-period:${val}`);
     kb.row().text("🏠 Меню", "ca:menu");
-    await ctx.reply("🔍 <b>Найти информацию</b> (Telegram)\n\nЗа какой период искать?", { parse_mode: "HTML", reply_markup: kb });
+    const head = count
+      ? `🔍 <b>Найти информацию</b> (Telegram)\n\nОтслеживаю каналов: <b>${count}</b>. За какой период искать?`
+      : `🔍 <b>Найти информацию</b> (Telegram)\n\n<i>Пока нет ни одного канала.</i> Сначала добавь канал конкурента, потом выбери период.`;
+    await ctx.reply(head, { parse_mode: "HTML", reply_markup: kb });
   });
 
   bot.callbackQuery(/^ca:find-period:(\w+)$/, async (ctx) => {
