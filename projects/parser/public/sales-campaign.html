@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Кампания — Sales Manager</title>
+<link rel="stylesheet" href="./style.css">
+<style>
+  .tabs { display: flex; gap: 1em; border-bottom: 1px solid #ccc; margin-bottom: 1em; }
+  .tab { padding: 0.5em 1em; cursor: pointer; }
+  .tab.active { border-bottom: 2px solid #007acc; font-weight: bold; }
+  .field { margin: 0.5em 0; }
+  .field label { display: block; font-weight: bold; color: #555; margin-bottom: 0.2em; }
+  .field textarea, .field input { width: 100%; padding: 0.4em; box-sizing: border-box; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+  td, th { padding: 0.4em 0.6em; border-bottom: 1px solid #eee; text-align: left; }
+  th { background: #f5f5f5; }
+  nav { margin-bottom: 1em; }
+</style>
+</head>
+<body>
+  <header>
+    <h1 id="campaign-title">Кампания</h1>
+    <nav><a href="./sales.html">← Все кампании</a></nav>
+  </header>
+  <main>
+    <div class="tabs">
+      <div class="tab active" data-tab="brief">Бриф</div>
+      <div class="tab" data-tab="leads">Лиды</div>
+      <div class="tab" data-tab="stats">Метрики</div>
+    </div>
+    <section id="tab-brief"></section>
+    <section id="tab-leads" hidden></section>
+    <section id="tab-stats" hidden></section>
+  </main>
+  <script src="./sales-campaign.js"></script>
+</body>
+</html>
