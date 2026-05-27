@@ -60,7 +60,9 @@ export async function fetchFromChannels({ channels, sinceTs, keywords = {}, perC
     for (const ref of channels) {
       try {
         const entity = await client.getEntity(ref);
-        const username = entity.username || null;
+        // entity.username бывает пустым у некоторых каналов — берём из ref (@name) как fallback.
+        const refUsername = typeof ref === "string" && ref.trim().startsWith("@") ? ref.trim().slice(1) : null;
+        const username = entity.username || refUsername;
         const messages = await client.getMessages(entity, { limit: perChannelLimit });
         for (const msg of messages) {
           const ts = msg.date ? msg.date * 1000 : 0;
