@@ -10,7 +10,13 @@ module.exports = {
       max_restarts: 10,
       restart_delay: 3000,
       watch: false,
-      env: { NODE_ENV: "production" },
+      env: {
+        NODE_ENV: "production",
+        CA_PORT: "3002",
+        CA_MODEL: "sonnet",
+        AGENT_HOME: "C:\\Users\\Administrator",
+        CLAUDE_CLI_PATH: "C:\\Users\\Administrator\\.agent\\bot\\claude.cmd",
+      },
     },
   ],
 };

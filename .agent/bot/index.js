@@ -528,7 +528,7 @@ function _callClaudeInner(prompt, sessionId, { onText } = {}) {
 
 // ─── FILE DOWNLOAD ──────────────────────────────────────────────────────────
 
-export async function downloadTgFile(url, destPath) {
+async function downloadTgFile(url, destPath) {
   const proto = url.startsWith("https") ? https : http;
   const response = await new Promise((resolve, reject) => {
     proto.get(url, (res) => {
@@ -675,7 +675,7 @@ async function processMediaBatch(key) {
 
 // ─── VOICE HANDLING ──────────────────────────────────────────────────────────
 
-export async function transcribeVoice(filePath) {
+async function transcribeVoice(filePath) {
   // 1. Try Deepgram
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (apiKey) {
@@ -1074,7 +1074,7 @@ registerSalesHandlers(bot, isOwner);
 // Контент-Агент — раздел «✍ Контент» (модуль content-menu.js).
 // ВАЖНО: регистрируется до основного bot.on("message:text"), чтобы мастера
 // контента перехватывали ввод по своему wizards-режиму (иначе текст уйдёт в Claude).
-registerContentHandlers(bot, isOwner);
+registerContentHandlers(bot, isOwner, { transcribeVoice, downloadTgFile });
 
 // /start
 bot.command("start", async (ctx) => {

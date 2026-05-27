@@ -6,7 +6,6 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { unlinkSync } from "node:fs";
-import { downloadTgFile, transcribeVoice } from "./index.js";
 
 function loadCaEnv() {
   const candidates = [
@@ -62,7 +61,8 @@ const INSTRUCTION = `<b>ℹ️ Контент-Агент</b>
 
 <b>🔍 Найти информацию</b>, <b>📆 Дайджест</b>, <b>📖 Контент-план</b>, <b>📡 Источники</b> — появятся в следующих фазах.`;
 
-export function registerContentHandlers(bot, isOwner) {
+export function registerContentHandlers(bot, isOwner, deps = {}) {
+  const { transcribeVoice, downloadTgFile } = deps;
   async function showMainMenu(ctx) {
     const kb = new InlineKeyboard()
       .text("🎭 Мой стиль", "ca:style").text("✍ Написать пост", "ca:write").row()
@@ -112,12 +112,12 @@ export function registerContentHandlers(bot, isOwner) {
     }
   });
 
-  registerStyleHandlers(bot, isOwner, { api, wizards, esc });
-  registerWriteHandlers(bot, isOwner, { api, wizards, esc });
+  registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoice, downloadTgFile });
+  registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoice, downloadTgFile });
 }
 
 // === Мастер «🎭 Мой стиль» ===
-function registerStyleHandlers(bot, isOwner, { api, wizards, esc }) {
+function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoice, downloadTgFile }) {
   bot.callbackQuery(/^ca:style$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     await ctx.answerCallbackQuery();
@@ -262,7 +262,7 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc }) {
 }
 
 // === Мастер «✍ Написать пост» ===
-function registerWriteHandlers(bot, isOwner, { api, wizards, esc }) {
+function registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoice, downloadTgFile }) {
   function postKeyboard(id) {
     return new InlineKeyboard()
       .text("✅ Сохранить", `ca:post-approve:${id}`).text("🔄 Переписать", `ca:post-var:${id}:rewrite`).row()
