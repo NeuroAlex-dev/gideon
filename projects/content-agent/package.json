@@ -1,0 +1,20 @@
+{
+  "name": "agent-content-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Личный Контент-Агент — обучение стилю и написание постов (Фаза 1)",
+  "main": "server.js",
+  "scripts": {
+    "start:server": "node server.js",
+    "dev:server": "node --watch server.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
