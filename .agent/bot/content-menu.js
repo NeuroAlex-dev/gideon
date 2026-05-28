@@ -76,7 +76,7 @@ const INSTRUCTION = `<b>ℹ️ Контент-Агент</b>
 
 <b>🔍 Найти информацию</b> — собираю дайджест по твоим источникам с метриками виральности. Под каждой новостью — кнопка «✍ Пост из этой новости» (рерайт в твоём стиле).
 
-<b>📥 Forward поста</b> — просто перешли в этот чат любой пост из любого канала. Я возьму текст + источник + ссылку и напишу авторский пост в твоём стиле.
+<b>📥 Прислать пост из канала</b> — кнопка в меню. Показывает твои TG-источники как ссылки: тап → Telegram открывает канал, листаешь, форвардишь нужный пост боту → пост в твоём стиле. Можно и проще: форварднуть любой пост из любого канала напрямую в этот чат — тоже сработает.
 
 <b>🔥 Поиск по трендам</b> — ищу что взлетает в нише прямо сейчас: восходящие запросы Google Trends + топ-обсуждения Reddit. Под каждым трендом — кнопка «✍ Пост по этому тренду».
 
@@ -87,6 +87,7 @@ export function registerContentHandlers(bot, isOwner, deps = {}) {
   async function showMainMenu(ctx) {
     const kb = new InlineKeyboard()
       .text("🎭 Мой стиль", "ca:style").text("✍ Написать пост", "ca:write").row()
+      .text("📥 Прислать пост из канала", "ca:fwd-pick").row()
       .text("🔍 Найти информацию", "ca:find").text("🔥 Поиск по трендам", "ca:trends").row()
       .text("📖 Контент-план", "ca:soon").text("📡 Источники", "ca:sources").row()
       .text("⚙ Настройки", "ca:settings").text("ℹ️ Инструкция", "ca:help");
@@ -121,6 +122,39 @@ export function registerContentHandlers(bot, isOwner, deps = {}) {
   bot.callbackQuery(/^ca:soon$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     await ctx.answerCallbackQuery({ text: "Скоро — в следующих фазах" });
+  });
+
+  // «📥 Прислать пост из канала»: показать TG-источники как url-кнопки.
+  // Тап по кнопке открывает канал в Telegram, пользователь сам находит пост
+  // и форвардит его боту — дальше срабатывает forward-handler выше.
+  bot.callbackQuery(/^ca:fwd-pick$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    await ctx.answerCallbackQuery();
+    let sources = [];
+    try { sources = await api("GET", "/sources?platform=telegram"); }
+    catch (e) { await ctx.reply(`⚠️ ${esc(e.message)}`); return; }
+    const usable = sources.filter((s) => s.platform === "telegram" && typeof s.ref === "string" && s.ref.startsWith("@"));
+    if (!usable.length) {
+      await ctx.reply(
+        "Сначала добавь хотя бы один Telegram-канал в 📡 Источники — потом сможешь оттуда форвардить посты.",
+        { reply_markup: new InlineKeyboard().text("📡 Источники", "ca:sources").row().text("🏠 Меню", "ca:menu") },
+      );
+      return;
+    }
+    const kb = new InlineKeyboard();
+    for (const s of usable) {
+      const username = s.ref.replace(/^@/, "");
+      kb.url(`📨 ${s.ref}`, `https://t.me/${username}`).row();
+    }
+    kb.text("🏠 Меню", "ca:menu");
+    await ctx.reply(
+      "📥 <b>Прислать пост из канала</b>\n\n" +
+      "1. Тапни канал ниже — Telegram откроет его\n" +
+      "2. Найди нужный пост, листая канал\n" +
+      "3. Длинный тап на посте → <i>Поделиться</i> (или <i>Forward</i>) → выбери этот бот\n" +
+      "4. Я возьму текст + источник + дату и напишу авторский пост в твоём стиле",
+      { parse_mode: "HTML", reply_markup: kb },
+    );
   });
 
   bot.callbackQuery(/^ca:settings$/, async (ctx) => {
