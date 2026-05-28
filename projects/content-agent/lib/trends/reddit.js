@@ -2,8 +2,10 @@
 // Используем endpoint /search.json для поиска топовых постов по нише.
 // Rate limit для unauth: ~60 req/min — нам с головой.
 
-const REDDIT_BASE = "https://www.reddit.com";
-const UA = "content-agent/0.1 (trend-search)";
+// old.reddit.com — старый домен с заметно меньшим anti-bot. JSON-эндпоинты те же.
+const REDDIT_BASE = "https://old.reddit.com";
+// Реалистичный browser-UA — без него Reddit чаще возвращает HTML/блок вместо JSON.
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 const PERIOD_MAP = { today: "day", "3days": "week", week: "week", month: "month" };
 
@@ -35,12 +37,18 @@ export async function fetchRedditTrends({ niche, period = "week", limit = 25, mi
   if (!niche || !String(niche).trim()) return [];
   const t = mapPeriodToReddit(period);
   const qs = new URLSearchParams({ q: String(niche), sort: "top", t, limit: String(limit), restrict_sr: "false" });
-  const res = await fetchImpl(`${REDDIT_BASE}/search.json?${qs}`, { headers: { "User-Agent": UA } });
+  const res = await fetchImpl(`${REDDIT_BASE}/search.json?${qs}`, {
+    headers: { "User-Agent": UA, "Accept": "application/json" },
+  });
+  // Reddit на anti-bot отдаёт HTML вместо JSON — защищаемся: проверяем content-type явно.
+  const ct = res.headers?.get?.("content-type");
+  if (ct && !ct.includes("json")) {
+    throw new Error(`reddit: ожидался JSON, пришёл ${ct} (status ${res.status}) — anti-bot или rate limit`);
+  }
   const data = await res.json();
   const items = data?.data?.children || [];
-  const normalized = items
+  return items
     .map((c) => normalizeRedditPost(c.data || {}, niche))
     .filter((it) => it.metrics.reactions >= minScore)
     .sort((a, b) => b.score - a.score);
-  return normalized;
 }
