@@ -33,3 +33,27 @@ test("generatePost возвращает текст от runner", async () => {
   const res = await generatePost({ styleText: "S", userPrompt: "тема", runner: fakeRunner });
   assert.equal(res, "текст поста");
 });
+
+test("buildPostPrompt: emoji вариант добавляет инструкцию про эмодзи", () => {
+  const p = buildPostPrompt({ styleText: "S", userPrompt: "x", variantMode: "emoji" });
+  assert.ok(p.includes(VARIANTS.emoji));
+  assert.match(p, /эмодзи/i);
+});
+
+test("buildPostPrompt: recentPosts включаются с пометкой 'не повторяй дословно'", () => {
+  const p = buildPostPrompt({
+    styleText: "S",
+    userPrompt: "новая тема",
+    recentPosts: ["За уши не оттащить от нейросетей.", "Это просто космос какой-то."],
+  });
+  assert.ok(p.includes("За уши не оттащить"));
+  assert.ok(p.includes("Это просто космос"));
+  assert.match(p, /не повторяй|дословн|синоним/i);
+  assert.match(p, /Пост 1/);
+  assert.match(p, /Пост 2/);
+});
+
+test("buildPostPrompt: пустой recentPosts не ломает", () => {
+  const p = buildPostPrompt({ styleText: "S", userPrompt: "x" });
+  assert.ok(!p.includes("Недавние посты"));
+});

@@ -157,6 +157,24 @@ export function setPostStatus(db, id, status) {
   }
 }
 
+// Последние N постов с непустым draft_text — для подсказки писателю «не повторяйся».
+// Исключаем конкретный id (только что созданный для генерации).
+export function getRecentPostDrafts(db, { limit = 5, excludeId = null } = {}) {
+  const rows = excludeId
+    ? db.prepare("SELECT draft_text FROM posts WHERE draft_text IS NOT NULL AND draft_text != '' AND id != ? ORDER BY id DESC LIMIT ?").all(excludeId, limit)
+    : db.prepare("SELECT draft_text FROM posts WHERE draft_text IS NOT NULL AND draft_text != '' ORDER BY id DESC LIMIT ?").all(limit);
+  return rows.map((r) => r.draft_text);
+}
+
+// Реoткрывает последнее завершённое интервью — чтобы пользователь мог дополнить материалами
+// и перегенерировать профиль без повторного прохождения 10 вопросов.
+export function reopenLatestInterview(db) {
+  const last = db.prepare("SELECT * FROM style_interview WHERE status = 'done' ORDER BY id DESC LIMIT 1").get();
+  if (!last) return null;
+  db.prepare("UPDATE style_interview SET status = 'in_progress', finished_at = NULL WHERE id = ?").run(last.id);
+  return getInterview(db, last.id);
+}
+
 // ── Sources ──
 export function addSource(db, { platform, ref, title = null, keywords = null }) {
   const kw = keywords && keywords.length ? JSON.stringify(keywords) : null;

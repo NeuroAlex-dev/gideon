@@ -206,15 +206,21 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
       const status = await api("GET", "/style/status");
       const kb = new InlineKeyboard();
       if (status.present) {
-        kb.text("✍ Написать пост", "ca:write").text("🔄 Переобучить стиль", "ca:style-start").row();
+        kb.text("✍ Написать пост", "ca:write").row();
+        kb.text("➕ Дополнить стиль", "ca:style-append").row();
+        kb.text("🔄 Переобучить стиль с нуля", "ca:style-start").row();
       } else {
         kb.text("🚀 Начать интервью", "ca:style-start").row();
       }
       kb.text("🏠 Меню", "ca:menu");
       await ctx.reply(
         `🎭 <b>Мой стиль</b>\n\n` +
-        (status.present ? "Профиль стиля обучен. Можно переобучить заново.\n\n" : "Профиль ещё не обучен.\n\n") +
-        `Интервью: 10 вопросов, отвечаешь голосом. Потом можно прислать доп.материалы (транскрипты, выгрузку постов). В конце я создам 5 файлов профиля.`,
+        (status.present
+          ? "✅ Профиль стиля обучен.\n\n" +
+            "<b>➕ Дополнить</b> — добавить материалы (текст/голос/посты) к существующему профилю и пересобрать его, БЕЗ повторного прохождения 10 вопросов. Быстрый путь докрутить стиль.\n\n" +
+            "<b>🔄 Переобучить с нуля</b> — заново 10 вопросов + материалы. Полный пересбор."
+          : "Профиль ещё не обучен.\n\n" +
+            "Интервью: 10 вопросов, отвечаешь голосом. Потом можно прислать доп.материалы (транскрипты, выгрузку постов). В конце я создам 5 файлов профиля."),
         { parse_mode: "HTML", reply_markup: kb },
       );
     } catch (e) {
@@ -231,6 +237,23 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
       await ctx.reply(
         `🎭 <b>Вопрос ${r.step + 1}/${r.total}</b>\n\n${esc(r.question)}\n\n<i>Ответь голосовым (лучше) или текстом.</i>`,
         { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") },
+      );
+    } catch (e) {
+      await ctx.reply(`⚠️ ${esc(e.message)}`);
+    }
+  });
+
+  bot.callbackQuery(/^ca:style-append$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    await ctx.answerCallbackQuery();
+    try {
+      const r = await api("POST", "/style/append/start");
+      wizards.set(ctx.chat.id, { mode: "style_materials" });
+      await ctx.reply(
+        `➕ <b>Дополнить стиль</b>\n\n` +
+        `Уже есть: ${r.answers_count} ответов из интервью + ${r.materials_count} материалов.\n\n` +
+        `Шли новые материалы — текстом или голосом: примеры твоих постов, транскрипты выступлений, что угодно про твою подачу. Когда закончишь — жми «✅ Закончить», я пересоберу профиль с учётом нового.`,
+        { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("✅ Закончить и пересобрать профиль", "ca:style-finish").row().text("🏠 Меню", "ca:menu") },
       );
     } catch (e) {
       await ctx.reply(`⚠️ ${esc(e.message)}`);
@@ -350,7 +373,7 @@ function registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
       .text("✅ Сохранить", `ca:post-approve:${id}`).text("🔄 Переписать", `ca:post-var:${id}:rewrite`).row()
       .text("✂️ Короче", `ca:post-var:${id}:shorter`).text("📈 Экспертнее", `ca:post-var:${id}:expert`).row()
       .text("🙂 Проще", `ca:post-var:${id}:simpler`).text("😂 Юмор", `ca:post-var:${id}:humor`).row()
-      .text("🎯 Призыв", `ca:post-var:${id}:cta`).row()
+      .text("🎯 Призыв", `ca:post-var:${id}:cta`).text("✨ Эмодзи", `ca:post-var:${id}:emoji`).row()
       .text("🏠 Меню", "ca:menu");
   }
 

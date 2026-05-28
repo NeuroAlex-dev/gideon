@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import {
   openDb, getSetting, setSetting,
   createInterview, getInterview, getActiveInterview,
-  addInterviewAnswer, addInterviewMaterial, finishInterview,
-  createPost, getPost, updatePostDraft, setPostStatus,
+  addInterviewAnswer, addInterviewMaterial, finishInterview, reopenLatestInterview,
+  createPost, getPost, updatePostDraft, setPostStatus, getRecentPostDrafts,
 } from "../lib/db.js";
 
 test("settings: set и get", () => {
@@ -44,4 +44,37 @@ test("posts: создание, обновление драфта, статус",
   const p = getPost(db, id);
   assert.equal(p.status, "approved");
   assert.ok(p.approved_at > 0);
+});
+
+test("getRecentPostDrafts: последние N с draft_text, новый-к-старому, exclude по id", () => {
+  const db = openDb(":memory:");
+  const id1 = createPost(db, { origin: "prompt", user_prompt: "1" });
+  updatePostDraft(db, id1, "пост 1");
+  const id2 = createPost(db, { origin: "prompt", user_prompt: "2" });
+  updatePostDraft(db, id2, "пост 2");
+  const id3 = createPost(db, { origin: "prompt", user_prompt: "3" }); // без draft_text
+  const idNew = createPost(db, { origin: "prompt", user_prompt: "new" });
+
+  const recent = getRecentPostDrafts(db, { limit: 5, excludeId: idNew });
+  assert.deepEqual(recent, ["пост 2", "пост 1"]);
+  assert.equal(getRecentPostDrafts(db, { limit: 1, excludeId: idNew })[0], "пост 2");
+});
+
+test("reopenLatestInterview: восстанавливает done → in_progress, сохраняет ответы", () => {
+  const db = openDb(":memory:");
+  const id = createInterview(db);
+  addInterviewAnswer(db, id, "Q1", "A1");
+  finishInterview(db, id);
+  assert.equal(getInterview(db, id).status, "done");
+
+  const reopened = reopenLatestInterview(db);
+  assert.ok(reopened);
+  assert.equal(reopened.status, "in_progress");
+  assert.equal(JSON.parse(reopened.answers_json).length, 1);
+  assert.equal(getActiveInterview(db).id, id);
+});
+
+test("reopenLatestInterview: null если нет done интервью", () => {
+  const db = openDb(":memory:");
+  assert.equal(reopenLatestInterview(db), null);
 });

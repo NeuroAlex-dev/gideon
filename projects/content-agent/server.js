@@ -4,7 +4,7 @@ import {
   getSetting, setSetting,
   createInterview, getInterview, getActiveInterview,
   addInterviewAnswer, addInterviewMaterial, finishInterview,
-  createPost, getPost, updatePostDraft, setPostStatus,
+  createPost, getPost, updatePostDraft, setPostStatus, getRecentPostDrafts, reopenLatestInterview,
   addSource, listSources, getSource, updateSourceKeywords, removeSource,
   addKeyword, listKeywords, removeKeyword,
   createDigest, addDigestItems, getDigest, listDigestItems, getDigestItem, setDigestRendered, saveDigest,
@@ -126,6 +126,14 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
     res.json({ id, step: 0, total: INTERVIEW_QUESTIONS.length, question: INTERVIEW_QUESTIONS[0] });
   });
 
+  // Дополнить существующий профиль материалами без повторного интервью —
+  // переоткрывает последнее завершённое интервью; пользователь шлёт материалы и жмёт finish.
+  app.post("/api/style/append/start", (_req, res) => {
+    const iv = reopenLatestInterview(db);
+    if (!iv) return res.status(404).json({ error: "нет завершённого профиля — сначала пройди интервью" });
+    res.json({ id: iv.id, answers_count: JSON.parse(iv.answers_json).length, materials_count: JSON.parse(iv.materials_json).length });
+  });
+
   // ── Посты ──────────────────────────────────────────────
   app.post("/api/posts", async (req, res) => {
     const origin = req.body?.origin === "digest_item" ? "digest_item" : "prompt";
@@ -141,7 +149,8 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
     const id = createPost(db, { origin, user_prompt: userPrompt });
     try {
       const styleText = loadStyleProfile(styleDir).text;
-      const text = await generatePost({ styleText, userPrompt, runner, model });
+      const recentPosts = getRecentPostDrafts(db, { limit: 5, excludeId: id });
+      const text = await generatePost({ styleText, userPrompt, recentPosts, runner, model });
       updatePostDraft(db, id, text);
       res.status(201).json({ id, draft_text: text });
     } catch (e) {
@@ -351,7 +360,8 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
     const mode = String(req.body?.mode || "rewrite");
     try {
       const styleText = loadStyleProfile(styleDir).text;
-      const text = await generatePost({ styleText, userPrompt: post.user_prompt, variantMode: mode, runner, model });
+      const recentPosts = getRecentPostDrafts(db, { limit: 5, excludeId: id });
+      const text = await generatePost({ styleText, userPrompt: post.user_prompt, variantMode: mode, recentPosts, runner, model });
       updatePostDraft(db, id, text);
       res.json({ id, draft_text: text });
     } catch (e) {
