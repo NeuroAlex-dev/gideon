@@ -63,6 +63,8 @@ const INSTRUCTION = `<b>ℹ️ Контент-Агент</b>
 
 <b>🔍 Найти информацию</b> — собираю дайджест по твоим источникам с метриками виральности. Под каждой новостью — кнопка «✍ Пост из этой новости» (рерайт в твоём стиле).
 
+<b>🔥 Поиск по трендам</b> — ищу что взлетает в нише прямо сейчас: восходящие запросы Google Trends + топ-обсуждения Reddit. Под каждым трендом — кнопка «✍ Пост по этому тренду».
+
 <b>📆 Дайджест</b>, <b>📖 Контент-план</b> — появятся в следующих фазах.`;
 
 export function registerContentHandlers(bot, isOwner, deps = {}) {
@@ -70,7 +72,7 @@ export function registerContentHandlers(bot, isOwner, deps = {}) {
   async function showMainMenu(ctx) {
     const kb = new InlineKeyboard()
       .text("🎭 Мой стиль", "ca:style").text("✍ Написать пост", "ca:write").row()
-      .text("🔍 Найти информацию", "ca:find").text("📆 Дайджест", "ca:soon").row()
+      .text("🔍 Найти информацию", "ca:find").text("🔥 Поиск по трендам", "ca:trends").row()
       .text("📖 Контент-план", "ca:soon").text("📡 Источники", "ca:sources").row()
       .text("⚙ Настройки", "ca:settings").text("ℹ️ Инструкция", "ca:help");
     await ctx.reply("✍ <b>Контент-Агент</b> — что делаем?", { parse_mode: "HTML", reply_markup: kb });
@@ -179,6 +181,7 @@ export function registerContentHandlers(bot, isOwner, deps = {}) {
   registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoice, downloadTgFile });
   registerSourcesHandlers(bot, isOwner, { api, wizards, esc });
   registerFindHandlers(bot, isOwner, { api, wizards, esc });
+  registerTrendsHandlers(bot, isOwner, { api, wizards, esc });
 }
 
 // === Мастер «🎭 Мой стиль» ===
@@ -710,5 +713,92 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
     const raw = ctx.message.text.trim();
     const keywords = raw === "-" ? [] : raw.split(/[,\n]+/).map((s) => s.trim()).filter(Boolean);
     await runSearch(ctx, w, keywords);
+  });
+}
+
+// === «🔥 Поиск по трендам» (Google Trends + Reddit, бесплатно) ===
+function registerTrendsHandlers(bot, isOwner, { api, wizards, esc }) {
+  const PERIODS = [["Сегодня", "today"], ["3 дня", "3days"], ["Неделя", "week"], ["Месяц", "month"]];
+  const PLAT_ICON = { google_trends: "📈", reddit: "👽" };
+  const PLAT_LABEL = { google_trends: "Google Trends", reddit: "Reddit" };
+
+  bot.callbackQuery(/^ca:trends$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    await ctx.answerCallbackQuery();
+    wizards.set(ctx.chat.id, { mode: "trends_niche" });
+    await ctx.reply(
+      "🔥 <b>Поиск по трендам</b>\n\nПо какой нише/направлению ищем тренды?\nНапиши тему — например <code>нейросети</code>, <code>AI для бизнеса</code>, <code>копирайтинг</code>.",
+      { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") },
+    );
+  });
+
+  bot.callbackQuery(/^ca:trends-period:(\w+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const period = ctx.match[1];
+    const w = wizards.get(ctx.chat.id);
+    if (!w || !w.niche) { await ctx.answerCallbackQuery({ text: "Сначала ниша" }); return; }
+    w.period = period;
+    wizards.set(ctx.chat.id, w);
+    await ctx.answerCallbackQuery();
+    await runTrendsSearch(ctx, w);
+  });
+
+  async function runTrendsSearch(ctx, w) {
+    wizards.delete(ctx.chat.id);
+    const wait = await ctx.reply("Ищу тренды... 🔥 (Google Trends + Reddit, до минуты)");
+    try {
+      const r = await api("POST", "/trends", { niche: w.niche, period: w.period || "week" });
+      await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
+      if (!r.count) {
+        const errLines = (r.errors || []).map((e) => `${PLAT_LABEL[e.source] || e.source}: ${e.error}`).join("\n");
+        await ctx.reply(
+          `Не нашёл трендов по «${esc(w.niche)}»${errLines ? "\n\nОшибки:\n" + esc(errLines) : ""}\n\nПопробуй другую нишу или период.`,
+          { reply_markup: new InlineKeyboard().text("🔥 Ещё раз", "ca:trends").row().text("🏠 Меню", "ca:menu") },
+        );
+        return;
+      }
+      await sendTrendsDigest(ctx, r);
+    } catch (e) {
+      await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
+      await ctx.reply(`⚠️ ${esc(e.message)}`, { reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
+    }
+  }
+
+  async function sendTrendsDigest(ctx, r) {
+    await ctx.reply(`🔥 <b>Тренды по нише</b> — найдено ${r.count}`, { parse_mode: "HTML" });
+    for (const it of r.items) {
+      const m = it.metrics || {};
+      const ic = PLAT_ICON[it.platform] || "•";
+      const label = PLAT_LABEL[it.platform] || it.platform;
+      const metricLine = it.platform === "google_trends"
+        ? `📈 Рост: ${m.reactions || 0}`
+        : `⬆️ ${m.reactions || 0} · 💬 ${m.comments || 0}`;
+      const text = `${ic} <b>${esc(it.title)}</b> <i>(${esc(label)})</i>\n${esc(it.summary || "")}\n\n${metricLine}` +
+        (it.url ? `\n${esc(it.url)}` : "");
+      const kb = new InlineKeyboard().text("✍ Пост по этому тренду", `ca:news-post:${it.id}`);
+      await ctx.reply(text, { parse_mode: "HTML", reply_markup: kb });
+    }
+    if (r.errors && r.errors.length) {
+      const errLines = r.errors.map((e) => `${PLAT_LABEL[e.source] || e.source}: ${e.error}`).join("\n");
+      await ctx.reply(`<i>Не все источники сработали:</i>\n${esc(errLines)}`, { parse_mode: "HTML" });
+    }
+    const kb = new InlineKeyboard()
+      .text("🔥 Новый поиск трендов", "ca:trends").row()
+      .text("🔍 Найти новости", "ca:find").text("🏠 Меню", "ca:menu");
+    await ctx.reply("Действия:", { reply_markup: kb });
+  }
+
+  bot.on("message:text", async (ctx, next) => {
+    if (!isOwner(ctx)) return next();
+    const w = wizards.get(ctx.chat.id);
+    if (!w || w.mode !== "trends_niche") return next();
+    const niche = ctx.message.text.trim();
+    if (!niche) { await ctx.reply("Пусто. Пришли тему."); return; }
+    w.niche = niche;
+    wizards.set(ctx.chat.id, w);
+    const kb = new InlineKeyboard();
+    for (const [label, val] of PERIODS) kb.text(label, `ca:trends-period:${val}`);
+    kb.row().text("🏠 Меню", "ca:menu");
+    await ctx.reply(`Ниша: <b>${esc(niche)}</b>. За какой период смотреть тренды?`, { parse_mode: "HTML", reply_markup: kb });
   });
 }
