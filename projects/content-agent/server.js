@@ -15,10 +15,12 @@ import { extractiveSummary, sortByEngagement, reshapeDigest, aiSummarize } from 
 import { fetchFromChannels, periodToSinceTs } from "./lib/sources/telegram.js";
 import { fetchVkWall, validateVkToken } from "./lib/sources/vk.js";
 import { fetchYouTubeChannel, validateYtKey } from "./lib/sources/youtube.js";
+import { fetchGoogleTrends } from "./lib/trends/google-trends.js";
+import { fetchRedditTrends } from "./lib/trends/reddit.js";
 
 const SETTING_KEYS = ["vk_token", "publish_targets"];
 
-export function createServer({ db, password, secret, styleDir, runner, model, tgFetch, vkFetch, ytFetch, vkValidate, ytValidate }) {
+export function createServer({ db, password, secret, styleDir, runner, model, tgFetch, vkFetch, ytFetch, vkValidate, ytValidate, gtFetch, redditFetch }) {
   const app = express();
   app.use(express.json({ limit: "5mb" }));
   const doTgFetch = tgFetch || (({ channels, sinceTs, keywords }) => fetchFromChannels({ channels, sinceTs, keywords }));
@@ -40,6 +42,8 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
   });
   const doVkValidate = vkValidate || validateVkToken;
   const doYtValidate = ytValidate || validateYtKey;
+  const doGtFetch = gtFetch || (({ niche, period, geo }) => fetchGoogleTrends({ niche, period, geo }));
+  const doRedditFetch = redditFetch || (({ niche, period, limit }) => fetchRedditTrends({ niche, period, limit }));
 
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
@@ -58,6 +62,7 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
   app.use("/api/keywords", auth);
   app.use("/api/search", auth);
   app.use("/api/digests", auth);
+  app.use("/api/trends", auth);
 
   // ── Стиль ──────────────────────────────────────────────
   app.get("/api/style/status", (_req, res) => {
@@ -266,6 +271,54 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
     if (!getDigest(db, Number(req.params.id))) return res.status(404).json({ error: "not found" });
     saveDigest(db, Number(req.params.id));
     res.json({ ok: true });
+  });
+
+  // ── Поиск по трендам (бесплатно: Google Trends + Reddit) ──
+  app.post("/api/trends", async (req, res) => {
+    const niche = String(req.body?.niche || "").trim();
+    if (!niche) return res.status(400).json({ error: "niche обязателен" });
+    const period = req.body?.period || "week";
+    const sources = Array.isArray(req.body?.sources) && req.body.sources.length
+      ? req.body.sources
+      : ["google_trends", "reddit"];
+    const geo = String(req.body?.geo || "RU");
+    try {
+      const errors = [];
+      let items = [];
+      if (sources.includes("google_trends")) {
+        try {
+          const fetched = await doGtFetch({ niche, period, geo });
+          items.push(...fetched);
+        } catch (e) {
+          errors.push({ source: "google_trends", error: e.message });
+        }
+      }
+      if (sources.includes("reddit")) {
+        try {
+          const fetched = await doRedditFetch({ niche, period, limit: 25 });
+          items.push(...fetched);
+        } catch (e) {
+          errors.push({ source: "reddit", error: e.message });
+        }
+      }
+      items = sortByEngagement(items).slice(0, 20);
+      // AI-саммари (с fallback на текст коннектора — он у нас уже структурирован)
+      let summaries = null;
+      try {
+        summaries = await aiSummarize({ items, runner, model });
+      } catch (e) {
+        console.warn("[trends] aiSummarize fallback:", e.message);
+      }
+      items.forEach((it, i) => {
+        it.summary = (summaries && summaries[i]) ? summaries[i] : extractiveSummary(it.text);
+      });
+      const digestId = createDigest(db, { period, keywords: [niche], platforms: sources });
+      addDigestItems(db, digestId, items);
+      const stored = listDigestItems(db, digestId);
+      res.status(201).json({ digest_id: digestId, count: stored.length, items: stored.map(mapItem), errors });
+    } catch (e) {
+      res.status(500).json({ error: String(e.message) });
+    }
   });
 
   app.post("/api/posts/:id/variant", async (req, res) => {
