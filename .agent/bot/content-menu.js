@@ -750,10 +750,12 @@ function registerTrendsHandlers(bot, isOwner, { api, wizards, esc }) {
       const r = await api("POST", "/trends", { niche: w.niche, period: w.period || "week" });
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       if (!r.count) {
-        const errLines = (r.errors || []).map((e) => `${PLAT_LABEL[e.source] || e.source}: ${e.error}`).join("\n");
-        const hint = `\n\n<i>Совет:</i> по узким многословным запросам у Google Trends часто нет данных. Попробуй <b>короче и шире</b> — одно-два слова. Например вместо «Вайбкодинг для бизнеса» → «вайбкодинг» или «AI для бизнеса».`;
+        const triedLine = Array.isArray(r.terms) && r.terms.length > 1
+          ? `\n<i>Пробовал по ${r.terms.length} ключевикам:</i> ${r.terms.map(esc).join(", ")}`
+          : "";
+        const errLines = (r.errors || []).slice(0, 3).map((e) => `${PLAT_LABEL[e.source] || e.source}: ${e.error}`).join("\n");
         await ctx.reply(
-          `Не нашёл трендов по «${esc(w.niche)}».${hint}${errLines ? "\n\n<i>Технические ошибки:</i>\n" + esc(errLines) : ""}`,
+          `Не нашёл трендов по «${esc(w.niche)}».${triedLine}\n\nПопробуй ещё раз с другой нишей или периодом.${errLines ? "\n\n<i>Технические ошибки:</i>\n" + esc(errLines) : ""}`,
           { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🔥 Попробовать ещё", "ca:trends").row().text("🏠 Меню", "ca:menu") },
         );
         return;
@@ -766,7 +768,10 @@ function registerTrendsHandlers(bot, isOwner, { api, wizards, esc }) {
   }
 
   async function sendTrendsDigest(ctx, r) {
-    await ctx.reply(`🔥 <b>Тренды по нише</b> — найдено ${r.count}`, { parse_mode: "HTML" });
+    const termsLine = Array.isArray(r.terms) && r.terms.length > 1
+      ? `\n<i>Искал по ${r.terms.length} ключевикам:</i> ${r.terms.map(esc).join(", ")}`
+      : "";
+    await ctx.reply(`🔥 <b>Тренды по нише</b> — найдено ${r.count}${termsLine}`, { parse_mode: "HTML" });
     for (const it of r.items) {
       const m = it.metrics || {};
       const ic = PLAT_ICON[it.platform] || "•";

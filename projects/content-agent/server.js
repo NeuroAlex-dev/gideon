@@ -17,6 +17,7 @@ import { fetchVkWall, validateVkToken } from "./lib/sources/vk.js";
 import { fetchYouTubeChannel, validateYtKey } from "./lib/sources/youtube.js";
 import { fetchGoogleTrends } from "./lib/trends/google-trends.js";
 import { fetchRedditTrends } from "./lib/trends/reddit.js";
+import { expandNiche } from "./lib/trends/keyword-expander.js";
 
 const SETTING_KEYS = ["vk_token", "publish_targets"];
 
@@ -284,21 +285,37 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
     const geo = String(req.body?.geo || "RU");
     try {
       const errors = [];
+      // AI разворачивает узкую нишу в 6-8 коротких запросов — GT работает только с такими.
+      const terms = await expandNiche({ niche, runner, model });
       let items = [];
+      const seenUrls = new Set();
       if (sources.includes("google_trends")) {
-        try {
-          const fetched = await doGtFetch({ niche, period, geo });
-          items.push(...fetched);
-        } catch (e) {
-          errors.push({ source: "google_trends", error: e.message });
+        for (const term of terms) {
+          try {
+            const fetched = await doGtFetch({ niche: term, period, geo });
+            for (const it of fetched) {
+              if (it.url && seenUrls.has(it.url)) continue;
+              if (it.url) seenUrls.add(it.url);
+              items.push(it);
+            }
+          } catch (e) {
+            errors.push({ source: "google_trends", term, error: e.message });
+          }
         }
       }
       if (sources.includes("reddit")) {
-        try {
-          const fetched = await doRedditFetch({ niche, period, limit: 25 });
-          items.push(...fetched);
-        } catch (e) {
-          errors.push({ source: "reddit", error: e.message });
+        for (const term of terms) {
+          try {
+            const fetched = await doRedditFetch({ niche: term, period, limit: 25 });
+            for (const it of fetched) {
+              if (it.url && seenUrls.has(it.url)) continue;
+              if (it.url) seenUrls.add(it.url);
+              items.push(it);
+            }
+          } catch (e) {
+            errors.push({ source: "reddit", term, error: e.message });
+            break; // на Reddit anti-bot нет смысла повторять для каждого term
+          }
         }
       }
       items = sortByEngagement(items).slice(0, 20);
@@ -312,10 +329,10 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
       items.forEach((it, i) => {
         it.summary = (summaries && summaries[i]) ? summaries[i] : extractiveSummary(it.text);
       });
-      const digestId = createDigest(db, { period, keywords: [niche], platforms: sources });
+      const digestId = createDigest(db, { period, keywords: terms, platforms: sources });
       addDigestItems(db, digestId, items);
       const stored = listDigestItems(db, digestId);
-      res.status(201).json({ digest_id: digestId, count: stored.length, items: stored.map(mapItem), errors });
+      res.status(201).json({ digest_id: digestId, count: stored.length, items: stored.map(mapItem), terms, errors });
     } catch (e) {
       res.status(500).json({ error: String(e.message) });
     }
