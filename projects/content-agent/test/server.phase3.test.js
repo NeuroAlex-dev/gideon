@@ -123,6 +123,51 @@ test("search source_id: сужает поиск до одного источни
   server.close();
 });
 
+test("browse: возвращает посты канала отсортированные новые-сверху, без фильтров", async () => {
+  const db = openDb(":memory:");
+  const password = "p", secret = "s";
+  const styleDir = fs.mkdtempSync(path.join(os.tmpdir(), "p3br-style-"));
+  const runner = async () => JSON.stringify({ result: `OUT` });
+  const now = Date.now();
+  // Возвращает 3 поста с разными датами
+  const tgFetch = async () => ([
+    { platform: "telegram", source_ref: "@a", url: "u1", title: "old", text: "x", metrics: { views: 1 }, date: now - 100000, score: 1 },
+    { platform: "telegram", source_ref: "@a", url: "u3", title: "newest", text: "y", metrics: { views: 3 }, date: now, score: 3 },
+    { platform: "telegram", source_ref: "@a", url: "u2", title: "mid", text: "z", metrics: { views: 2 }, date: now - 50000, score: 2 },
+  ]);
+  const app = createServer({ db, password, secret, styleDir, runner, model: "sonnet", tgFetch, vkValidate: async () => true, ytValidate: async () => true });
+  const server = app.listen(0);
+  const port = server.address().port;
+  const token = makeToken(secret, password);
+  const req = (m, p, b) => fetch(`http://127.0.0.1:${port}${p}`, { method: m, headers: { "content-type": "application/json", "x-auth-token": token }, body: b ? JSON.stringify(b) : undefined });
+
+  const src = await (await req("POST", "/api/sources", { platform: "telegram", ref: "@a", keywords: ["должен_игнорироваться"] })).json();
+  const r = await (await req("POST", `/api/sources/${src.id}/browse`, { limit: 10 })).json();
+  assert.equal(r.count, 3);
+  // Новые сверху
+  assert.equal(r.items[0].title, "newest");
+  assert.equal(r.items[1].title, "mid");
+  assert.equal(r.items[2].title, "old");
+  // published_at в ответе
+  assert.ok(r.items[0].published_at > r.items[2].published_at);
+  // Фильтры НЕ применяются — keyword "должен_игнорироваться" в источнике, но посты прошли
+  server.close();
+});
+
+test("browse: 404 на несуществующий id источника", async () => {
+  const db = openDb(":memory:");
+  const password = "p", secret = "s";
+  const styleDir = fs.mkdtempSync(path.join(os.tmpdir(), "p3br2-style-"));
+  const runner = async () => JSON.stringify({ result: "OUT" });
+  const app = createServer({ db, password, secret, styleDir, runner, model: "sonnet", vkValidate: async () => true, ytValidate: async () => true });
+  const server = app.listen(0);
+  const port = server.address().port;
+  const token = makeToken(secret, password);
+  const r = await fetch(`http://127.0.0.1:${port}/api/sources/9999/browse`, { method: "POST", headers: { "content-type": "application/json", "x-auth-token": token }, body: "{}" });
+  assert.equal(r.status, 404);
+  server.close();
+});
+
 test("PUT /api/sources/:id обновляет keywords", async () => {
   const { req, close } = setup();
   const created = await (await req("POST", "/api/sources", { platform: "telegram", ref: "@a" })).json();
