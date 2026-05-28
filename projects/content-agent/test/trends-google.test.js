@@ -53,7 +53,19 @@ test("fetchGoogleTrends: graceful — пустой rising → пустой ма�
   assert.deepEqual(items, []);
 });
 
-test("fetchGoogleTrends: ошибка API → бросает понятную", async () => {
+test("fetchGoogleTrends: ошибка сети → бросает понятную", async () => {
   const fakeGtApi = { relatedQueries: async () => { throw new Error("network"); } };
   await assert.rejects(() => fetchGoogleTrends({ niche: "x", gtApi: fakeGtApi }), /google trends/i);
+});
+
+test("fetchGoogleTrends: HTML-ответ (нет данных) → пустой массив, не падает", async () => {
+  const fakeGtApi = { relatedQueries: async () => "<html lang=\"en\"><body>no results</body></html>" };
+  const items = await fetchGoogleTrends({ niche: "очень узкая ниша", gtApi: fakeGtApi });
+  assert.deepEqual(items, []);
+});
+
+test("fetchGoogleTrends: невалидный JSON → пустой массив, не падает", async () => {
+  const fakeGtApi = { relatedQueries: async () => "не-json мусор" };
+  const items = await fetchGoogleTrends({ niche: "x", gtApi: fakeGtApi });
+  assert.deepEqual(items, []);
 });

@@ -751,9 +751,10 @@ function registerTrendsHandlers(bot, isOwner, { api, wizards, esc }) {
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       if (!r.count) {
         const errLines = (r.errors || []).map((e) => `${PLAT_LABEL[e.source] || e.source}: ${e.error}`).join("\n");
+        const hint = `\n\n<i>Совет:</i> по узким многословным запросам у Google Trends часто нет данных. Попробуй <b>короче и шире</b> — одно-два слова. Например вместо «Вайбкодинг для бизнеса» → «вайбкодинг» или «AI для бизнеса».`;
         await ctx.reply(
-          `Не нашёл трендов по «${esc(w.niche)}»${errLines ? "\n\nОшибки:\n" + esc(errLines) : ""}\n\nПопробуй другую нишу или период.`,
-          { reply_markup: new InlineKeyboard().text("🔥 Ещё раз", "ca:trends").row().text("🏠 Меню", "ca:menu") },
+          `Не нашёл трендов по «${esc(w.niche)}».${hint}${errLines ? "\n\n<i>Технические ошибки:</i>\n" + esc(errLines) : ""}`,
+          { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🔥 Попробовать ещё", "ca:trends").row().text("🏠 Меню", "ca:menu") },
         );
         return;
       }

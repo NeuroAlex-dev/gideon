@@ -41,10 +41,20 @@ export async function fetchGoogleTrends({ niche, period = "week", geo = "RU", gt
     throw new Error(`google trends: ${e.message}`);
   }
   let data;
-  try {
-    data = typeof raw === "string" ? JSON.parse(raw) : raw;
-  } catch (e) {
-    throw new Error(`google trends: парсинг JSON провален: ${e.message}`);
+  if (typeof raw === "string") {
+    // GT для слишком узких/неизвестных ниш возвращает HTML "no results" вместо JSON —
+    // это не ошибка, это "нет данных". Возвращаем пустой массив.
+    const trimmed = raw.trimStart();
+    if (trimmed.startsWith("<")) {
+      console.warn(`[google-trends] нет данных по нише "${niche}" (Google вернул HTML)`);
+      return [];
+    }
+    try { data = JSON.parse(raw); } catch (e) {
+      console.warn(`[google-trends] парсинг JSON провален для "${niche}": ${e.message}`);
+      return [];
+    }
+  } else {
+    data = raw;
   }
   // Структура: { default: { rankedList: [ {rankedKeyword: [top]}, {rankedKeyword: [rising]} ] } }
   const lists = data?.default?.rankedList || [];
