@@ -76,6 +76,8 @@ const INSTRUCTION = `<b>ℹ️ Контент-Агент</b>
 
 <b>🔍 Найти информацию</b> — собираю дайджест по твоим источникам с метриками виральности. Под каждой новостью — кнопка «✍ Пост из этой новости» (рерайт в твоём стиле).
 
+<b>📥 Forward поста</b> — просто перешли в этот чат любой пост из любого канала. Я возьму текст + источник + ссылку и напишу авторский пост в твоём стиле.
+
 <b>🔥 Поиск по трендам</b> — ищу что взлетает в нише прямо сейчас: восходящие запросы Google Trends + топ-обсуждения Reddit. Под каждым трендом — кнопка «✍ Пост по этому тренду».
 
 <b>📆 Дайджест</b>, <b>📖 Контент-план</b> — появятся в следующих фазах.`;
@@ -187,6 +189,55 @@ export function registerContentHandlers(bot, isOwner, deps = {}) {
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       await ctx.reply(`⚠️ ${esc(e.message)}\n\nПришли ключ ещё раз или нажми Меню.`,
         { reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
+    }
+  });
+
+  // Forward-handler: пересланный пост из любого канала/чата → пост в стиле.
+  // Регистрируется ДО sub-регистраторов, чтобы перехватывать forward'ы раньше
+  // wizard-обработчиков (а то текст пересланного поста уйдёт как ответ интервью или тема поста).
+  bot.on("message:forward_origin", async (ctx, next) => {
+    if (!isOwner(ctx)) return next();
+    const fo = ctx.message.forward_origin || {};
+    const text = (ctx.message.text || ctx.message.caption || "").trim();
+    if (!text) {
+      await ctx.reply("В пересланном сообщении нет текста — нечего переписать. Перешли пост с текстом.",
+        { reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
+      return;
+    }
+
+    // Извлекаем источник
+    let sourceInfo = "неизвестный источник";
+    let url = null;
+    let dateStr = "";
+    if (fo.type === "channel") {
+      const username = fo.chat?.username;
+      const channelName = fo.chat?.title || (username ? `@${username}` : "канал");
+      sourceInfo = `канал «${channelName}»` + (username ? ` (@${username})` : "");
+      if (username && fo.message_id) url = `https://t.me/${username}/${fo.message_id}`;
+    } else if (fo.type === "user") {
+      const name = [fo.sender_user?.first_name, fo.sender_user?.last_name].filter(Boolean).join(" ");
+      sourceInfo = `пользователь ${name || "—"}`;
+    } else if (fo.type === "hidden_user") {
+      sourceInfo = `пользователь ${fo.sender_user_name || "—"}`;
+    } else if (fo.type === "chat") {
+      sourceInfo = `чат «${fo.sender_chat?.title || "—"}»`;
+    }
+    if (fo.date) dateStr = ` от ${new Date(fo.date * 1000).toLocaleDateString("ru-RU")}`;
+
+    const prompt =
+      `Перепиши этот пост в моём стиле как авторский (не копируй дословно, добавь свой экспертный взгляд и подачу).\n\n` +
+      `Источник: ${sourceInfo}${dateStr}` + (url ? `\nСсылка: ${url}` : "") + `\n\n` +
+      `Оригинальный текст:\n"""\n${text}\n"""`;
+
+    wizards.delete(ctx.chat.id); // forward сбрасывает любой активный мастер
+    const wait = await ctx.reply(`📥 Получил пост (${sourceInfo}${dateStr}). Пишу в твоём стиле... ✍️ (до минуты)`);
+    try {
+      const r = await api("POST", "/posts", { user_prompt: prompt }, { timeoutMs: 300000 });
+      await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
+      await ctx.reply(r.draft_text || "(пусто)", { reply_markup: postKeyboard(r.id) });
+    } catch (e) {
+      await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
+      await ctx.reply(`⚠️ ${esc(e.message)}`, { reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
     }
   });
 
@@ -366,16 +417,19 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
   });
 }
 
+// Универсальная клавиатура под драфтом поста — используется и в мастере написания,
+// и в forward-handler, и в news-post. Отдельной функцией на уровне модуля.
+function postKeyboard(id) {
+  return new InlineKeyboard()
+    .text("✅ Сохранить", `ca:post-approve:${id}`).text("🔄 Переписать", `ca:post-var:${id}:rewrite`).row()
+    .text("✂️ Короче", `ca:post-var:${id}:shorter`).text("📈 Экспертнее", `ca:post-var:${id}:expert`).row()
+    .text("🙂 Проще", `ca:post-var:${id}:simpler`).text("😂 Юмор", `ca:post-var:${id}:humor`).row()
+    .text("🎯 Призыв", `ca:post-var:${id}:cta`).text("✨ Эмодзи", `ca:post-var:${id}:emoji`).row()
+    .text("🏠 Меню", "ca:menu");
+}
+
 // === Мастер «✍ Написать пост» ===
 function registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoice, downloadTgFile }) {
-  function postKeyboard(id) {
-    return new InlineKeyboard()
-      .text("✅ Сохранить", `ca:post-approve:${id}`).text("🔄 Переписать", `ca:post-var:${id}:rewrite`).row()
-      .text("✂️ Короче", `ca:post-var:${id}:shorter`).text("📈 Экспертнее", `ca:post-var:${id}:expert`).row()
-      .text("🙂 Проще", `ca:post-var:${id}:simpler`).text("😂 Юмор", `ca:post-var:${id}:humor`).row()
-      .text("🎯 Призыв", `ca:post-var:${id}:cta`).text("✨ Эмодзи", `ca:post-var:${id}:emoji`).row()
-      .text("🏠 Меню", "ca:menu");
-  }
 
   bot.callbackQuery(/^ca:write$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
