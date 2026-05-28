@@ -74,19 +74,27 @@ export function registerContentHandlers(bot, isOwner, deps = {}) {
 
   bot.command("content", async (ctx) => {
     if (!isOwner(ctx)) return;
+    wizards.delete(ctx.chat.id); // защита: команда сбрасывает любой активный мастер
     await showMainMenu(ctx);
   });
 
   bot.callbackQuery(/^ca:menu$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     await ctx.answerCallbackQuery();
+    wizards.delete(ctx.chat.id); // защита: возврат в меню сбрасывает любой активный мастер
     await showMainMenu(ctx);
   });
 
   bot.callbackQuery(/^ca:help$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     await ctx.answerCallbackQuery();
-    await ctx.reply(INSTRUCTION, { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
+    await ctx.reply(INSTRUCTION, {
+      parse_mode: "HTML",
+      reply_markup: new InlineKeyboard()
+        .text("🎭 Мой стиль", "ca:style").text("✍ Написать пост", "ca:write").row()
+        .text("📡 Источники", "ca:sources").text("🔍 Найти инфо", "ca:find").row()
+        .text("🏠 Меню", "ca:menu"),
+    });
   });
 
   bot.callbackQuery(/^ca:soon$/, async (ctx) => {
@@ -127,7 +135,7 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
       const status = await api("GET", "/style/status");
       const kb = new InlineKeyboard();
       if (status.present) {
-        kb.text("🔄 Переобучить стиль", "ca:style-start").row();
+        kb.text("✍ Написать пост", "ca:write").text("🔄 Переобучить стиль", "ca:style-start").row();
       } else {
         kb.text("🚀 Начать интервью", "ca:style-start").row();
       }
@@ -151,7 +159,7 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
       wizards.set(ctx.chat.id, { mode: "style_interview", step: r.step, total: r.total });
       await ctx.reply(
         `🎭 <b>Вопрос ${r.step + 1}/${r.total}</b>\n\n${esc(r.question)}\n\n<i>Ответь голосовым (лучше) или текстом.</i>`,
-        { parse_mode: "HTML" },
+        { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") },
       );
     } catch (e) {
       await ctx.reply(`⚠️ ${esc(e.message)}`);
@@ -165,7 +173,8 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
         wizards.set(ctx.chat.id, { mode: "style_materials" });
         const kb = new InlineKeyboard()
           .text("➕ Прислать ещё инфо", "ca:style-more").row()
-          .text("✅ Закончить и создать профиль", "ca:style-finish");
+          .text("✅ Закончить и создать профиль", "ca:style-finish").row()
+          .text("🏠 Меню", "ca:menu");
         await ctx.reply(
           "Отлично, 10 вопросов готово! ✅\n\nМожешь прислать доп.материалы (текстом или голосом): транскрипты, куски постов. Или сразу создать профиль.",
           { reply_markup: kb },
@@ -176,7 +185,7 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
       if (w) w.step = r.step;
       await ctx.reply(
         `🎭 <b>Вопрос ${r.step + 1}/${r.total}</b>\n\n${esc(r.question)}\n\n<i>Ответь голосовым или текстом.</i>`,
-        { parse_mode: "HTML" },
+        { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") },
       );
     } catch (e) {
       await ctx.reply(`⚠️ ${esc(e.message)}`);
@@ -188,7 +197,7 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
     await ctx.answerCallbackQuery();
     wizards.set(ctx.chat.id, { mode: "style_materials" });
     await ctx.reply("Шли материалы (текст или голос). Когда закончишь — нажми «✅ Закончить».", {
-      reply_markup: new InlineKeyboard().text("✅ Закончить и создать профиль", "ca:style-finish"),
+      reply_markup: new InlineKeyboard().text("✅ Закончить и создать профиль", "ca:style-finish").row().text("🏠 Меню", "ca:menu"),
     });
   });
 
@@ -202,7 +211,7 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       await ctx.reply(
         `✅ Профиль стиля создан!\n\nФайлы: ${r.files.join(", ")}\n\nТеперь все посты будут в твоём стиле. Жми «✍ Написать пост».`,
-        { reply_markup: new InlineKeyboard().text("✍ Написать пост", "ca:write").row().text("🏠 Меню", "ca:menu") },
+        { reply_markup: new InlineKeyboard().text("✍ Написать пост", "ca:write").text("🔍 Найти инфо", "ca:find").row().text("🏠 Меню", "ca:menu") },
       );
     } catch (e) {
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
@@ -234,7 +243,7 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
       } else {
         await api("POST", "/style/interview/material", { type: "voice", text: transcript });
         await ctx.reply("📎 Материал добавлен. Шли ещё или нажми «✅ Закончить».", {
-          reply_markup: new InlineKeyboard().text("✅ Закончить и создать профиль", "ca:style-finish"),
+          reply_markup: new InlineKeyboard().text("✅ Закончить и создать профиль", "ca:style-finish").row().text("🏠 Меню", "ca:menu"),
         });
       }
     } catch (e) {
@@ -254,7 +263,7 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
       try {
         await api("POST", "/style/interview/material", { type: "text", text });
         await ctx.reply("📎 Материал добавлен. Шли ещё или «✅ Закончить».", {
-          reply_markup: new InlineKeyboard().text("✅ Закончить и создать профиль", "ca:style-finish"),
+          reply_markup: new InlineKeyboard().text("✅ Закончить и создать профиль", "ca:style-finish").row().text("🏠 Меню", "ca:menu"),
         });
       } catch (e) {
         await ctx.reply(`⚠️ ${esc(e.message)}`);
@@ -278,7 +287,7 @@ function registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     await ctx.answerCallbackQuery();
     wizards.set(ctx.chat.id, { mode: "post_prompt" });
-    await ctx.reply("✍ О чём написать пост? Пришли тему текстом или голосом.\n\n<i>Например: «как предпринимателю выбрать нейросеть для бизнеса».</i>", { parse_mode: "HTML" });
+    await ctx.reply("✍ О чём написать пост? Пришли тему текстом или голосом.\n\n<i>Например: «как предпринимателю выбрать нейросеть для бизнеса».</i>", { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
   });
 
   async function generateAndSend(ctx, userPrompt) {
@@ -383,6 +392,7 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
     if (!tg.length) lines.push("<i>пока пусто</i>");
     const kb = new InlineKeyboard().text("➕ Добавить TG-канал", "ca:src-add").row();
     for (const s of tg) kb.text(`❌ ${s.ref}`, `ca:src-del:${s.id}`).row();
+    if (tg.length) kb.text("🔍 Найти информацию", "ca:find").row();
     kb.text("🏠 Меню", "ca:menu");
     await ctx.reply(lines.join("\n"), { parse_mode: "HTML", reply_markup: kb });
   }
@@ -397,7 +407,7 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     await ctx.answerCallbackQuery();
     wizards.set(ctx.chat.id, { mode: "src_add" });
-    await ctx.reply("Пришли @username канала или ссылку (например <code>@durov</code> или <code>https://t.me/durov</code>):", { parse_mode: "HTML" });
+    await ctx.reply("Пришли @username канала или ссылку (например <code>@durov</code> или <code>https://t.me/durov</code>):", { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
   });
 
   bot.callbackQuery(/^ca:src-del:(\d+)$/, async (ctx) => {
@@ -417,21 +427,24 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
     if (!isOwner(ctx)) return next();
     const w = wizards.get(ctx.chat.id);
     if (!w || w.mode !== "src_add") return next();
-    wizards.delete(ctx.chat.id);
     let ref = ctx.message.text.trim();
     const m = ref.match(/t\.me\/(@?[\w\d_]+)/i);
     if (m) ref = m[1];
     if (!ref.startsWith("@") && !/^[\w\d_]+$/.test(ref)) {
-      await ctx.reply("Не похоже на канал. Пришли @username или ссылку t.me/...");
+      // wizard оставляем активным — даём ввести ещё раз
+      await ctx.reply("Не похоже на канал. Пришли @username или ссылку t.me/... — или нажми «Меню».", {
+        reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu"),
+      });
       return;
     }
     if (!ref.startsWith("@")) ref = "@" + ref;
+    wizards.delete(ctx.chat.id);
     try {
       await api("POST", "/sources", { platform: "telegram", ref });
       await ctx.reply(`✅ Канал ${esc(ref)} добавлен в мониторинг.`,
         { reply_markup: new InlineKeyboard().text("🔍 Найти информацию", "ca:find").text("📡 Источники", "ca:sources").row().text("➕ Ещё канал", "ca:src-add").row().text("🏠 Меню", "ca:menu") });
     } catch (e) {
-      await ctx.reply(`⚠️ ${esc(e.message)}`);
+      await ctx.reply(`⚠️ ${esc(e.message)}`, { reply_markup: new InlineKeyboard().text("➕ Попробовать ещё", "ca:src-add").row().text("🏠 Меню", "ca:menu") });
     }
   });
 }
@@ -464,7 +477,7 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
     wizards.set(ctx.chat.id, w);
     await ctx.answerCallbackQuery();
     await ctx.reply("Ключевые слова через запятую (или «-» чтобы искать по сохранённым/всем):", {
-      reply_markup: new InlineKeyboard().text("Искать по всем", "ca:find-go:all"),
+      reply_markup: new InlineKeyboard().text("🔍 Искать по всем", "ca:find-go:all").row().text("🏠 Меню", "ca:menu"),
     });
   });
 
@@ -507,7 +520,7 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
     const kb = new InlineKeyboard()
       .text("✂️ Короче", `ca:dig-reshape:${digestId}:shorter`).text("➕ Детальнее", `ca:dig-reshape:${digestId}:detailed`).row()
       .text("💾 Сохранить дайджест", `ca:dig-save:${digestId}`).row()
-      .text("🏠 Меню", "ca:menu");
+      .text("🔍 Новый поиск", "ca:find").text("🏠 Меню", "ca:menu");
     await ctx.reply("Действия с дайджестом:", { reply_markup: kb });
   }
 
@@ -521,7 +534,8 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       const kb = new InlineKeyboard()
         .text("✂️ Короче", `ca:dig-reshape:${id}:shorter`).text("➕ Детальнее", `ca:dig-reshape:${id}:detailed`).row()
-        .text("💾 Сохранить", `ca:dig-save:${id}`).text("🏠 Меню", "ca:menu");
+        .text("💾 Сохранить", `ca:dig-save:${id}`).row()
+        .text("🔍 Новый поиск", "ca:find").text("🏠 Меню", "ca:menu");
       const body = (r.rendered_text || "(пусто)").slice(0, 3800);
       await ctx.reply(body, { reply_markup: kb });
     } catch (e) {
@@ -536,7 +550,9 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
     try {
       await api("POST", `/digests/${id}/save`);
       await ctx.answerCallbackQuery({ text: "Сохранено" });
-      await ctx.reply("💾 Дайджест сохранён.");
+      await ctx.reply("💾 Дайджест сохранён.", {
+        reply_markup: new InlineKeyboard().text("🔍 Новый поиск", "ca:find").text("📡 Источники", "ca:sources").row().text("🏠 Меню", "ca:menu"),
+      });
     } catch (e) {
       await ctx.answerCallbackQuery({ text: "Ошибка" });
     }
