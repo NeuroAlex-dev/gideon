@@ -11,7 +11,7 @@ import {
 } from "./lib/db.js";
 import { INTERVIEW_QUESTIONS, buildCorpus, generateStyleProfile, STYLE_DOCS } from "./lib/style.js";
 import { loadStyleProfile, generatePost } from "./lib/writer.js";
-import { extractiveSummary, sortByEngagement, reshapeDigest } from "./lib/digest.js";
+import { extractiveSummary, sortByEngagement, reshapeDigest, aiSummarize } from "./lib/digest.js";
 import { fetchFromChannels, periodToSinceTs } from "./lib/sources/telegram.js";
 import { fetchVkWall, validateVkToken } from "./lib/sources/vk.js";
 import { fetchYouTubeChannel, validateYtKey } from "./lib/sources/youtube.js";
@@ -209,7 +209,17 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
       }
 
       items = sortByEngagement(items).slice(0, 20);
-      for (const it of items) it.summary = extractiveSummary(it.text);
+      // AI-саммари одной пачкой; при любой ошибке — fallback на extractive,
+      // чтобы поиск всегда возвращал дайджест, даже если Claude капризничает.
+      let summaries = null;
+      try {
+        summaries = await aiSummarize({ items, runner, model });
+      } catch (e) {
+        console.warn("[search] aiSummarize fallback to extractive:", e.message);
+      }
+      items.forEach((it, i) => {
+        it.summary = (summaries && summaries[i]) ? summaries[i] : extractiveSummary(it.text);
+      });
 
       const digestId = createDigest(db, { period, keywords: include, platforms: platformsUsed });
       addDigestItems(db, digestId, items);
