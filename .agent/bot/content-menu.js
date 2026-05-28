@@ -545,8 +545,7 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
     if (!sources.length) lines.push("<i>пока пусто</i>");
     const kb = new InlineKeyboard().text("➕ Добавить источник", "ca:src-platform").row();
     for (const s of sources) {
-      kb.text(`👁 ${ICON[s.platform] || ""} ${s.ref}`, `ca:src-browse:${s.id}`)
-        .text(`✏`, `ca:src-kw-edit:${s.id}`)
+      kb.text(`✏ ${ICON[s.platform] || ""} ${s.ref}`, `ca:src-kw-edit:${s.id}`)
         .text(`❌`, `ca:src-del:${s.id}`).row();
     }
     if (sources.length) kb.text("🔍 Найти информацию", "ca:find").row();
@@ -580,39 +579,6 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
       ? "Пришли @username TG-канала или ссылку (<code>@durov</code> или <code>https://t.me/durov</code>):"
       : "Пришли короткое имя VK-сообщества или ссылку (<code>durov</code> или <code>https://vk.com/durov</code>):";
     await ctx.reply(prompt, { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
-  });
-
-  bot.callbackQuery(/^ca:src-browse:(\d+)$/, async (ctx) => {
-    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
-    const id = Number(ctx.match[1]);
-    await ctx.answerCallbackQuery();
-    const wait = await ctx.reply("Открываю канал и собираю посты... 👁 (до минуты)");
-    try {
-      const r = await api("POST", `/sources/${id}/browse`, { limit: 20 }, { timeoutMs: 300000 });
-      await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
-      if (!r.count) {
-        await ctx.reply("В этом источнике нет постов за последний месяц.",
-          { reply_markup: new InlineKeyboard().text("📡 Источники", "ca:sources").row().text("🏠 Меню", "ca:menu") });
-        return;
-      }
-      await ctx.reply(`📖 <b>Посты из ${ICON[r.source.platform] || ""} ${esc(r.source.ref)}</b> — ${r.count} последних, новые сверху`, { parse_mode: "HTML" });
-      for (const it of r.items) {
-        const m = it.metrics || {};
-        const ic = ICON[it.platform] || "•";
-        const dateStr = it.published_at ? new Date(it.published_at).toLocaleDateString("ru-RU") : "";
-        const text = `${ic} <b>${esc(it.title)}</b>${dateStr ? ` <i>· ${dateStr}</i>` : ""}\n${esc(it.summary || "")}\n\n` +
-          `👁 ${m.views || 0} · ❤️ ${m.reactions || 0} · 💬 ${m.comments || 0} · 🔁 ${m.forwards || 0}` +
-          (it.url ? `\n${esc(it.url)}` : "");
-        const kb = new InlineKeyboard().text("✍ Пост на основе этого", `ca:news-post:${it.id}`);
-        await ctx.reply(text, { parse_mode: "HTML", reply_markup: kb });
-      }
-      const kb = new InlineKeyboard()
-        .text("📡 К источникам", "ca:sources").text("🏠 Меню", "ca:menu");
-      await ctx.reply("Действия:", { reply_markup: kb });
-    } catch (e) {
-      await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
-      await ctx.reply(`⚠️ ${esc(e.message)}`, { reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
-    }
   });
 
   bot.callbackQuery(/^ca:src-del:(\d+)$/, async (ctx) => {

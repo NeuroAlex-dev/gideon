@@ -179,55 +179,6 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
     res.json({ ok: true });
   });
 
-  // Browse: открыть конкретный источник, показать последние посты (без фильтров).
-  // Просмотр, не поиск: НЕ применяем global keywords и per-source keywords.
-  app.post("/api/sources/:id/browse", async (req, res) => {
-    const id = Number(req.params.id);
-    const source = getSource(db, id);
-    if (!source) return res.status(404).json({ error: "источник не найден" });
-    const limit = Math.min(Number(req.body?.limit || 20), 50);
-    const period = req.body?.period || "month";
-    const sinceTs = periodToSinceTs(period);
-
-    try {
-      let raw = [];
-      if (source.platform === "telegram") {
-        const tgLimit = limitForPeriod(period);
-        raw = await doTgFetch({ channels: [source.ref], sinceTs, perChannelLimit: tgLimit });
-      } else if (source.platform === "vk") {
-        const token = getSetting(db, "vk_token");
-        if (!token) return res.status(400).json({ error: "VK токен не задан — добавь в Настройках" });
-        raw = await doVkFetch({ refs: [source.ref], token, sinceTs });
-      } else {
-        return res.status(400).json({ error: `платформа ${source.platform} не поддерживает browse` });
-      }
-
-      const items = raw
-        .filter((x) => !x.error)
-        .sort((a, b) => (b.date || 0) - (a.date || 0))
-        .slice(0, limit);
-
-      let summaries = null;
-      try { summaries = await aiSummarize({ items, runner, model }); }
-      catch (e) { console.warn("[browse] aiSummarize fallback:", e.message); }
-      items.forEach((it, i) => {
-        it.summary = (summaries && summaries[i]) ? summaries[i] : extractiveSummary(it.text);
-      });
-
-      const digestId = createDigest(db, { period, keywords: [], platforms: [source.platform] });
-      addDigestItems(db, digestId, items);
-      const stored = listDigestItems(db, digestId);
-      res.status(201).json({
-        digest_id: digestId,
-        source: { id: source.id, ref: source.ref, platform: source.platform },
-        count: stored.length,
-        items: stored.map(mapItem),
-      });
-    } catch (e) {
-      res.status(500).json({ error: String(e.message) });
-    }
-  });
-
   // ── Ключевики ──────────────────────────────────────────
   app.get("/api/keywords", (_req, res) => res.json(listKeywords(db)));
   app.post("/api/keywords", (req, res) => {
