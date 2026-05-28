@@ -60,8 +60,10 @@ export const STYLE_DOCS = [
 
 export async function generateStyleProfile({ corpus, styleDir, runner, model }) {
   fs.mkdirSync(styleDir, { recursive: true });
-  const written = [];
-  for (const doc of STYLE_DOCS) {
+  // Параллельная генерация: 5 Claude-вызовов одновременно вместо последовательно.
+  // Общее время = время одного вызова (~30-60с), а не сумма пяти (~5 минут).
+  // Иначе бот падает по fetch-таймауту, пока сервер ещё работает.
+  return await Promise.all(STYLE_DOCS.map(async (doc) => {
     const { text } = await generate({
       systemPrompt: SYSTEM,
       userMessage: doc.buildPrompt(corpus),
@@ -69,7 +71,6 @@ export async function generateStyleProfile({ corpus, styleDir, runner, model }) 
       model,
     });
     fs.writeFileSync(path.join(styleDir, doc.filename), (text || "").trim() + "\n", "utf8");
-    written.push(doc.filename);
-  }
-  return written;
+    return doc.filename;
+  }));
 }

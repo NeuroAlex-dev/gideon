@@ -32,18 +32,31 @@ const CA_PASSWORD = process.env.CA_PASSWORD || caEnv.CA_PASSWORD || "change-me";
 const CA_SECRET = process.env.CA_SECRET || caEnv.CA_SECRET || "change-me-secret";
 const AUTH_TOKEN = crypto.createHmac("sha256", CA_SECRET).update(CA_PASSWORD).digest("hex");
 
-async function api(method, p, body) {
-  const res = await fetch(`${CA_API_BASE}${p}`, {
-    method,
-    headers: { "x-auth-token": AUTH_TOKEN, "content-type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`content-agent API ${method} ${p}: ${res.status} ${text.slice(0, 200)}`);
+async function api(method, p, body, opts = {}) {
+  // По умолчанию 90 секунд. Для долгих операций (генерация профиля,
+  // дайджест с AI-саммари) вызывающий должен передать больший timeoutMs.
+  const timeoutMs = opts.timeoutMs || 90000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${CA_API_BASE}${p}`, {
+      method,
+      headers: { "x-auth-token": AUTH_TOKEN, "content-type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`content-agent API ${method} ${p}: ${res.status} ${text.slice(0, 200)}`);
+    }
+    if (res.status === 204) return null;
+    return await res.json();
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error(`content-agent API ${method} ${p}: таймаут ${timeoutMs/1000}s`);
+    throw e;
+  } finally {
+    clearTimeout(timer);
   }
-  if (res.status === 204) return null;
-  return res.json();
 }
 
 function esc(s) { return String(s ?? "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c])); }
@@ -263,9 +276,9 @@ function registerStyleHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     await ctx.answerCallbackQuery();
     wizards.delete(ctx.chat.id);
-    const wait = await ctx.reply("Анализирую твой стиль и пишу профиль (5 документов)... это займёт минуту ⏳");
+    const wait = await ctx.reply("Анализирую твой стиль и пишу профиль (5 документов параллельно). Это ~1-2 минуты ⏳");
     try {
-      const r = await api("POST", "/style/interview/finish");
+      const r = await api("POST", "/style/interview/finish", null, { timeoutMs: 600000 });
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       await ctx.reply(
         `✅ Профиль стиля создан!\n\nФайлы: ${r.files.join(", ")}\n\nТеперь все посты будут в твоём стиле. Жми «✍ Написать пост».`,
@@ -351,7 +364,7 @@ function registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
   async function generateAndSend(ctx, userPrompt) {
     const wait = await ctx.reply("Пишу пост в твоём стиле... ✍️ (до минуты)");
     try {
-      const r = await api("POST", "/posts", { user_prompt: userPrompt });
+      const r = await api("POST", "/posts", { user_prompt: userPrompt }, { timeoutMs: 300000 });
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       await ctx.reply(r.draft_text || "(пусто)", { reply_markup: postKeyboard(r.id) });
     } catch (e) {
@@ -366,7 +379,7 @@ function registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
     await ctx.answerCallbackQuery({ text: "Переписываю..." });
     const wait = await ctx.reply("Переписываю... ✍️");
     try {
-      const r = await api("POST", `/posts/${id}/variant`, { mode });
+      const r = await api("POST", `/posts/${id}/variant`, { mode }, { timeoutMs: 300000 });
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       await ctx.reply(r.draft_text || "(пусто)", { reply_markup: postKeyboard(id) });
     } catch (e) {
@@ -381,7 +394,7 @@ function registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
     await ctx.answerCallbackQuery({ text: "Пишу пост..." });
     const wait = await ctx.reply("Пишу пост по новости в твоём стиле... ✍️ (до минуты)");
     try {
-      const r = await api("POST", "/posts", { origin: "digest_item", digest_item_id: Number(itemId) });
+      const r = await api("POST", "/posts", { origin: "digest_item", digest_item_id: Number(itemId) }, { timeoutMs: 300000 });
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       await ctx.reply(r.draft_text || "(пусто)", { reply_markup: postKeyboard(r.id) });
     } catch (e) {
@@ -676,7 +689,7 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
     wizards.delete(ctx.chat.id);
     const wait = await ctx.reply("Ищу по каналам... 🔍 (до минуты)");
     try {
-      const r = await api("POST", "/search", { period: w.period || "week", keywords, source_id: w.sourceId || null });
+      const r = await api("POST", "/search", { period: w.period || "week", keywords, source_id: w.sourceId || null }, { timeoutMs: 300000 });
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       if (!r.count) {
         await ctx.reply("Ничего не нашёл по заданным условиям. Проверь список источников (📡) и ключевые слова.",
@@ -715,7 +728,7 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
     await ctx.answerCallbackQuery({ text: "Переписываю..." });
     const wait = await ctx.reply("Переписываю дайджест... ✍️");
     try {
-      const r = await api("POST", `/digests/${id}/reshape`, { mode });
+      const r = await api("POST", `/digests/${id}/reshape`, { mode }, { timeoutMs: 300000 });
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       const kb = new InlineKeyboard()
         .text("✂️ Короче", `ca:dig-reshape:${id}:shorter`).text("➕ Детальнее", `ca:dig-reshape:${id}:detailed`).row()
@@ -787,7 +800,7 @@ function registerTrendsHandlers(bot, isOwner, { api, wizards, esc }) {
     wizards.delete(ctx.chat.id);
     const wait = await ctx.reply("Ищу тренды... 🔥 (Google Trends + Reddit, до минуты)");
     try {
-      const r = await api("POST", "/trends", { niche: w.niche, period: w.period || "week" });
+      const r = await api("POST", "/trends", { niche: w.niche, period: w.period || "week" }, { timeoutMs: 300000 });
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       if (!r.count) {
         const triedLine = Array.isArray(r.terms) && r.terms.length > 1
