@@ -592,7 +592,10 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
 
 // === «🔍 Найти информацию» + дайджест (Фаза 2) ===
 function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
-  const PERIODS = [["Сегодня", "today"], ["3 дня", "3days"], ["Неделя", "week"], ["Месяц", "month"]];
+  const PERIODS = [
+    ["Сегодня", "today"], ["3 дня", "3days"], ["Неделя", "week"], ["Месяц", "month"],
+    ["2 мес.", "2months"], ["3 мес.", "3months"], ["Полгода", "halfyear"], ["Год", "year"],
+  ];
 
   bot.callbackQuery(/^ca:find$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
@@ -605,8 +608,12 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
     } catch {}
     const total = counts.telegram + counts.vk;
     const kb = new InlineKeyboard().text("➕ Добавить источник", "ca:src-platform").row();
-    for (const [label, val] of PERIODS) kb.text(label, `ca:find-period:${val}`);
-    kb.row().text("🏠 Меню", "ca:menu");
+    // 8 периодов в 2 ряда по 4
+    PERIODS.forEach(([label, val], i) => {
+      kb.text(label, `ca:find-period:${val}`);
+      if ((i + 1) % 4 === 0) kb.row();
+    });
+    kb.text("🏠 Меню", "ca:menu");
     const breakdown = `📨 ${counts.telegram} · 🅥 ${counts.vk}`;
     const head = total
       ? `🔍 <b>Найти информацию</b>\n\nИсточников: ${breakdown}. За какой период искать?`
@@ -617,14 +624,44 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
   bot.callbackQuery(/^ca:find-period:(\w+)$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     const period = ctx.match[1];
-    const w = wizards.get(ctx.chat.id) || { mode: "find", platforms: ["telegram"] };
+    const w = wizards.get(ctx.chat.id) || { mode: "find" };
     w.period = period;
+    w.mode = "find_scope";
+    wizards.set(ctx.chat.id, w);
+    await ctx.answerCallbackQuery();
+    // Шаг scope: «везде» или конкретный источник
+    let sources = [];
+    try { sources = await api("GET", "/sources"); } catch {}
+    const ICON = { telegram: "📨", vk: "🅥" };
+    const kb = new InlineKeyboard().text("🌐 Везде (все источники)", "ca:find-scope:all").row();
+    for (const s of sources) {
+      kb.text(`${ICON[s.platform] || "•"} ${s.ref}`, `ca:find-scope:src:${s.id}`).row();
+    }
+    kb.text("🏠 Меню", "ca:menu");
+    await ctx.reply("Где искать? Везде или в конкретном источнике?", { reply_markup: kb });
+  });
+
+  bot.callbackQuery(/^ca:find-scope:(all|src:\d+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const raw = ctx.match[1];
+    const w = wizards.get(ctx.chat.id);
+    if (!w) { await ctx.answerCallbackQuery({ text: "Сначала период" }); return; }
+    w.sourceId = raw === "all" ? null : Number(raw.split(":")[1]);
     w.mode = "find_keywords";
     wizards.set(ctx.chat.id, w);
     await ctx.answerCallbackQuery();
-    await ctx.reply("Ключевые слова через запятую (или «-» чтобы искать по сохранённым/всем):", {
-      reply_markup: new InlineKeyboard().text("🔍 Искать по всем", "ca:find-go:all").row().text("🏠 Меню", "ca:menu"),
-    });
+    let scopeLabel = "по всем источникам";
+    if (w.sourceId) {
+      try {
+        const all = await api("GET", "/sources");
+        const s = all.find((x) => x.id === w.sourceId);
+        if (s) scopeLabel = `только в ${s.ref}`;
+      } catch {}
+    }
+    await ctx.reply(
+      `Ищу <b>${esc(scopeLabel)}</b>. Пришли ключевые слова через запятую (или «-» чтобы искать по сохранённым/всем):`,
+      { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🔍 Искать по всем словам", "ca:find-go:all").row().text("🏠 Меню", "ca:menu") },
+    );
   });
 
   bot.callbackQuery(/^ca:find-go:all$/, async (ctx) => {
@@ -639,7 +676,7 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
     wizards.delete(ctx.chat.id);
     const wait = await ctx.reply("Ищу по каналам... 🔍 (до минуты)");
     try {
-      const r = await api("POST", "/search", { period: w.period || "week", keywords });
+      const r = await api("POST", "/search", { period: w.period || "week", keywords, source_id: w.sourceId || null });
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       if (!r.count) {
         await ctx.reply("Ничего не нашёл по заданным условиям. Проверь список источников (📡) и ключевые слова.",
@@ -718,7 +755,10 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
 
 // === «🔥 Поиск по трендам» (Google Trends + Reddit, бесплатно) ===
 function registerTrendsHandlers(bot, isOwner, { api, wizards, esc }) {
-  const PERIODS = [["Сегодня", "today"], ["3 дня", "3days"], ["Неделя", "week"], ["Месяц", "month"]];
+  const PERIODS = [
+    ["Сегодня", "today"], ["3 дня", "3days"], ["Неделя", "week"], ["Месяц", "month"],
+    ["2 мес.", "2months"], ["3 мес.", "3months"], ["Полгода", "halfyear"], ["Год", "year"],
+  ];
   const PLAT_ICON = { google_trends: "📈", reddit: "👽" };
   const PLAT_LABEL = { google_trends: "Google Trends", reddit: "Reddit" };
 
@@ -803,8 +843,11 @@ function registerTrendsHandlers(bot, isOwner, { api, wizards, esc }) {
     w.niche = niche;
     wizards.set(ctx.chat.id, w);
     const kb = new InlineKeyboard();
-    for (const [label, val] of PERIODS) kb.text(label, `ca:trends-period:${val}`);
-    kb.row().text("🏠 Меню", "ca:menu");
+    PERIODS.forEach(([label, val], i) => {
+      kb.text(label, `ca:trends-period:${val}`);
+      if ((i + 1) % 4 === 0) kb.row();
+    });
+    kb.text("🏠 Меню", "ca:menu");
     await ctx.reply(`Ниша: <b>${esc(niche)}</b>. За какой период смотреть тренды?`, { parse_mode: "HTML", reply_markup: kb });
   });
 }

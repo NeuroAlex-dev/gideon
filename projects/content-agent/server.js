@@ -12,7 +12,7 @@ import {
 import { INTERVIEW_QUESTIONS, buildCorpus, generateStyleProfile, STYLE_DOCS } from "./lib/style.js";
 import { loadStyleProfile, generatePost } from "./lib/writer.js";
 import { extractiveSummary, sortByEngagement, reshapeDigest, aiSummarize } from "./lib/digest.js";
-import { fetchFromChannels, periodToSinceTs } from "./lib/sources/telegram.js";
+import { fetchFromChannels, periodToSinceTs, limitForPeriod } from "./lib/sources/telegram.js";
 import { fetchVkWall, validateVkToken } from "./lib/sources/vk.js";
 import { fetchYouTubeChannel, validateYtKey } from "./lib/sources/youtube.js";
 import { fetchGoogleTrends } from "./lib/trends/google-trends.js";
@@ -24,7 +24,7 @@ const SETTING_KEYS = ["vk_token", "publish_targets"];
 export function createServer({ db, password, secret, styleDir, runner, model, tgFetch, vkFetch, ytFetch, vkValidate, ytValidate, gtFetch, redditFetch }) {
   const app = express();
   app.use(express.json({ limit: "5mb" }));
-  const doTgFetch = tgFetch || (({ channels, sinceTs, keywords }) => fetchFromChannels({ channels, sinceTs, keywords }));
+  const doTgFetch = tgFetch || (({ channels, sinceTs, keywords, perChannelLimit }) => fetchFromChannels({ channels, sinceTs, keywords, perChannelLimit }));
   const doVkFetch = vkFetch || (async ({ refs, token, sinceTs }) => {
     const out = [];
     for (const ref of refs) {
@@ -188,17 +188,23 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
   app.post("/api/search", async (req, res) => {
     const period = req.body?.period || "week";
     const adHoc = Array.isArray(req.body?.keywords) ? req.body.keywords : [];
+    const restrictSourceId = req.body?.source_id ? Number(req.body.source_id) : null;
     try {
       const saved = listKeywords(db);
       const include = [...adHoc, ...saved.filter((k) => k.scope === "include").map((k) => k.term)];
       const exclude = saved.filter((k) => k.scope === "exclude").map((k) => k.term);
       const sinceTs = periodToSinceTs(period);
+      const tgLimit = limitForPeriod(period);
       const platformsUsed = [];
       let items = [];
 
-      // Карта per-source ключевиков (по source_ref для фильтра постов)
-      const tgSources = listSources(db, { platform: "telegram" });
-      const vkSources = listSources(db, { platform: "vk" });
+      // Если задан source_id — сужаем до конкретного источника.
+      let tgSources = listSources(db, { platform: "telegram" });
+      let vkSources = listSources(db, { platform: "vk" });
+      if (restrictSourceId) {
+        tgSources = tgSources.filter((s) => s.id === restrictSourceId);
+        vkSources = vkSources.filter((s) => s.id === restrictSourceId);
+      }
       const perSourceKw = new Map();
       for (const s of [...tgSources, ...vkSources]) {
         perSourceKw.set(s.ref, Array.isArray(s.keywords) ? s.keywords : []);
@@ -214,7 +220,7 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
       // Telegram (фильтрация целиком на сервере, чтобы поддержать per-source)
       if (tgSources.length) {
         platformsUsed.push("telegram");
-        const fetched = await doTgFetch({ channels: tgSources.map((s) => s.ref), sinceTs });
+        const fetched = await doTgFetch({ channels: tgSources.map((s) => s.ref), sinceTs, perChannelLimit: tgLimit });
         items.push(...fetched.filter((x) => !x.error && filterItem(x)));
       }
 

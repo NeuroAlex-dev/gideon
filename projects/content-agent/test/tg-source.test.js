@@ -1,13 +1,28 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { periodToSinceTs, matchesKeywords, extractMetrics, normalizeMessage, engagementScore } from "../lib/sources/telegram.js";
+import { periodToSinceTs, matchesKeywords, extractMetrics, normalizeMessage, engagementScore, limitForPeriod } from "../lib/sources/telegram.js";
 
-test("periodToSinceTs", () => {
+test("periodToSinceTs: все периоды включая длинные", () => {
   const now = 1_000_000_000_000;
-  assert.equal(periodToSinceTs("week", now), now - 7 * 86400_000);
-  assert.equal(periodToSinceTs("3days", now), now - 3 * 86400_000);
-  assert.equal(periodToSinceTs("month", now), now - 30 * 86400_000);
-  assert.ok(periodToSinceTs("today", now) <= now && periodToSinceTs("today", now) > now - 86400_000);
+  const DAY = 86400_000;
+  assert.equal(periodToSinceTs("week", now), now - 7 * DAY);
+  assert.equal(periodToSinceTs("3days", now), now - 3 * DAY);
+  assert.equal(periodToSinceTs("month", now), now - 30 * DAY);
+  assert.equal(periodToSinceTs("2months", now), now - 60 * DAY);
+  assert.equal(periodToSinceTs("3months", now), now - 90 * DAY);
+  assert.equal(periodToSinceTs("halfyear", now), now - 180 * DAY);
+  assert.equal(periodToSinceTs("year", now), now - 365 * DAY);
+  assert.ok(periodToSinceTs("today", now) <= now && periodToSinceTs("today", now) > now - DAY);
+});
+
+test("limitForPeriod: больше сообщений для длинных периодов", () => {
+  assert.equal(limitForPeriod("today"), 80);
+  assert.equal(limitForPeriod("week"), 80);
+  assert.equal(limitForPeriod("month"), 200);
+  assert.equal(limitForPeriod("2months"), 500);
+  assert.equal(limitForPeriod("3months"), 500);
+  assert.equal(limitForPeriod("halfyear"), 1000);
+  assert.equal(limitForPeriod("year"), 1000);
 });
 
 test("matchesKeywords: include/exclude, регистронезависимо", () => {

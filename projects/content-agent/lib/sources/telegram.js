@@ -4,14 +4,29 @@ import { getSessionString, getApiCredentials } from "../sessions-manager.js";
 
 const DAY = 86400_000;
 
+const PERIOD_DAYS = {
+  "3days": 3,
+  week: 7,
+  month: 30,
+  "2months": 60,
+  "3months": 90,
+  halfyear: 180,
+  year: 365,
+};
+
 export function periodToSinceTs(period, now = Date.now()) {
-  switch (period) {
-    case "today": { const d = new Date(now); d.setHours(0, 0, 0, 0); return d.getTime(); }
-    case "3days": return now - 3 * DAY;
-    case "week": return now - 7 * DAY;
-    case "month": return now - 30 * DAY;
-    default: return now - 7 * DAY;
-  }
+  if (period === "today") { const d = new Date(now); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  const days = PERIOD_DAYS[period] ?? 7;
+  return now - days * DAY;
+}
+
+// Период-зависимый лимит фетча: для длинных периодов берём больше сообщений
+// (иначе с дефолтным limit=80 канал с 5+ постами в день не помещается даже в месяц).
+export function limitForPeriod(period) {
+  if (["today", "3days", "week"].includes(period)) return 80;
+  if (period === "month") return 200;
+  if (["2months", "3months"].includes(period)) return 500;
+  return 1000; // halfyear, year
 }
 
 export function matchesKeywords(text, { include = [], exclude = [] } = {}) {
