@@ -13,6 +13,7 @@
     "better-sqlite3": "^11.3.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "google-trends-api": "^4.9.2",
     "telegram": "^2.26.16"
   },
   "engines": {
