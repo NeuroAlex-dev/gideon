@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS sources (
   platform TEXT NOT NULL,
   ref TEXT NOT NULL,
   title TEXT,
+  keywords_json TEXT,
   active INTEGER NOT NULL DEFAULT 1,
   created_at INTEGER NOT NULL
 );
@@ -70,7 +71,25 @@ export function openDb(path = "./data/content-agent.db") {
   const db = new Database(path);
   db.pragma("journal_mode = WAL");
   db.exec(SCHEMA);
+  migrate(db);
   return db;
+}
+
+// Idempotent миграции: ALTER TABLE если колонка ещё не добавлена в существующей БД.
+function migrate(db) {
+  const cols = db.prepare("PRAGMA table_info(sources)").all().map((c) => c.name);
+  if (!cols.includes("keywords_json")) {
+    db.exec("ALTER TABLE sources ADD COLUMN keywords_json TEXT");
+  }
+}
+
+function parseSourceRow(row) {
+  if (!row) return row;
+  let keywords = [];
+  if (row.keywords_json) {
+    try { keywords = JSON.parse(row.keywords_json); if (!Array.isArray(keywords)) keywords = []; } catch {}
+  }
+  return { ...row, keywords };
 }
 
 export function getSetting(db, key) {
@@ -139,14 +158,23 @@ export function setPostStatus(db, id, status) {
 }
 
 // ── Sources ──
-export function addSource(db, { platform, ref, title = null }) {
-  return db.prepare("INSERT INTO sources (platform, ref, title, created_at) VALUES (?, ?, ?, ?)")
-    .run(platform, ref, title, Date.now()).lastInsertRowid;
+export function addSource(db, { platform, ref, title = null, keywords = null }) {
+  const kw = keywords && keywords.length ? JSON.stringify(keywords) : null;
+  return db.prepare("INSERT INTO sources (platform, ref, title, keywords_json, created_at) VALUES (?, ?, ?, ?, ?)")
+    .run(platform, ref, title, kw, Date.now()).lastInsertRowid;
 }
 export function listSources(db, { platform = null } = {}) {
-  return platform
+  const rows = platform
     ? db.prepare("SELECT * FROM sources WHERE active = 1 AND platform = ? ORDER BY id").all(platform)
     : db.prepare("SELECT * FROM sources WHERE active = 1 ORDER BY id").all();
+  return rows.map(parseSourceRow);
+}
+export function getSource(db, id) {
+  return parseSourceRow(db.prepare("SELECT * FROM sources WHERE id = ?").get(id));
+}
+export function updateSourceKeywords(db, id, keywords) {
+  const kw = keywords && keywords.length ? JSON.stringify(keywords) : null;
+  return db.prepare("UPDATE sources SET keywords_json = ? WHERE id = ?").run(kw, id).changes;
 }
 export function removeSource(db, id) {
   return db.prepare("DELETE FROM sources WHERE id = ?").run(id).changes;

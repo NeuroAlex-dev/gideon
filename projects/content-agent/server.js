@@ -5,7 +5,7 @@ import {
   createInterview, getInterview, getActiveInterview,
   addInterviewAnswer, addInterviewMaterial, finishInterview,
   createPost, getPost, updatePostDraft, setPostStatus,
-  addSource, listSources, removeSource,
+  addSource, listSources, getSource, updateSourceKeywords, removeSource,
   addKeyword, listKeywords, removeKeyword,
   createDigest, addDigestItems, getDigest, listDigestItems, getDigestItem, setDigestRendered, saveDigest,
 } from "./lib/db.js";
@@ -16,7 +16,7 @@ import { fetchFromChannels, periodToSinceTs } from "./lib/sources/telegram.js";
 import { fetchVkWall, validateVkToken } from "./lib/sources/vk.js";
 import { fetchYouTubeChannel, validateYtKey } from "./lib/sources/youtube.js";
 
-const SETTING_KEYS = ["vk_token", "youtube_api_key", "publish_targets"];
+const SETTING_KEYS = ["vk_token", "publish_targets"];
 
 export function createServer({ db, password, secret, styleDir, runner, model, tgFetch, vkFetch, ytFetch, vkValidate, ytValidate }) {
   const app = express();
@@ -146,10 +146,18 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
   // ── Источники ──────────────────────────────────────────
   app.get("/api/sources", (req, res) => res.json(listSources(db, { platform: req.query.platform || null })));
   app.post("/api/sources", (req, res) => {
-    const { platform, ref, title } = req.body || {};
+    const { platform, ref, title, keywords } = req.body || {};
     if (!platform || !ref) return res.status(400).json({ error: "platform и ref обязательны" });
-    const id = addSource(db, { platform, ref, title: title || null });
-    res.status(201).json({ id, ...listSources(db).find((s) => s.id === id) });
+    const id = addSource(db, { platform, ref, title: title || null, keywords: Array.isArray(keywords) ? keywords : null });
+    res.status(201).json(getSource(db, id));
+  });
+  app.put("/api/sources/:id", (req, res) => {
+    const id = Number(req.params.id);
+    if (!getSource(db, id)) return res.status(404).json({ error: "not found" });
+    if (req.body && Array.isArray(req.body.keywords) || req.body?.keywords === null) {
+      updateSourceKeywords(db, id, req.body.keywords);
+    }
+    res.json(getSource(db, id));
   });
   app.delete("/api/sources/:id", (req, res) => {
     removeSource(db, Number(req.params.id));
@@ -182,30 +190,34 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
       const platformsUsed = [];
       let items = [];
 
-      // Telegram (фильтр ключевиков внутри коннектора)
-      const tgChannels = listSources(db, { platform: "telegram" }).map((s) => s.ref);
-      if (tgChannels.length) {
+      // Карта per-source ключевиков (по source_ref для фильтра постов)
+      const tgSources = listSources(db, { platform: "telegram" });
+      const vkSources = listSources(db, { platform: "vk" });
+      const perSourceKw = new Map();
+      for (const s of [...tgSources, ...vkSources]) {
+        perSourceKw.set(s.ref, Array.isArray(s.keywords) ? s.keywords : []);
+      }
+      const filterItem = (item) => {
+        const srcKw = perSourceKw.get(item.source_ref) || [];
+        // Глобальный фильтр (include/exclude) + источник-специфичный (срабатывает только если у источника заданы свои)
+        if (!matchesText(item, include, exclude)) return false;
+        if (srcKw.length && !matchesText(item, srcKw, [])) return false;
+        return true;
+      };
+
+      // Telegram (фильтрация целиком на сервере, чтобы поддержать per-source)
+      if (tgSources.length) {
         platformsUsed.push("telegram");
-        const fetched = await doTgFetch({ channels: tgChannels, sinceTs, keywords: { include, exclude } });
-        items.push(...fetched.filter((x) => !x.error));
+        const fetched = await doTgFetch({ channels: tgSources.map((s) => s.ref), sinceTs });
+        items.push(...fetched.filter((x) => !x.error && filterItem(x)));
       }
 
-      // VK (фильтр на сервере через matchesText)
-      const vkRefs = listSources(db, { platform: "vk" }).map((s) => s.ref);
+      // VK
       const vkToken = getSetting(db, "vk_token");
-      if (vkRefs.length && vkToken) {
+      if (vkSources.length && vkToken) {
         platformsUsed.push("vk");
-        const fetched = await doVkFetch({ refs: vkRefs, token: vkToken, sinceTs });
-        items.push(...fetched.filter((x) => !x.error && matchesText(x, include, exclude)));
-      }
-
-      // YouTube (фильтр на сервере)
-      const ytRefs = listSources(db, { platform: "youtube" }).map((s) => s.ref);
-      const ytKey = getSetting(db, "youtube_api_key");
-      if (ytRefs.length && ytKey) {
-        platformsUsed.push("youtube");
-        const fetched = await doYtFetch({ refs: ytRefs, apiKey: ytKey, sinceTs });
-        items.push(...fetched.filter((x) => !x.error && matchesText(x, include, exclude)));
+        const fetched = await doVkFetch({ refs: vkSources.map((s) => s.ref), token: vkToken, sinceTs });
+        items.push(...fetched.filter((x) => !x.error && filterItem(x)));
       }
 
       items = sortByEngagement(items).slice(0, 20);

@@ -59,7 +59,7 @@ const INSTRUCTION = `<b>ℹ️ Контент-Агент</b>
 
 <b>✍ Написать пост</b> — пришли тему текстом или голосом, я напишу пост и предложу варианты (экспертнее, проще, с юмором, короче, призыв).
 
-<b>📡 Источники</b> — добавь каналы конкурентов в Telegram, VK, YouTube (для VK/YT нужны бесплатные ключи — заведи в ⚙ Настройках).
+<b>📡 Источники</b> — добавь каналы конкурентов в Telegram и VK (для VK нужен токен — заведи в ⚙ Настройках). У каждого источника можно настроить тему (ключевые слова) — тогда из него будут идти только посты по этой теме.
 
 <b>🔍 Найти информацию</b> — собираю дайджест по твоим источникам с метриками виральности. Под каждой новостью — кнопка «✍ Пост из этой новости» (рерайт в твоём стиле).
 
@@ -112,18 +112,16 @@ export function registerContentHandlers(bot, isOwner, deps = {}) {
       const s = await api("GET", "/settings");
       await ctx.answerCallbackQuery();
       const kb = new InlineKeyboard()
-        .text(s.vk_token ? "🔄 Заменить VK токен" : "➕ Задать VK токен", "ca:set-vk").row()
-        .text(s.youtube_api_key ? "🔄 Заменить YouTube ключ" : "➕ Задать YouTube ключ", "ca:set-yt").row();
+        .text(s.vk_token ? "🔄 Заменить VK токен" : "➕ Задать VK токен", "ca:set-vk").row();
       if (s.vk_token) kb.text("🗑 Очистить VK", "ca:clear-vk").row();
-      if (s.youtube_api_key) kb.text("🗑 Очистить YouTube", "ca:clear-yt").row();
       kb.text("🏠 Меню", "ca:menu");
       await ctx.reply(
         `⚙ <b>Настройки</b>\n\n` +
-        `VK токен: ${s.vk_token ? "✅ задан" : "—"}\n` +
-        `YouTube ключ: ${s.youtube_api_key ? "✅ задан" : "—"}\n\n` +
-        `<i>Где взять:</i>\n` +
-        `• <b>VK:</b> vk.com/apps?act=manage → Создать app → Standalone-app → «Сервисный ключ доступа» (нужен scope <code>wall</code>)\n` +
-        `• <b>YouTube:</b> console.cloud.google.com → New project → APIs &amp; Services → включи «YouTube Data API v3» → Credentials → Create API key`,
+        `VK токен: ${s.vk_token ? "✅ задан" : "—"}\n\n` +
+        `<i>Где взять VK-токен:</i>\n` +
+        `Используй готовый client_id Kate Mobile через OAuth (без создания собственного приложения и ИНН).\n` +
+        `Ссылка для авторизации: <code>oauth.vk.com/authorize?client_id=2685278&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=offline,wall,groups&response_type=token&v=5.199</code>\n` +
+        `После «Разрешить» в URL появится <code>access_token=…</code> — скопируй и вставь сюда.`,
         { parse_mode: "HTML", reply_markup: kb },
       );
     } catch (e) {
@@ -132,23 +130,20 @@ export function registerContentHandlers(bot, isOwner, deps = {}) {
     }
   });
 
-  bot.callbackQuery(/^ca:set-(vk|yt)$/, async (ctx) => {
+  bot.callbackQuery(/^ca:set-vk$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
-    const which = ctx.match[1];
-    wizards.set(ctx.chat.id, { mode: "set_key", which });
+    wizards.set(ctx.chat.id, { mode: "set_key", which: "vk" });
     await ctx.answerCallbackQuery();
     await ctx.reply(
-      which === "vk"
-        ? "Пришли VK токен (длинная строка, никому не показывай). Проверю одним запросом и сохраню."
-        : "Пришли YouTube API ключ. Проверю одним запросом и сохраню.",
+      "Пришли VK токен (длинная строка, никому не показывай). Проверю одним запросом и сохраню.",
       { reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") },
     );
   });
 
-  bot.callbackQuery(/^ca:clear-(vk|yt)$/, async (ctx) => {
+  bot.callbackQuery(/^ca:clear-vk$/, async (ctx) => {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
-    const which = ctx.match[1];
-    const key = which === "vk" ? "vk_token" : "youtube_api_key";
+    const which = "vk";
+    const key = "vk_token";
     try {
       await api("PUT", "/settings", { key, value: "" });
       await ctx.answerCallbackQuery({ text: "Очищено" });
@@ -165,13 +160,13 @@ export function registerContentHandlers(bot, isOwner, deps = {}) {
     const w = wizards.get(ctx.chat.id);
     if (!w || w.mode !== "set_key") return next();
     const value = ctx.message.text.trim();
-    const key = w.which === "vk" ? "vk_token" : "youtube_api_key";
+    const key = "vk_token";
     const wait = await ctx.reply("Проверяю ключ... ⏳");
     try {
       await api("PUT", "/settings", { key, value });
       wizards.delete(ctx.chat.id);
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
-      await ctx.reply(`✅ ${w.which === "vk" ? "VK токен" : "YouTube ключ"} сохранён и проверен.`,
+      await ctx.reply(`✅ VK токен сохранён и проверен.`,
         { reply_markup: new InlineKeyboard().text("📡 Источники", "ca:sources").text("🔍 Найти инфо", "ca:find").row().text("⚙ Настройки", "ca:settings").row().text("🏠 Меню", "ca:menu") });
     } catch (e) {
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
@@ -441,7 +436,7 @@ function registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
 
 // === «📡 Источники» (Фаза 2) ===
 function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
-  const ICON = { telegram: "📨", vk: "🅥", youtube: "▶" };
+  const ICON = { telegram: "📨", vk: "🅥" };
 
   async function showSources(ctx) {
     let sources = [];
@@ -449,10 +444,17 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
       await ctx.reply(`⚠️ ${esc(e.message)}`); return;
     }
     const lines = ["📡 <b>Источники мониторинга</b>", "", `Всего: ${sources.length}`];
-    for (const s of sources) lines.push(`${ICON[s.platform] || "•"} ${esc(s.ref)}${s.title ? " — " + esc(s.title) : ""}`);
+    for (const s of sources) {
+      const ic = ICON[s.platform] || "•";
+      const kw = Array.isArray(s.keywords) && s.keywords.length ? ` — тема: <i>${esc(s.keywords.join(", "))}</i>` : "";
+      lines.push(`${ic} ${esc(s.ref)}${kw}`);
+    }
     if (!sources.length) lines.push("<i>пока пусто</i>");
     const kb = new InlineKeyboard().text("➕ Добавить источник", "ca:src-platform").row();
-    for (const s of sources) kb.text(`❌ ${ICON[s.platform] || ""} ${s.ref}`, `ca:src-del:${s.id}`).row();
+    for (const s of sources) {
+      kb.text(`✏ ${ICON[s.platform] || ""} ${s.ref}`, `ca:src-kw-edit:${s.id}`)
+        .text(`❌`, `ca:src-del:${s.id}`).row();
+    }
     if (sources.length) kb.text("🔍 Найти информацию", "ca:find").row();
     kb.text("🏠 Меню", "ca:menu");
     await ctx.reply(lines.join("\n"), { parse_mode: "HTML", reply_markup: kb });
@@ -471,7 +473,6 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
     try { s = await api("GET", "/settings"); } catch {}
     const kb = new InlineKeyboard().text("📨 Telegram", "ca:src-add:telegram").row();
     kb.text(s.vk_token ? "🅥 VK" : "🅥 VK (нет токена — задать)", s.vk_token ? "ca:src-add:vk" : "ca:set-vk").row();
-    kb.text(s.youtube_api_key ? "▶ YouTube" : "▶ YouTube (нет ключа — задать)", s.youtube_api_key ? "ca:src-add:youtube" : "ca:set-yt").row();
     kb.text("🏠 Меню", "ca:menu");
     await ctx.reply("Какая платформа?", { reply_markup: kb });
   });
@@ -483,9 +484,7 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
     wizards.set(ctx.chat.id, { mode: "src_add", platform });
     const prompt = platform === "telegram"
       ? "Пришли @username TG-канала или ссылку (<code>@durov</code> или <code>https://t.me/durov</code>):"
-      : platform === "vk"
-        ? "Пришли короткое имя VK-сообщества или ссылку (<code>durov</code> или <code>https://vk.com/durov</code>):"
-        : "Пришли @handle YouTube-канала или ссылку (<code>@MKBHD</code> или <code>https://www.youtube.com/@MKBHD</code>):";
+      : "Пришли короткое имя VK-сообщества или ссылку (<code>durov</code> или <code>https://vk.com/durov</code>):";
     await ctx.reply(prompt, { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
   });
 
@@ -524,21 +523,66 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
           { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
         return;
       }
-    } else if (platform === "youtube") {
-      if (!ref.length) {
-        await ctx.reply("Пусто. Пришли @handle или ссылку.",
-          { reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
-        return;
-      }
     }
-    wizards.delete(ctx.chat.id);
     try {
-      await api("POST", "/sources", { platform, ref });
-      await ctx.reply(`✅ Источник ${ICON[platform]} ${esc(ref)} добавлен.`,
-        { reply_markup: new InlineKeyboard().text("🔍 Найти информацию", "ca:find").text("📡 Источники", "ca:sources").row().text("➕ Ещё источник", "ca:src-platform").row().text("🏠 Меню", "ca:menu") });
+      const created = await api("POST", "/sources", { platform, ref });
+      wizards.set(ctx.chat.id, { mode: "src_keywords", sourceId: created.id });
+      await ctx.reply(
+        `✅ Источник ${ICON[platform]} ${esc(ref)} добавлен.\n\n` +
+        `Хочешь сузить тему для этого источника? Пришли ключевые слова через запятую (например: <code>AI, нейросети, GPT</code>) — буду брать только посты с этими словами.\n\n` +
+        `Или нажми «Пропустить» — будут идти все посты подряд.`,
+        { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("⏭ Пропустить", `ca:src-kw-skip:${created.id}`).row().text("🏠 Меню", "ca:menu") },
+      );
     } catch (e) {
+      wizards.delete(ctx.chat.id);
       await ctx.reply(`⚠️ ${esc(e.message)}`,
         { reply_markup: new InlineKeyboard().text("➕ Попробовать ещё", "ca:src-platform").row().text("🏠 Меню", "ca:menu") });
+    }
+  });
+
+  // Пропустить ввод ключевиков для нового источника
+  bot.callbackQuery(/^ca:src-kw-skip:(\d+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    wizards.delete(ctx.chat.id);
+    await ctx.answerCallbackQuery();
+    await ctx.reply("Ок, фильтра нет — все посты этого источника пойдут в дайджест.",
+      { reply_markup: new InlineKeyboard().text("🔍 Найти информацию", "ca:find").text("📡 Источники", "ca:sources").row().text("➕ Ещё источник", "ca:src-platform").row().text("🏠 Меню", "ca:menu") });
+  });
+
+  // Открыть редактор ключевиков для существующего источника
+  bot.callbackQuery(/^ca:src-kw-edit:(\d+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const id = Number(ctx.match[1]);
+    wizards.set(ctx.chat.id, { mode: "src_keywords", sourceId: id });
+    await ctx.answerCallbackQuery();
+    let cur = [];
+    try { const all = await api("GET", "/sources"); cur = all.find((s) => s.id === id)?.keywords || []; } catch {}
+    await ctx.reply(
+      `🔎 <b>Ключевые слова для источника</b>\n\n` +
+      `Сейчас: ${cur.length ? esc(cur.join(", ")) : "<i>фильтра нет (все посты)</i>"}\n\n` +
+      `Пришли новый список через запятую (например <code>AI, нейросети</code>) — или «<code>-</code>» чтобы убрать фильтр совсем.`,
+      { parse_mode: "HTML", reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") },
+    );
+  });
+
+  // Обработчик ввода списка ключевиков для нового или существующего источника
+  bot.on("message:text", async (ctx, next) => {
+    if (!isOwner(ctx)) return next();
+    const w = wizards.get(ctx.chat.id);
+    if (!w || w.mode !== "src_keywords") return next();
+    const raw = ctx.message.text.trim();
+    const keywords = raw === "-" ? null : raw.split(/[,\n]+/).map((s) => s.trim()).filter(Boolean);
+    wizards.delete(ctx.chat.id);
+    try {
+      await api("PUT", `/sources/${w.sourceId}`, { keywords });
+      await ctx.reply(
+        keywords && keywords.length
+          ? `✅ Тема сохранена: ${esc(keywords.join(", "))}.\nИз этого источника теперь будут идти только посты с этими словами.`
+          : "✅ Фильтр снят — все посты источника пойдут в дайджест.",
+        { reply_markup: new InlineKeyboard().text("🔍 Найти информацию", "ca:find").text("📡 Источники", "ca:sources").row().text("🏠 Меню", "ca:menu") },
+      );
+    } catch (e) {
+      await ctx.reply(`⚠️ ${esc(e.message)}`, { reply_markup: new InlineKeyboard().text("🏠 Меню", "ca:menu") });
     }
   });
 }
@@ -551,16 +595,16 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
     if (!isOwner(ctx)) return ctx.answerCallbackQuery();
     await ctx.answerCallbackQuery();
     wizards.set(ctx.chat.id, { mode: "find" });
-    const counts = { telegram: 0, vk: 0, youtube: 0 };
+    const counts = { telegram: 0, vk: 0 };
     try {
       const all = await api("GET", "/sources");
       for (const s of all) counts[s.platform] = (counts[s.platform] || 0) + 1;
     } catch {}
-    const total = counts.telegram + counts.vk + counts.youtube;
+    const total = counts.telegram + counts.vk;
     const kb = new InlineKeyboard().text("➕ Добавить источник", "ca:src-platform").row();
     for (const [label, val] of PERIODS) kb.text(label, `ca:find-period:${val}`);
     kb.row().text("🏠 Меню", "ca:menu");
-    const breakdown = `📨 ${counts.telegram} · 🅥 ${counts.vk} · ▶ ${counts.youtube}`;
+    const breakdown = `📨 ${counts.telegram} · 🅥 ${counts.vk}`;
     const head = total
       ? `🔍 <b>Найти информацию</b>\n\nИсточников: ${breakdown}. За какой период искать?`
       : `🔍 <b>Найти информацию</b>\n\n<i>Пока нет источников.</i> Сначала добавь — потом выбери период.`;
@@ -607,7 +651,7 @@ function registerFindHandlers(bot, isOwner, { api, wizards, esc }) {
   }
 
   async function sendDigest(ctx, digestId, items) {
-    const PLAT = { telegram: "📨", vk: "🅥", youtube: "▶" };
+    const PLAT = { telegram: "📨", vk: "🅥" };
     await ctx.reply(`📰 <b>Дайджест</b> — найдено ${items.length}`, { parse_mode: "HTML" });
     for (const it of items) {
       const m = it.metrics || {};
