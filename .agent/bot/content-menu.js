@@ -545,10 +545,8 @@ function registerSourcesHandlers(bot, isOwner, { api, wizards, esc }) {
     if (!sources.length) lines.push("<i>пока пусто</i>");
     const kb = new InlineKeyboard().text("➕ Добавить источник", "ca:src-platform").row();
     for (const s of sources) {
-      kb.text(`✏ ${ICON[s.platform] || ""} ${s.ref}`, `ca:src-kw-edit:${s.id}`)
-        .text(`❌`, `ca:src-del:${s.id}`).row();
+      kb.text(`❌ ${ICON[s.platform] || ""} ${s.ref}`, `ca:src-del:${s.id}`).row();
     }
-    if (sources.length) kb.text("🔍 Найти информацию", "ca:find").row();
     kb.text("🏠 Меню", "ca:menu");
     await ctx.reply(lines.join("\n"), { parse_mode: "HTML", reply_markup: kb });
   }
