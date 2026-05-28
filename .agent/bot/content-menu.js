@@ -1,7 +1,7 @@
 // .agent/bot/content-menu.js
 // Раздел «✍ Контент» в @flash_gideon_bot — управление Контент-Агентом.
 // Сервис content-agent живёт на http://127.0.0.1:3002.
-import { InlineKeyboard } from "grammy";
+import { InlineKeyboard, InputFile } from "grammy";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -459,6 +459,7 @@ function postKeyboard(id) {
     .text("✂️ Короче", `ca:post-var:${id}:shorter`).text("📈 Экспертнее", `ca:post-var:${id}:expert`).row()
     .text("🙂 Проще", `ca:post-var:${id}:simpler`).text("😂 Юмор", `ca:post-var:${id}:humor`).row()
     .text("🎯 Призыв", `ca:post-var:${id}:cta`).text("✨ Эмодзи", `ca:post-var:${id}:emoji`).row()
+    .text("🎨 Картинка к посту", `ca:post-img:${id}`).row()
     .text("🏠 Меню", "ca:menu");
 }
 
@@ -497,6 +498,30 @@ function registerWriteHandlers(bot, isOwner, { api, wizards, esc, transcribeVoic
       await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
       await ctx.reply(`⚠️ ${esc(e.message)}`);
     }
+  });
+
+  // 🎨 Картинка к посту: Claude → EN prompt → Pollinations → PNG → отправка как фото.
+  async function generateAndSendImage(ctx, postId) {
+    const wait = await ctx.reply("Рисую картинку... 🎨 (до минуты)");
+    try {
+      const r = await api("POST", `/posts/${postId}/image`, {}, { timeoutMs: 180000 });
+      await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
+      const caption = `🎨 ${esc(r.prompt.slice(0, 200))}${r.prompt.length > 200 ? "…" : ""}`;
+      const kb = new InlineKeyboard()
+        .text("🎲 Ещё вариант", `ca:post-img:${postId}`).row()
+        .text("🏠 Меню", "ca:menu");
+      await ctx.replyWithPhoto(new InputFile(r.path), { caption, parse_mode: "HTML", reply_markup: kb });
+    } catch (e) {
+      await ctx.api.deleteMessage(ctx.chat.id, wait.message_id).catch(() => {});
+      await ctx.reply(`⚠️ ${esc(e.message)}`, { reply_markup: new InlineKeyboard().text("🎲 Попробовать ещё", `ca:post-img:${postId}`).row().text("🏠 Меню", "ca:menu") });
+    }
+  }
+
+  bot.callbackQuery(/^ca:post-img:(\d+)$/, async (ctx) => {
+    if (!isOwner(ctx)) return ctx.answerCallbackQuery();
+    const id = ctx.match[1];
+    await ctx.answerCallbackQuery({ text: "Генерирую..." });
+    await generateAndSendImage(ctx, id);
   });
 
   bot.callbackQuery(/^ca:news-post:(\d+)$/, async (ctx) => {

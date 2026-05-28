@@ -18,10 +18,14 @@ import { fetchYouTubeChannel, validateYtKey } from "./lib/sources/youtube.js";
 import { fetchGoogleTrends } from "./lib/trends/google-trends.js";
 import { fetchRedditTrends } from "./lib/trends/reddit.js";
 import { expandNiche } from "./lib/trends/keyword-expander.js";
+import { generateImage as pollinationsGenerate } from "./lib/image-gen/pollinations.js";
+import { buildImagePromptFromPost } from "./lib/image-prompt.js";
+import fs from "node:fs";
+import path from "node:path";
 
 const SETTING_KEYS = ["vk_token", "publish_targets"];
 
-export function createServer({ db, password, secret, styleDir, runner, model, tgFetch, vkFetch, ytFetch, vkValidate, ytValidate, gtFetch, redditFetch }) {
+export function createServer({ db, password, secret, styleDir, runner, model, tgFetch, vkFetch, ytFetch, vkValidate, ytValidate, gtFetch, redditFetch, imageGen, imagesDir }) {
   const app = express();
   app.use(express.json({ limit: "5mb" }));
   const doTgFetch = tgFetch || (({ channels, sinceTs, keywords, perChannelLimit }) => fetchFromChannels({ channels, sinceTs, keywords, perChannelLimit }));
@@ -45,6 +49,8 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
   const doYtValidate = ytValidate || validateYtKey;
   const doGtFetch = gtFetch || (({ niche, period, geo }) => fetchGoogleTrends({ niche, period, geo }));
   const doRedditFetch = redditFetch || (({ niche, period, limit }) => fetchRedditTrends({ niche, period, limit }));
+  const doImageGen = imageGen || pollinationsGenerate;
+  const imgDir = imagesDir || path.resolve("./data/images");
 
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
@@ -380,6 +386,35 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
     if (!getPost(db, id)) return res.status(404).json({ error: "not found" });
     setPostStatus(db, id, "approved");
     res.json({ ok: true, id });
+  });
+
+  // Генерация картинки к посту: Claude → EN image prompt → Pollinations → файл на диске.
+  app.post("/api/posts/:id/image", async (req, res) => {
+    const id = Number(req.params.id);
+    const post = getPost(db, id);
+    if (!post) return res.status(404).json({ error: "post not found" });
+    if (!post.draft_text) return res.status(400).json({ error: "у поста ещё нет текста" });
+    const seed = req.body?.seed !== undefined ? Number(req.body.seed) : Math.floor(Math.random() * 1_000_000);
+    try {
+      const imagePrompt = await buildImagePromptFromPost({ postText: post.draft_text, runner, model });
+      if (!imagePrompt) return res.status(500).json({ error: "не удалось построить prompt для картинки" });
+      const { buffer, url, contentType } = await doImageGen({ prompt: imagePrompt, seed });
+      fs.mkdirSync(imgDir, { recursive: true });
+      const filename = `post-${id}-${Date.now()}-s${seed}.png`;
+      const filePath = path.join(imgDir, filename);
+      fs.writeFileSync(filePath, buffer);
+      res.status(201).json({
+        post_id: id,
+        seed,
+        prompt: imagePrompt,
+        path: filePath,
+        url,
+        size: buffer.length,
+        content_type: contentType,
+      });
+    } catch (e) {
+      res.status(500).json({ error: String(e.message) });
+    }
   });
 
   // ── Настройки ──────────────────────────────────────────
