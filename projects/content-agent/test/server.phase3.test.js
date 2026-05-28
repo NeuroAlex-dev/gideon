@@ -1,0 +1,76 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import os from "node:os";
+import path from "node:path";
+import fs from "node:fs";
+import { createServer } from "../server.js";
+import { openDb, setSetting } from "../lib/db.js";
+import { makeToken } from "../lib/auth.js";
+
+function setup({ withVkToken = false, withYtKey = false } = {}) {
+  const db = openDb(":memory:");
+  if (withVkToken) setSetting(db, "vk_token", "VK-TKN");
+  if (withYtKey) setSetting(db, "youtube_api_key", "YT-KEY");
+  const password = "p", secret = "s";
+  const styleDir = fs.mkdtempSync(path.join(os.tmpdir(), "p3-style-"));
+  const runner = async (_a, payload) => JSON.stringify({ result: `OUT:${payload.slice(0, 12)}` });
+  const tgFetch = async () => [{ platform: "telegram", source_ref: "@a", url: "https://t.me/a/1", title: "TG", text: "TG body", metrics: { views: 10, reactions: 1, comments: 0, forwards: 0 }, date: Date.now(), score: 1 }];
+  const vkFetch = async () => [{ platform: "vk", source_ref: "durov", url: "https://vk.com/wall1_1", title: "VK", text: "VK body", metrics: { views: 100, reactions: 50, comments: 5, forwards: 3 }, date: Date.now(), score: 200 }];
+  const ytFetch = async () => [{ platform: "youtube", source_ref: "@MKBHD", url: "https://youtu.be/x", title: "YT", text: "YT body", metrics: { views: 1000, reactions: 100, comments: 10, forwards: 0 }, date: Date.now(), score: 50 }];
+  const vkValidate = async (t) => t === "VK-TKN";
+  const ytValidate = async (k) => k === "YT-KEY";
+  const app = createServer({ db, password, secret, styleDir, runner, model: "sonnet", tgFetch, vkFetch, ytFetch, vkValidate, ytValidate });
+  const server = app.listen(0);
+  const port = server.address().port;
+  const token = makeToken(secret, password);
+  const req = (m, p, b) => fetch(`http://127.0.0.1:${port}${p}`, { method: m, headers: { "content-type": "application/json", "x-auth-token": token }, body: b ? JSON.stringify(b) : undefined });
+  return { req, close: () => server.close(), db };
+}
+
+test("PUT /api/settings vk_token валидирует через vkValidate", async () => {
+  const { req, close } = setup();
+  const bad = await req("PUT", "/api/settings", { key: "vk_token", value: "wrong" });
+  assert.equal(bad.status, 400);
+  const good = await req("PUT", "/api/settings", { key: "vk_token", value: "VK-TKN" });
+  assert.equal(good.status, 200);
+  close();
+});
+
+test("PUT /api/settings youtube_api_key валидирует через ytValidate", async () => {
+  const { req, close } = setup();
+  const bad = await req("PUT", "/api/settings", { key: "youtube_api_key", value: "wrong" });
+  assert.equal(bad.status, 400);
+  const good = await req("PUT", "/api/settings", { key: "youtube_api_key", value: "YT-KEY" });
+  assert.equal(good.status, 200);
+  close();
+});
+
+test("PUT /api/settings пустое значение очищает без валидации", async () => {
+  const { req, close } = setup();
+  const r = await req("PUT", "/api/settings", { key: "vk_token", value: "" });
+  assert.equal(r.status, 200);
+  close();
+});
+
+test("search учитывает только платформы с ключами и источниками", async () => {
+  const { req, close } = setup({ withVkToken: false, withYtKey: false });
+  await req("POST", "/api/sources", { platform: "telegram", ref: "@a" });
+  await req("POST", "/api/sources", { platform: "vk", ref: "durov" });
+  await req("POST", "/api/sources", { platform: "youtube", ref: "@MKBHD" });
+  const r = await (await req("POST", "/api/search", { period: "week", keywords: [] })).json();
+  assert.equal(r.items.length, 1);
+  assert.equal(r.items[0].platform, "telegram");
+  close();
+});
+
+test("search агрегирует TG+VK+YT когда ключи заданы", async () => {
+  const { req, close } = setup({ withVkToken: true, withYtKey: true });
+  await req("POST", "/api/sources", { platform: "telegram", ref: "@a" });
+  await req("POST", "/api/sources", { platform: "vk", ref: "durov" });
+  await req("POST", "/api/sources", { platform: "youtube", ref: "@MKBHD" });
+  const r = await (await req("POST", "/api/search", { period: "week", keywords: [] })).json();
+  const platforms = new Set(r.items.map((i) => i.platform));
+  assert.deepEqual([...platforms].sort(), ["telegram", "vk", "youtube"]);
+  assert.equal(r.items[0].platform, "vk"); // выше всех по engagement (score=200)
+  close();
+});

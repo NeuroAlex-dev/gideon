@@ -16,7 +16,9 @@ function setup() {
     { platform: "telegram", source_ref: channels[0], url: "https://t.me/a/1", title: "Новость A", text: "Полный текст A. Второе.", metrics: { views: 100, reactions: 20, comments: 5, forwards: 2 }, date: Date.now(), score: 50 },
     { platform: "telegram", source_ref: channels[0], url: "https://t.me/a/2", title: "Новость B", text: "Текст B.", metrics: { views: 10, reactions: 1, comments: 0, forwards: 0 }, date: Date.now(), score: 5 },
   ]);
-  const app = createServer({ db, password, secret, styleDir, runner, model: "sonnet", tgFetch });
+  const vkValidate = async () => true;
+  const ytValidate = async () => true;
+  const app = createServer({ db, password, secret, styleDir, runner, model: "sonnet", tgFetch, vkValidate, ytValidate });
   const server = app.listen(0);
   const port = server.address().port;
   const token = makeToken(secret, password);

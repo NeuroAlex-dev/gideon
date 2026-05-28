@@ -12,7 +12,10 @@ function setup() {
   const password = "p", secret = "s";
   const styleDir = fs.mkdtempSync(path.join(os.tmpdir(), "srv-style-"));
   const runner = async (_args, payload) => JSON.stringify({ result: `OUT:${payload.slice(0, 20)}` });
-  const app = createServer({ db, password, secret, styleDir, runner, model: "sonnet" });
+  // permissive валидаторы — чтобы тесты Phase 1 не дёргали реальные VK/YouTube API
+  const vkValidate = async () => true;
+  const ytValidate = async () => true;
+  const app = createServer({ db, password, secret, styleDir, runner, model: "sonnet", vkValidate, ytValidate });
   const server = app.listen(0);
   const port = server.address().port;
   const token = makeToken(secret, password);

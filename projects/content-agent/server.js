@@ -13,13 +13,33 @@ import { INTERVIEW_QUESTIONS, buildCorpus, generateStyleProfile, STYLE_DOCS } fr
 import { loadStyleProfile, generatePost } from "./lib/writer.js";
 import { extractiveSummary, sortByEngagement, reshapeDigest } from "./lib/digest.js";
 import { fetchFromChannels, periodToSinceTs } from "./lib/sources/telegram.js";
+import { fetchVkWall, validateVkToken } from "./lib/sources/vk.js";
+import { fetchYouTubeChannel, validateYtKey } from "./lib/sources/youtube.js";
 
 const SETTING_KEYS = ["vk_token", "youtube_api_key", "publish_targets"];
 
-export function createServer({ db, password, secret, styleDir, runner, model, tgFetch }) {
+export function createServer({ db, password, secret, styleDir, runner, model, tgFetch, vkFetch, ytFetch, vkValidate, ytValidate }) {
   const app = express();
   app.use(express.json({ limit: "5mb" }));
   const doTgFetch = tgFetch || (({ channels, sinceTs, keywords }) => fetchFromChannels({ channels, sinceTs, keywords }));
+  const doVkFetch = vkFetch || (async ({ refs, token, sinceTs }) => {
+    const out = [];
+    for (const ref of refs) {
+      try { out.push(...await fetchVkWall({ screenName: ref, token, sinceTs })); }
+      catch (e) { out.push({ platform: "vk", source_ref: ref, error: e.message }); }
+    }
+    return out;
+  });
+  const doYtFetch = ytFetch || (async ({ refs, apiKey, sinceTs }) => {
+    const out = [];
+    for (const ref of refs) {
+      try { out.push(...await fetchYouTubeChannel({ ref, apiKey, sinceTs })); }
+      catch (e) { out.push({ platform: "youtube", source_ref: ref, error: e.message }); }
+    }
+    return out;
+  });
+  const doVkValidate = vkValidate || validateVkToken;
+  const doYtValidate = ytValidate || validateYtKey;
 
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
@@ -152,27 +172,46 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
 
   // ── Поиск → дайджест ───────────────────────────────────
   app.post("/api/search", async (req, res) => {
-    const platforms = req.body?.platforms || ["telegram"];
     const period = req.body?.period || "week";
     const adHoc = Array.isArray(req.body?.keywords) ? req.body.keywords : [];
     try {
       const saved = listKeywords(db);
       const include = [...adHoc, ...saved.filter((k) => k.scope === "include").map((k) => k.term)];
       const exclude = saved.filter((k) => k.scope === "exclude").map((k) => k.term);
-
+      const sinceTs = periodToSinceTs(period);
+      const platformsUsed = [];
       let items = [];
-      if (platforms.includes("telegram")) {
-        const channels = listSources(db, { platform: "telegram" }).map((s) => s.ref);
-        if (channels.length) {
-          const sinceTs = periodToSinceTs(period);
-          const fetched = await doTgFetch({ channels, sinceTs, keywords: { include, exclude } });
-          items = fetched.filter((x) => !x.error);
-        }
+
+      // Telegram (фильтр ключевиков внутри коннектора)
+      const tgChannels = listSources(db, { platform: "telegram" }).map((s) => s.ref);
+      if (tgChannels.length) {
+        platformsUsed.push("telegram");
+        const fetched = await doTgFetch({ channels: tgChannels, sinceTs, keywords: { include, exclude } });
+        items.push(...fetched.filter((x) => !x.error));
       }
+
+      // VK (фильтр на сервере через matchesText)
+      const vkRefs = listSources(db, { platform: "vk" }).map((s) => s.ref);
+      const vkToken = getSetting(db, "vk_token");
+      if (vkRefs.length && vkToken) {
+        platformsUsed.push("vk");
+        const fetched = await doVkFetch({ refs: vkRefs, token: vkToken, sinceTs });
+        items.push(...fetched.filter((x) => !x.error && matchesText(x, include, exclude)));
+      }
+
+      // YouTube (фильтр на сервере)
+      const ytRefs = listSources(db, { platform: "youtube" }).map((s) => s.ref);
+      const ytKey = getSetting(db, "youtube_api_key");
+      if (ytRefs.length && ytKey) {
+        platformsUsed.push("youtube");
+        const fetched = await doYtFetch({ refs: ytRefs, apiKey: ytKey, sinceTs });
+        items.push(...fetched.filter((x) => !x.error && matchesText(x, include, exclude)));
+      }
+
       items = sortByEngagement(items).slice(0, 20);
       for (const it of items) it.summary = extractiveSummary(it.text);
 
-      const digestId = createDigest(db, { period, keywords: include, platforms });
+      const digestId = createDigest(db, { period, keywords: include, platforms: platformsUsed });
       addDigestItems(db, digestId, items);
       const stored = listDigestItems(db, digestId);
       res.status(201).json({ digest_id: digestId, count: stored.length, items: stored.map(mapItem) });
@@ -242,14 +281,32 @@ export function createServer({ db, password, secret, styleDir, runner, model, tg
     res.json(out);
   });
 
-  app.put("/api/settings", (req, res) => {
+  app.put("/api/settings", async (req, res) => {
     const { key, value } = req.body || {};
     if (!SETTING_KEYS.includes(key)) return res.status(400).json({ error: "unknown key" });
-    setSetting(db, key, String(value ?? ""));
+    const v = String(value ?? "");
+    if (v) {
+      if (key === "vk_token") {
+        const ok = await doVkValidate(v);
+        if (!ok) return res.status(400).json({ error: "VK токен не работает (проверь scope=wall и валидность)" });
+      }
+      if (key === "youtube_api_key") {
+        const ok = await doYtValidate(v);
+        if (!ok) return res.status(400).json({ error: "YouTube API ключ не работает (проверь, что YouTube Data API v3 включён в проекте)" });
+      }
+    }
+    setSetting(db, key, v);
     res.json({ ok: true });
   });
 
   return app;
+}
+
+function matchesText(item, include, exclude) {
+  const t = ((item.title || "") + " " + (item.text || "")).toLowerCase();
+  for (const ex of exclude) if (ex && t.includes(String(ex).toLowerCase())) return false;
+  if (!include.length) return true;
+  return include.some((k) => k && t.includes(String(k).toLowerCase()));
 }
 
 function mapItem(row) {
